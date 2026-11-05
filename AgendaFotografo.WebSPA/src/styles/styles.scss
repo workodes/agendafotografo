@@ -1,0 +1,129 @@
+/* ----------------------------------------------------------------------------------------------------- */
+/*  @ Import/write your custom styles here.
+/*  @ Styles from this file will override 'vendors.scss' and Fuse's base styles.
+/* ----------------------------------------------------------------------------------------------------- */
+/* Definindo classes de estilo do Material Design */
+@import "primeng/resources/themes/lara-light-blue/theme.css";
+@import "primeng/resources/primeng.css";
+
+.mat-snackbar-primary {
+    background-color: #2196f3;
+    /* Cor primária */
+    color: white;
+}
+
+.mat-snackbar-accent {
+    background-color: #ff4081;
+    /* Cor de destaque/acento */
+    color: white;
+}
+
+.mat-snackbar-warn {
+    background-color: #ff9800;
+    /* Cor de aviso */
+    color: white;
+}
+
+@keyframes spinner-button {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spinner-button:before {
+    content: "";
+    box-sizing: border-box;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin-top: -10px;
+    margin-left: -10px;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+    border-top-color: #000000;
+    animation: spinner-button 0.8s linear infinite;
+}
+
+.Ativo {
+    border-radius: 100px;
+    border: 0px solid black;
+    text-align: center !important;
+    padding-top: 0px !important;
+    padding-bottom: 0px !important;
+    padding-right: 12px !important;
+    padding-left: 12px !important;
+    background-color: #00984a;
+    color: white !important;
+    display: inline-block;
+}
+
+.Inativo {
+    border-radius: 100px;
+    border: 0px solid black;
+    text-align: center !important;
+    padding-top: 0px !important;
+    padding-bottom: 0px !important;
+    padding-right: 12px !important;
+    padding-left: 12px !important;
+    background-color: rgb(180, 0, 0);
+    color: white !important;
+    display: inline-block;
+}
+
+li.carousel__slide {
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+}
+
+.bg-danger {
+    background-color: #ff0e0e !important;
+}
+
+div.carousel__next {
+    padding: 0 !important;
+}
+div.carousel__previous {
+    padding: 0 !important;
+}
+
+// Hover na linha do mat-table
+.mat-mdc-row {
+    .mat-mdc-cell {
+        transition: background-color 0.2s ease;
+    }
+
+    &:hover .mat-mdc-cell {
+        background-color: rgba(var(--fuse-accent-rgb), 0.04) !important;
+    }
+    /*
+    &.hover-warn:hover .mat-mdc-cell {
+        background-color: rgba(var(--fuse-warn-rgb), 0.07) !important;
+    }
+
+    &.hover-primary:hover .mat-mdc-cell {
+        background-color: rgba(var(--fuse-primary-rgb), 0.07) !important;
+    }
+*/
+}
+
+
+.mat-horizontal-stepper-header,
+.mat-horizontal-stepper-header:hover,
+.mat-horizontal-stepper-header:focus,
+.mat-horizontal-stepper-header:active {
+    background-color: transparent !important;
+    box-shadow: none !important;
+}
+.mat-step-header-ripple {
+    display: none !important;
+}
+
+.mat-horizontal-stepper-header:hover .mat-step-text-label {
+    color: rgba(var(--fuse-primary-rgb)) !important;
+}
+
+.mat-mdc-snack-bar-label {
+    white-space: pre-line;
+}

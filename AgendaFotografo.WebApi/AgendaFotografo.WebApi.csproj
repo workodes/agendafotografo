@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>AgendaFotografo.WebApi</RootNamespace>
+    <UserSecretsId>0b001c7b-192d-4e57-a04d-fb97e0d8b37f</UserSecretsId>
+  </PropertyGroup>
+
+  <!-- Arquivos enviados pelos usuários (Arquivos:Pasta vazio): nunca entram no build/publish e não ficam no wwwroot -->
+  <ItemGroup>
+    <Compile Remove="App_Data\**" />
+    <Content Remove="App_Data\**" />
+    <EmbeddedResource Remove="App_Data\**" />
+    <None Remove="App_Data\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AgendaFotografo.Infra.Data\AgendaFotografo.Infra.Data.csproj" />
+    <ProjectReference Include="..\AgendaFotografo.CrossCutting\AgendaFotografo.CrossCutting.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Extensions.FluentValidation.Brazil" Version="1.0.2" />
+    <PackageReference Include="FluentValidation" Version="12.2.0" />
+    <PackageReference Include="Mapster" Version="10.0.14" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.22">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.3.1" />
+  </ItemGroup>
+
+</Project>

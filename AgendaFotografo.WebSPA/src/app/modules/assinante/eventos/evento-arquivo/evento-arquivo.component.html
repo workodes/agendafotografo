@@ -1,0 +1,46 @@
+<div class="flex flex-col gap-2 p-3 rounded-lg border bg-gray-50">
+    <div class="flex items-baseline justify-between gap-2">
+        <span class="text-sm font-semibold">{{ rotulo }}</span>
+        <span class="text-xs text-secondary">{{ dica }}</span>
+    </div>
+
+    <div *ngIf="!eventoId" class="text-xs text-secondary">Salve o evento para enviar este arquivo.</div>
+
+    <div *ngIf="eventoId" class="flex flex-wrap items-center gap-3">
+        <!-- Miniatura (imagens) por blob autenticado; clique abre maior -->
+        <ng-container *ngIf="arquivo && ehImagem">
+            <button type="button" class="relative flex items-center justify-center w-24 h-24 rounded border bg-white overflow-hidden shrink-0"
+                [disabled]="!previewUrl" (click)="abrirImagem()" [attr.aria-label]="'Abrir ' + rotulo">
+                <img *ngIf="previewUrl" [src]="previewUrl" [alt]="rotulo" class="w-full h-full object-cover">
+                <mat-progress-spinner *ngIf="carregandoPreview" diameter="24" mode="indeterminate"></mat-progress-spinner>
+                <mat-icon *ngIf="previewFalhou" class="text-secondary" svgIcon="heroicons_outline:photo"></mat-icon>
+            </button>
+        </ng-container>
+
+        <div *ngIf="arquivo" class="flex flex-col min-w-0 flex-1 basis-40">
+            <div class="flex items-center gap-2 min-w-0">
+                <mat-icon *ngIf="!ehImagem" class="icon-size-5 shrink-0 text-secondary" svgIcon="heroicons_outline:map"></mat-icon>
+                <span class="truncate text-sm font-medium" [attr.title]="arquivo.EVA_NOME_ORIGINAL">{{ arquivo.EVA_NOME_ORIGINAL }}</span>
+            </div>
+            <span class="text-xs text-secondary">{{ tamanho }}</span>
+        </div>
+        <div *ngIf="!arquivo" class="text-sm text-secondary flex-1 basis-40">Nenhum arquivo enviado.</div>
+
+        <div class="flex flex-wrap items-center gap-2">
+            <input #arq type="file" class="hidden" [accept]="accept" (change)="escolher(arq)">
+            <button mat-stroked-button type="button" [disabled]="enviando || ocupado" (click)="arq.click()">
+                <mat-progress-spinner *ngIf="enviando" diameter="18" mode="indeterminate"></mat-progress-spinner>
+                <mat-icon *ngIf="!enviando" svgIcon="heroicons_outline:arrow-up-tray"></mat-icon>
+                <span class="ml-2">{{ arquivo ? 'Trocar' : 'Enviar' }}</span>
+            </button>
+            <button *ngIf="arquivo && !ehImagem" mat-stroked-button type="button" [disabled]="enviando || ocupado" (click)="baixar()">
+                <mat-icon svgIcon="heroicons_outline:arrow-down-tray"></mat-icon>
+                <span class="ml-2">Baixar</span>
+            </button>
+            <button *ngIf="arquivo" mat-stroked-button color="warn" type="button" [disabled]="enviando || ocupado" (click)="remover()">
+                <mat-icon svgIcon="heroicons_outline:trash"></mat-icon>
+                <span class="ml-2">Remover</span>
+            </button>
+        </div>
+    </div>
+</div>

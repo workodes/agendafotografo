@@ -1,0 +1,86 @@
+# AgendaFotografo
+
+Agenda de equipe para fotógrafos de eventos esportivos (corrida, treino, CrossFit, moto passeio etc.),
+vendida como SaaS para coordenadores de equipes de fotografia. Nome do produto ainda provisório
+(AGENDAFOTOGRAFO). Desenho aprovado: `docs/superpowers/specs/2026-11-05-agendafotografo-design.md`
+(leia antes de criar qualquer módulo de negócio).
+
+## Regra de ouro: estrutura espelhada no Fartec.Portal
+O back-end segue **exatamente** a estrutura, os nomes e as convenções do `Fartec.Portal` (referência obrigatória, somente leitura:
+`/Users/eduardokopp/Profissional/FartecSistemas/Fartec.Portal`). Onde o Portal diverge do padrão do plugin `fartec`, **vale o Portal**.
+Antes de criar qualquer controller, model, validator, map ou migration, abra o equivalente no Portal (`ClienteController`,
+`MerecimentoController`, `AuthController`, `Setup.cs`, `Seed.cs`) e copie o desenho. Regras do Portal que são de negócio dele
+(apontamento, texto em maiúsculas automático, e-mail marketing, importadores) **não** fazem parte deste projeto.
+
+## Decisões do projeto
+- Sistema: AgendaFotografo
+- Estrutura: padrão Fartec (Domain / Infra.Data / CrossCutting / WebApi / WebSPA), espelhando o Fartec.Portal, com **uma única WebApi** (`AgendaFotografo.WebApi`) e **um único SPA** (`AgendaFotografo.WebSPA`)
+- API: **uma API só, um controller base (`AgendaFotografoController`, rota `api/[controller]/[action]`)**; o perfil é controlado por `[Authorize(Roles = ...)]` em cada controller (como no Portal). Não existe prefixo `api/Admin`.
+- SPA: **um SPA só, perfis separados por rota** (`/admin/...`, `/assinante/...`; decisão do colaborador). Não criar SPAs por perfil.
+- Modelo de acesso: Assinante + Administração (multi-tenant). Perfis **só `Admin` e `Assinante`**. O Assinante (coordenador) é o tenant e faz login no dia a dia; o Admin (criado pelo seed) cria, ativa e bloqueia assinantes. A equipe de fotógrafos NÃO faz login na v1. Não há `UsuarioAssinante`, permissões granulares nem planos.
+- Cor principal: #F97316 (paleta gerada: ver `tailwind.config.js` do SPA; apoio #6B4F3F)
+- Logo: ainda não existe; o SPA usa uma logo provisória única (ícone + texto) gerada por script, em `src/assets/images/logo/`
+- Banco: **MySQL** (Pomelo.EntityFrameworkCore.MySql), servidor zeus.fartecsistemas.com.br, banco EduardoDbNaoApagar (credenciais no appsettings.json)
+- Financeiro: nunca (sem valor, pago, repasse ou cliente comercial)
+- Uso em celular e computador (telas responsivas); o link público é mobile-first
+
+## Regras do banco (IMPORTANTE)
+- Nada é executado direto no banco: sem SQL manual, sem `CREATE DATABASE/TABLE`, sem `dotnet ef database update`. A estrutura vem só das migrations do EF Core, aplicadas pela API ao iniciar (`MigrateDatabaseAsync`). Iniciar a API acessa o banco (inclusive `ServerVersion.AutoDetect`): o colaborador decide quando.
+- Tabelas em MAIÚSCULAS, inclusive as do Identity (`ASPNETUSERS`, `ASPNETROLES` etc.), como no Portal. Detalhes e convenção de nomes no `CLAUDE.md` do Infra.Data.
+- Credenciais ficam só no `appsettings.json`; nunca repetir senha em CLAUDE.md, docs ou relatórios. Exceção decidida pelo colaborador: a senha padrão do admin do seed fica no código (`Seed.SenhaPadraoAdmin`) e vai para o git.
+
+## Estrutura da solução (`AgendaFotografo.sln`, .NET 10)
+| Projeto | Papel |
+|---|---|
+| `AgendaFotografo.Domain` | Entidades, interfaces (`IBaseRepository`, `IUnitOfWork`), `RoleNames`. Não referencia ninguém. |
+| `AgendaFotografo.Infra.Data` | `EfDbContext`, maps, interceptor de auditoria, repositórios, migrations (MySQL/Pomelo). |
+| `AgendaFotografo.CrossCutting` | Regras FluentValidation reutilizáveis (CPF/CNPJ, e-mail, telefone, senha, endereço) e serviço de e-mail (`IEmailService`/`EmailService`, MailKit). |
+| `AgendaFotografo.WebApi` | **API única** (login, área do assinante e área administrativa). Porta http 5289 / https 7118. Ver o `CLAUDE.md` dela. |
+| `AgendaFotografo.WebSPA` | **SPA único** Angular 18 + Fuse (porta 4200): Admin, assinante e link público, separados por rota; o `Role` do login define a área. Ver o `CLAUDE.md` dele. |
+
+Namespaces: `AgendaFotografo.<Projeto>` (a API usa `AgendaFotografo.WebApi`).
+
+## Comandos
+```bash
+dotnet build                                   # solução inteira
+dotnet run --project AgendaFotografo.WebApi    # aplica migrations e seed ao iniciar (acessa o banco!)
+# SPA (Node 22): em AgendaFotografo.WebSPA, npm install; npm start (http://localhost:4200); npm run build
+# nova migration: NÃO acessa o banco (a EfDbContextFactory do Infra.Data fixa o MySQL 8.0.36 com connection string fictícia)
+dotnet ef migrations add <NomeEmPascalCase> --project AgendaFotografo.Infra.Data --startup-project AgendaFotografo.WebApi
+```
+Swagger fica em `/swagger` (somente Development). Não existem testes automatizados no padrão.
+
+## Regras transversais
+- **Multi-tenancy**: todo dado de negócio pertence a um assinante. O id do tenant vem **sempre do banco** via `AssinanteEscopo.ObterAssinanteIdAsync` (lê `Usuario.AssinanteId`), nunca de claim, body ou query. Em Update/Delete, carregar por `Id` **e** assinante.
+- **Assinante inativo** (`ASS_ATIVO = false`): bloqueia o login (400) e derruba a sessão em até ~30 s (401 por `OnTokenValidated` + `SessaoUsuarioCache`); quem altera `ASS_ATIVO` deve chamar `SessaoUsuarioCache.Invalidar` para cada usuário do assinante.
+- **JSON**: `PropertyNamingPolicy = null` (nomes C# exatos no JSON), `ReferenceHandler.IgnoreCycles`. Renomear propriedade quebra o front.
+- **Enums**: valores numéricos fazem parte do contrato com o front; manter sincronia back↔front.
+- **Senha**: única regra é o mínimo de 8 caracteres (validator + Identity). `Usuario.ExigirTrocaSenha` força a troca no SPA.
+- **Endpoints anônimos** (previstos para o link público `/e/{token}`): `[AllowAnonymous]` na action, código de 4 dígitos, 5 erros bloqueiam 15 min por aparelho, acesso liberado por 7 dias. Quando o módulo entrar, acrescentar `ForwardedHeaders` (IP real atrás de proxy) no `Program.cs`. Nunca expor notas internas, pendências ou dados do organizador.
+- **Configuração** (`appsettings.json` da WebApi, convenção da equipe): `ConnectionStrings:DefaultConection` (grafia mantida; traz a senha), `Jwt` (`Key`, `ExpiraEmHoras`), `MailSettings` (`Mail`, `DisplayName`, `Password`, `Host`, `Port`), `Seed:AdminPassword` (opcional; vazio usa `Seed.SenhaPadraoAdmin`), `Cors:Origins`. Sobrescritas opcionais: `Db:Password`, `Jwt:Key`, `Seed:AdminPassword`, `Cors:Origins` por User Secrets (Development) ou variáveis de ambiente (`Db__Password` etc.).
+- **Arquivos** (flyer, imagem de rota, GPX): **disco**, atrás de `IArquivoStorage` (CrossCutting; o Blob pode entrar depois sem mexer nos controllers), numa pasta fora do `wwwroot` (`Arquivos:Pasta`; vazio = `<ContentRoot>/App_Data/arquivos`, ignorada pelo git e fora do publish). Imagens JPG/PNG/WEBP até 5 MB, GPX até 10 MB; detalhes no `CLAUDE.md` da WebApi.
+
+## Perfis
+- `Admin`: back-office; criado pelo seed (`admin@agendafotografo.com.br`, senha padrão em `Seed.SenhaPadraoAdmin`). Não tem assinante.
+- `Assinante`: coordenador; dono do tenant (`Usuario.AssinanteId`).
+- `api/Auth` (`Login`, `AlterarSenha`) é comum; o `Role` devolvido no login define para onde o SPA direciona.
+
+## Módulos planejados (um plano por entrega, em `docs/planos/`)
+1. Equipe + Organizadores + Tipos de evento: **pronto** (`docs/planos/02 - Equipe, Organizadores e Tipos de evento.md`; `MembroController`, `OrganizadorController`, `TipoEventoController`)
+2. Eventos (cadastro completo, rota, arquivos): **pronto** (`docs/planos/03 - Eventos e Escala da equipe.md`; `EventoController` e tela Eventos no SPA)
+3. Escala da equipe + Visão do dia + conflitos/livres: **pronto** (mesmo plano 03; actions do `EventoController` e tela Visão do dia no SPA)
+4. Agenda (lista + calendário)
+5. Link público
+6. Pendências
+7. Recorrência
+8. Painel + e-mail de lembretes
+9. Área admin de assinantes (criar, ativar, bloquear, redefinir acesso) em `AssinanteController` (`[Authorize(Roles = Admin)]`): **pronto, entregue antes do módulo 1** (`docs/planos/01 - Assinantes.md`)
+
+Nomes e perfis do domínio (do desenho): Equipe (membros: Fotógrafo/Editor/Assistente), Organizadores, Tipos de evento
+(Corrida, Treino, CrossFit, Moto passeio, Casamento, Academia, Outro, criados para cada assinante novo), Eventos
+(status Pendente/Confirmado/Realizado/Cancelado), Pendências (prioridade Alta/Média/Baixa; status A fazer/Em andamento/Concluída).
+Nomes de tabela/entidade/controller sugeridos: ver `AgendaFotografo.WebApi/CLAUDE.md`. Prefixos de campo das entidades novas devem ser combinados com o colaborador.
+
+## Subagents
+`fartec:backend` (API), `fartec:frontend` (SPA), `fartec:engenheiro` (planos), `fartec:revisor`, `fartec:testador`.
+Somente o colaborador faz commit/branch/worktree. A base da API e a do SPA (ambas alinhadas ao Portal, com o contrato de Auth novo) estão prontas, assim como os planos 01 (Assinantes), 02 (módulo 1) e 03 (módulos 2 e 3); o próximo é o módulo 4, Agenda (`fartec:engenheiro`).

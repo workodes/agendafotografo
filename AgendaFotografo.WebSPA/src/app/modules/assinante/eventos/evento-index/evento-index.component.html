@@ -1,0 +1,145 @@
+<div class="absolute inset-0 flex flex-col min-w-0 overflow-hidden" appFecharComEsc (esc)="aoEsc()">
+    <div class="flex flex-col flex-auto min-h-0 bg-white">
+        <!-- Abaixo de sm o cabeçalho empilha (título, busca, botões) -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4 p-4 sm:p-6 md:px-8 border-b">
+            <div class="text-3xl sm:text-4xl font-extrabold tracking-tight leading-none">Eventos</div>
+
+            <div class="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+                <mat-form-field class="fuse-mat-dense fuse-mat-rounded sm:min-w-72 w-full sm:w-auto" subscriptSizing="dynamic">
+                    <mat-icon class="icon-size-5" svgIcon="heroicons_outline:magnifying-glass" matPrefix></mat-icon>
+                    <input matInput [formControl]="busca" autocomplete="off" placeholder="Nome ou cidade">
+                </mat-form-field>
+
+                <div class="flex items-center justify-between sm:justify-start gap-2">
+                    <a mat-flat-button color="primary" [routerLink]="['novo']">
+                        <mat-icon svgIcon="heroicons_outline:plus"></mat-icon>
+                        <span class="ml-2">Novo</span>
+                    </a>
+                    <app-filtro-botao [ativo]="filtrosAtivos" (clicado)="abrirFiltros()"></app-filtro-botao>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-col flex-auto min-h-0 py-4 px-2 sm:px-6 md:px-8">
+            <div *ngIf="loading && dataSource.data.length === 0" class="flex items-center justify-center py-12">
+                <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
+            </div>
+
+            <div *ngIf="!(loading && dataSource.data.length === 0)" [class.opacity-60]="loading" [attr.aria-busy]="loading"
+                class="transition-opacity flex flex-col flex-1 min-h-0">
+                <div class="flex-1 min-h-0 overflow-auto">
+                    <!-- Abaixo de sm: layout fixo e células com pouco padding, para caber em 360 px sem rolar na horizontal.
+                         Abaixo de md só Data, Nome (com cidade e hora embaixo) e Status. -->
+                    <table mat-table [dataSource]="dataSource" class="w-full max-sm:table-fixed">
+                        <ng-container matColumnDef="EVE_DATA">
+                            <th mat-header-cell *matHeaderCellDef class="text-left max-sm:w-[64px] sm:w-[96px] max-sm:!px-2">Data</th>
+                            <td mat-cell *matCellDef="let e" class="whitespace-nowrap max-sm:!px-2">
+                                <div class="font-medium">{{ data(e) }}</div>
+                                <div class="text-xs text-secondary">{{ diaSemana(e) }}</div>
+                            </td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="EVE_HORA">
+                            <th mat-header-cell *matHeaderCellDef class="text-left hidden md:table-cell md:w-[110px] max-sm:!px-2">Hora</th>
+                            <td mat-cell *matCellDef="let e" class="whitespace-nowrap hidden md:table-cell max-sm:!px-2"
+                                [class.text-secondary]="!e.EVE_HORA">{{ hora(e) }}</td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="EVE_NOME">
+                            <th mat-header-cell *matHeaderCellDef class="text-left max-sm:!px-2">Nome</th>
+                            <td mat-cell *matCellDef="let e" class="max-sm:!px-2">
+                                <div class="truncate font-medium" [attr.title]="e.EVE_NOME">{{ e.EVE_NOME }}</div>
+                                <!-- Abaixo de md a cidade e a hora descem para baixo do nome -->
+                                <div class="truncate text-xs text-secondary md:hidden">{{ e.EVE_CIDADE }} · {{ hora(e) }}</div>
+                            </td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="TipoEventoNome">
+                            <th mat-header-cell *matHeaderCellDef class="text-left hidden md:table-cell max-sm:!px-2">Tipo</th>
+                            <td mat-cell *matCellDef="let e" class="hidden md:table-cell max-sm:!px-2">
+                                <div class="truncate max-w-[160px]" [attr.title]="e.TipoEventoNome">{{ e.TipoEventoNome || '-' }}</div>
+                            </td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="EVE_CIDADE">
+                            <th mat-header-cell *matHeaderCellDef class="text-left hidden md:table-cell max-sm:!px-2">Cidade</th>
+                            <td mat-cell *matCellDef="let e" class="hidden md:table-cell max-sm:!px-2">
+                                <div class="truncate max-w-[180px]" [attr.title]="e.EVE_CIDADE">{{ e.EVE_CIDADE }}</div>
+                            </td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="Equipe">
+                            <th mat-header-cell *matHeaderCellDef class="text-left hidden md:table-cell max-sm:!px-2">Equipe</th>
+                            <td mat-cell *matCellDef="let e" class="hidden md:table-cell max-sm:!px-2">
+                                <div *ngIf="e.Equipe?.length; else semEquipe" class="truncate max-w-[260px]" [attr.title]="equipe(e)">{{ equipe(e) }}</div>
+                                <ng-template #semEquipe><span class="text-secondary">-</span></ng-template>
+                            </td>
+                        </ng-container>
+
+                        <ng-container matColumnDef="EVE_STATUS">
+                            <th mat-header-cell *matHeaderCellDef class="max-sm:w-[96px] sm:w-[120px] text-left max-sm:!px-2">Status</th>
+                            <td mat-cell *matCellDef="let e" class="whitespace-nowrap max-sm:!px-2">
+                                <span class="leading-none rounded-full px-2 sm:px-3 py-1.5 text-xs font-semibold inline-flex items-center"
+                                    [ngClass]="statusCor[e.EVE_STATUS]">
+                                    {{ statusRotulo[e.EVE_STATUS] || '-' }}
+                                </span>
+                            </td>
+                        </ng-container>
+
+                        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                        <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+                            class="cursor-pointer hover:bg-gray-50" (click)="abrir(row, $event)" (auxclick)="abrir(row, $event)"></tr>
+                    </table>
+
+                    <div *ngIf="dataSource.data.length === 0" class="text-sm text-secondary text-center py-6">
+                        Nenhum evento encontrado.
+                    </div>
+                </div>
+
+                <mat-paginator [length]="totalCount" [pageIndex]="page" [pageSize]="pageSize"
+                    [pageSizeOptions]="[10, 25, 50, 100]" (page)="onPage($event)" showFirstLastButtons>
+                </mat-paginator>
+            </div>
+        </div>
+    </div>
+
+    <app-filtro-painel [aberto]="filtroAberto" (aplicar)="aplicarFiltros()" (limpar)="limparFiltros()" (fechar)="fecharFiltros()">
+        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense">
+            <mat-label>Data de</mat-label>
+            <input matInput [matDatepicker]="pickerDe" [formControl]="dataDe" placeholder="dd/mm/aaaa" autocomplete="off">
+            <mat-datepicker-toggle matIconSuffix [for]="pickerDe"></mat-datepicker-toggle>
+            <mat-datepicker #pickerDe></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense">
+            <mat-label>Data até</mat-label>
+            <input matInput [matDatepicker]="pickerAte" [formControl]="dataAte" placeholder="dd/mm/aaaa" autocomplete="off">
+            <mat-datepicker-toggle matIconSuffix [for]="pickerAte"></mat-datepicker-toggle>
+            <mat-datepicker #pickerAte></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense">
+            <mat-label>Status</mat-label>
+            <mat-select [formControl]="status">
+                <mat-option [value]="null">Todos</mat-option>
+                <mat-option *ngFor="let s of statusLista" [value]="s.valor">{{ s.rotulo }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense">
+            <mat-label>Tipo de evento</mat-label>
+            <mat-select [formControl]="tipoEventoId">
+                <mat-option [value]="null">Todos</mat-option>
+                <mat-option *ngFor="let t of tipos" [value]="t.Id">{{ t.Nome }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense">
+            <mat-label>Organizador</mat-label>
+            <mat-select [formControl]="organizadorId">
+                <mat-option [value]="null">Todos</mat-option>
+                <mat-option *ngFor="let o of organizadores" [value]="o.Id">{{ o.Nome }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+    </app-filtro-painel>
+</div>

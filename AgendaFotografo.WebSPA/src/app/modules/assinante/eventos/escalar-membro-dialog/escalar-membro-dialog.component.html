@@ -1,0 +1,101 @@
+<h2 mat-dialog-title>Escalar membro</h2>
+
+<mat-dialog-content class="!pt-2">
+    <div *ngIf="carregando" class="flex items-center justify-center py-8">
+        <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
+    </div>
+
+    <div *ngIf="falhaCarga" class="text-sm text-warn py-4">{{ falhaCarga }}</div>
+
+    <ng-container *ngIf="!carregando && !falhaCarga">
+        <!-- Erro da API (ex.: @instagram ou telefone já cadastrado) no próprio formulário -->
+        <div *ngIf="erroApi" role="alert" class="mb-3 p-3 rounded-lg border border-red-200 bg-red-50 text-red-800 text-sm">{{ erroApi }}</div>
+
+        <!-- Escolher um membro já cadastrado -->
+        <form *ngIf="!novoMembro" id="form-escalar" class="flex flex-col gap-1" [formGroup]="formExistente" (ngSubmit)="escalar()" novalidate>
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Membro</mat-label>
+                <mat-select formControlName="membroId" placeholder="Escolha quem vai fotografar">
+                    <mat-option *ngFor="let o of opcoes" [value]="o.Id">
+                        {{ o.MEM_NOME }}<span *ngIf="o.MEM_INSTAGRAM" class="text-secondary"> &#64;{{ o.MEM_INSTAGRAM }}</span>
+                        <span class="text-secondary"> · {{ funcaoRotulo[o.MEM_FUNCAO] }}</span>
+                        <span *ngIf="o.OutrosEventos?.length" class="text-amber-700"> · já escalado no dia</span>
+                    </mat-option>
+                </mat-select>
+                <mat-error>Escolha um membro.</mat-error>
+            </mat-form-field>
+
+            <!-- Conflito: avisa, mas não impede -->
+            <div *ngIf="selecionada?.OutrosEventos?.length" role="alert"
+                class="flex items-start gap-2 mb-2 p-3 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 text-sm">
+                <mat-icon class="icon-size-5 shrink-0 text-amber-600" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
+                <div class="min-w-0">
+                    <div>{{ textoOutrosEventos(selecionada!.OutrosEventos) }}</div>
+                    <div class="text-xs mt-1">Você pode escalar mesmo assim.
+                        <a class="underline" [routerLink]="['/assinante/visao-do-dia']" [queryParams]="{ data: data.dataEvento }" target="_blank">Ver o dia</a>
+                    </div>
+                </div>
+            </div>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Posição (opcional)</mat-label>
+                <input matInput formControlName="posicao" maxlength="150" autocomplete="off" placeholder="Ex.: largada, chegada, percurso">
+            </mat-form-field>
+
+            <div *ngIf="opcoes.length === 0" class="text-sm text-secondary">Todos os membros ativos já estão escalados neste evento.</div>
+        </form>
+
+        <!-- Cadastro rápido de fotógrafo -->
+        <form *ngIf="novoMembro" id="form-escalar" class="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1" [formGroup]="formNovo" (ngSubmit)="escalar()" novalidate>
+            <div class="sm:col-span-2 text-sm text-secondary mb-1">
+                Cadastro rápido: o fotógrafo é criado e já fica escalado neste evento. Os outros dados você completa depois em Equipe.
+            </div>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
+                <mat-label>Nome</mat-label>
+                <input matInput formControlName="MEM_NOME" maxlength="200" autocomplete="off">
+                <mat-error>{{ erroNovo('MEM_NOME') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Instagram (opcional)</mat-label>
+                <span matTextPrefix class="text-secondary">&#64;</span>
+                <input matInput formControlName="MEM_INSTAGRAM" autocomplete="off" autocapitalize="none" spellcheck="false">
+                <mat-error>{{ erroNovo('MEM_INSTAGRAM') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Telefone (opcional)</mat-label>
+                <input matInput formControlName="MEM_TELEFONE" mask="(00) 0000-0000||(00) 00000-0000" inputmode="tel" autocomplete="off">
+                <mat-error>{{ erroNovo('MEM_TELEFONE') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Função</mat-label>
+                <mat-select formControlName="MEM_FUNCAO">
+                    <mat-option *ngFor="let f of funcoes" [value]="f.valor">{{ f.rotulo }}</mat-option>
+                </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Posição (opcional)</mat-label>
+                <input matInput formControlName="posicao" maxlength="150" autocomplete="off" placeholder="Ex.: largada">
+            </mat-form-field>
+        </form>
+    </ng-container>
+</mat-dialog-content>
+
+<mat-dialog-actions class="!flex-wrap !justify-between gap-2">
+    <button *ngIf="!carregando && !falhaCarga && (opcoes.length > 0 || !novoMembro) && !membroCriado" mat-button type="button"
+        [disabled]="salvando" (click)="alternarModo()">
+        <mat-icon *ngIf="novoMembro" svgIcon="heroicons_outline:arrow-left"></mat-icon>
+        <span [class.ml-2]="novoMembro">{{ novoMembro ? 'Escolher da lista' : '+ Novo fotógrafo' }}</span>
+    </button>
+    <span class="flex-1"></span>
+    <button mat-button type="button" [disabled]="salvando" (click)="cancelar()">Cancelar</button>
+    <button *ngIf="!carregando && !falhaCarga" mat-flat-button color="primary" type="submit" form="form-escalar"
+        [disabled]="salvando || (!novoMembro && opcoes.length === 0)">
+        <mat-progress-spinner *ngIf="salvando" diameter="20" mode="indeterminate"></mat-progress-spinner>
+        <span *ngIf="!salvando">Escalar</span>
+    </button>
+</mat-dialog-actions>

@@ -1,0 +1,77 @@
+<div class="flex flex-col flex-1 gap-4 min-h-0 w-full">
+    <div class="flex items-center justify-between pt-6 pb-4 border-b border-gray-300">
+        <span class="text-2xl sm:text-3xl font-bold text-accent">{{ ehNovo ? 'Novo assinante' : 'Assinante' }}</span>
+        <button mat-icon-button type="button" aria-label="Fechar" (click)="voltar()">
+            <mat-icon class="text-warn" svgIcon="heroicons_outline:x-mark"></mat-icon>
+        </button>
+    </div>
+
+    <div class="flex flex-col flex-1 min-h-0 overflow-auto">
+        <!-- Situação e ações (só na edição) -->
+        <div *ngIf="!ehNovo" class="flex flex-col gap-3 mb-4 p-3 rounded-lg bg-gray-50 border">
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center"
+                    [ngClass]="assinante?.ASS_ATIVO ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
+                    {{ assinante?.ASS_ATIVO ? 'Ativo' : 'Bloqueado' }}
+                </span>
+                <span *ngIf="assinante?.ExigirTrocaSenha"
+                    class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center bg-amber-100 text-amber-900">
+                    Aguardando 1º acesso
+                </span>
+                <span class="text-xs text-secondary">
+                    Último acesso: {{ assinante?.LastLogin ? (assinante?.LastLogin | date: 'dd/MM/yyyy HH:mm') : 'nunca acessou' }}
+                </span>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2">
+                <button *ngIf="assinante?.ASS_ATIVO" mat-stroked-button color="warn" type="button" [disabled]="acaoEmAndamento" (click)="bloquear()">
+                    <mat-icon svgIcon="heroicons_outline:no-symbol"></mat-icon>
+                    <span class="ml-2">Bloquear</span>
+                </button>
+                <button *ngIf="!assinante?.ASS_ATIVO" mat-stroked-button type="button" [disabled]="acaoEmAndamento" (click)="reativar()">
+                    <mat-icon svgIcon="heroicons_outline:check-circle"></mat-icon>
+                    <span class="ml-2">Reativar</span>
+                </button>
+                <button mat-stroked-button type="button" [disabled]="acaoEmAndamento" (click)="redefinirAcesso()">
+                    <mat-icon svgIcon="heroicons_outline:key"></mat-icon>
+                    <span class="ml-2">Redefinir acesso</span>
+                </button>
+            </div>
+        </div>
+
+        <form id="form-assinante" class="flex flex-col gap-1" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Nome</mat-label>
+                <input matInput formControlName="ASS_NOME" maxlength="200" autocomplete="off">
+                <mat-error>{{ erro('ASS_NOME') }}</mat-error>
+            </mat-form-field>
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>E-mail (login)</mat-label>
+                <input matInput formControlName="ASS_EMAIL" type="email" maxlength="200" autocomplete="off">
+                <mat-hint *ngIf="!ehNovo">Trocar o e-mail troca também o login do assinante.</mat-hint>
+                <mat-error>{{ erro('ASS_EMAIL') }}</mat-error>
+            </mat-form-field>
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>CPF/CNPJ</mat-label>
+                <input matInput formControlName="ASS_CPF_CNPJ" mask="000.000.000-00||00.000.000/0000-00" inputmode="numeric" autocomplete="off">
+                <mat-error>{{ erro('ASS_CPF_CNPJ') }}</mat-error>
+            </mat-form-field>
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Telefone</mat-label>
+                <input matInput formControlName="ASS_TELEFONE" mask="(00) 0000-0000||(00) 00000-0000" inputmode="tel" autocomplete="off">
+                <mat-error>{{ erro('ASS_TELEFONE') }}</mat-error>
+            </mat-form-field>
+        </form>
+
+        <p *ngIf="ehNovo" class="text-sm text-secondary mt-2">
+            Ao salvar, o sistema cria o acesso do assinante e mostra uma senha temporária uma única vez. Ele deverá trocá-la no primeiro acesso.
+        </p>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-300">
+        <button mat-button type="button" [disabled]="salvando" (click)="voltar()">Cancelar</button>
+        <button mat-flat-button color="primary" type="submit" form="form-assinante" [disabled]="salvando">
+            <mat-progress-spinner *ngIf="salvando" diameter="20" mode="indeterminate"></mat-progress-spinner>
+            <span *ngIf="!salvando">Salvar</span>
+        </button>
+    </div>
+</div>

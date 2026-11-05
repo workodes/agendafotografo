@@ -1,0 +1,229 @@
+<!-- Campo de link: texto + botão para abrir; completa o https:// ao sair do campo e valida inline -->
+<ng-template #campoLink let-campo="campo" let-rotulo="rotulo">
+    <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full" [formGroup]="form">
+        <mat-label>{{ rotulo }}</mat-label>
+        <input matInput [formControlName]="campo" type="url" autocomplete="off" autocapitalize="none" spellcheck="false"
+            placeholder="https://" (blur)="completarLink(campo)">
+        <button matSuffix mat-icon-button type="button" aria-label="Abrir link" title="Abrir link" [disabled]="!linkAbrivel(campo)" (click)="abrirLink(campo)">
+            <mat-icon class="icon-size-5" svgIcon="heroicons_outline:arrow-top-right-on-square"></mat-icon>
+        </button>
+        <mat-error>{{ erro(campo) }}</mat-error>
+    </mat-form-field>
+</ng-template>
+
+<div class="absolute inset-0 flex flex-col min-w-0 overflow-hidden bg-white">
+    <!-- Cabeçalho fixo: título à esquerda, ações à direita (empilha abaixo de sm) -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 md:px-8 py-3 sm:py-4 border-b shrink-0 bg-white">
+        <div class="flex flex-col min-w-0">
+            <div class="flex items-center gap-3 min-w-0">
+                <span class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight truncate">
+                    {{ ehNovo ? 'Novo evento' : (evento?.EVE_NOME || 'Evento') }}
+                </span>
+                <span *ngIf="!ehNovo && evento" class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center shrink-0"
+                    [ngClass]="statusCor[evento.EVE_STATUS]">{{ statusRotulo[evento.EVE_STATUS] }}</span>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between sm:justify-end gap-2">
+            <button *ngIf="!ehNovo" mat-stroked-button color="warn" type="button" [disabled]="salvando || excluindo" (click)="excluir()">
+                <mat-icon svgIcon="heroicons_outline:trash"></mat-icon>
+                <span class="ml-2">Excluir</span>
+            </button>
+            <span class="flex-1 sm:hidden"></span>
+            <button mat-button type="button" [disabled]="salvando" (click)="voltar()">Fechar</button>
+            <button mat-flat-button color="primary" type="submit" form="form-evento" [disabled]="salvando || excluindo">
+                <mat-progress-spinner *ngIf="salvando" diameter="20" mode="indeterminate"></mat-progress-spinner>
+                <span *ngIf="!salvando">Salvar</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="flex-auto min-h-0 overflow-auto">
+        <div class="flex flex-col gap-8 max-w-4xl mx-auto w-full px-4 sm:px-6 md:px-8 py-6">
+
+            <form id="form-evento" class="flex flex-col gap-8" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+
+                <!-- 1. Dados -->
+                <section class="flex flex-col gap-2">
+                    <h2 class="text-xl font-bold text-accent">Dados do evento</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
+                            <mat-label>Nome</mat-label>
+                            <input matInput formControlName="EVE_NOME" maxlength="200" autocomplete="off">
+                            <mat-error>{{ erro('EVE_NOME') }}</mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                            <mat-label>Tipo de evento</mat-label>
+                            <mat-select formControlName="EVE_TIPO_EVENTO_ID">
+                                <mat-option *ngFor="let t of tipos" [value]="t.Id">{{ t.Nome }}</mat-option>
+                            </mat-select>
+                            <mat-error>{{ erro('EVE_TIPO_EVENTO_ID') }}</mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                            <mat-label>Organizador (opcional)</mat-label>
+                            <mat-select formControlName="EVE_ORGANIZADOR_ID">
+                                <mat-option [value]="null">Nenhum</mat-option>
+                                <mat-option *ngFor="let o of organizadores" [value]="o.Id">{{ o.Nome }}</mat-option>
+                            </mat-select>
+                        </mat-form-field>
+
+                        <!-- Data com o dia da semana ao lado -->
+                        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                            <mat-label>Data</mat-label>
+                            <input matInput [matDatepicker]="pickerData" [min]="dataMin" [max]="dataMax" formControlName="EVE_DATA" placeholder="dd/mm/aaaa" autocomplete="off">
+                            <span *ngIf="diaDaSemana" matSuffix class="text-secondary text-sm mr-1 capitalize">{{ diaDaSemana }}</span>
+                            <mat-datepicker-toggle matIconSuffix [for]="pickerData"></mat-datepicker-toggle>
+                            <mat-datepicker #pickerData></mat-datepicker>
+                            <mat-error>{{ erro('EVE_DATA') }}</mat-error>
+                        </mat-form-field>
+
+                        <!-- Hora com a opção "A confirmar" -->
+                        <div class="flex items-start gap-3">
+                            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense flex-1 min-w-0">
+                                <mat-label>Hora</mat-label>
+                                <input matInput type="time" formControlName="EVE_HORA">
+                            </mat-form-field>
+                            <mat-checkbox class="mt-2 shrink-0" formControlName="EVE_HORA_A_CONFIRMAR">A confirmar</mat-checkbox>
+                        </div>
+
+                        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                            <mat-label>Cidade</mat-label>
+                            <input matInput formControlName="EVE_CIDADE" maxlength="100" autocomplete="off">
+                            <mat-error>{{ erro('EVE_CIDADE') }}</mat-error>
+                        </mat-form-field>
+
+                        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                            <mat-label>Status</mat-label>
+                            <mat-select formControlName="EVE_STATUS">
+                                <mat-option *ngFor="let s of statusLista" [value]="s.valor">{{ s.rotulo }}</mat-option>
+                            </mat-select>
+                            <mat-error>{{ erro('EVE_STATUS') }}</mat-error>
+                        </mat-form-field>
+
+                        <ng-container *ngFor="let l of linksDados">
+                            <ng-container *ngTemplateOutlet="campoLink; context: { campo: l.campo, rotulo: l.rotulo }"></ng-container>
+                        </ng-container>
+
+                        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
+                            <mat-label>Informações da prova</mat-label>
+                            <textarea matInput formControlName="EVE_INFORMACOES" rows="4" maxlength="4000"></textarea>
+                            <mat-error>{{ erro('EVE_INFORMACOES') }}</mat-error>
+                        </mat-form-field>
+
+                        <div class="sm:col-span-2">
+                            <app-evento-arquivo [eventoId]="evento?.Id" [tipo]="tipoArquivo.Flyer" [arquivo]="arquivoFlyer"
+                                (arquivoChange)="aoMudarArquivo(tipoArquivo.Flyer, $event)"></app-evento-arquivo>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. Local e rota -->
+                <section class="flex flex-col gap-2">
+                    <h2 class="text-xl font-bold text-accent">Local e rota</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                        <ng-container *ngFor="let p of pontos">
+                            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                                <mat-label>{{ p.rotulo }} (local)</mat-label>
+                                <input matInput [formControlName]="p.local" maxlength="300" autocomplete="off">
+                                <mat-error>{{ erro(p.local) }}</mat-error>
+                            </mat-form-field>
+                            <ng-container *ngTemplateOutlet="campoLink; context: { campo: p.link, rotulo: p.rotulo + ' (link do Maps)' }"></ng-container>
+                        </ng-container>
+
+                        <ng-container *ngFor="let l of linksRota">
+                            <ng-container *ngTemplateOutlet="campoLink; context: { campo: l.campo, rotulo: l.rotulo }"></ng-container>
+                        </ng-container>
+
+                        <div class="sm:col-span-2">
+                            <app-evento-arquivo [eventoId]="evento?.Id" [tipo]="tipoArquivo.ImagemRota" [arquivo]="arquivoImagemRota"
+                                (arquivoChange)="aoMudarArquivo(tipoArquivo.ImagemRota, $event)"></app-evento-arquivo>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <app-evento-arquivo [eventoId]="evento?.Id" [tipo]="tipoArquivo.Gpx" [arquivo]="arquivoGpx"
+                                (arquivoChange)="aoMudarArquivo(tipoArquivo.Gpx, $event)"></app-evento-arquivo>
+                        </div>
+                    </div>
+                </section>
+            </form>
+
+            <!-- 3. Equipe (fora do <form>: Enter nas posições não salva o evento) -->
+            <section class="flex flex-col gap-3">
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="text-xl font-bold text-accent">Equipe</h2>
+                    <button mat-flat-button color="primary" type="button" [disabled]="ehNovo" (click)="escalar()">
+                        <mat-icon svgIcon="heroicons_outline:plus"></mat-icon>
+                        <span class="ml-2">Escalar membro</span>
+                    </button>
+                </div>
+
+                <div *ngIf="ehNovo" class="text-sm text-secondary p-3 rounded-lg border bg-gray-50">
+                    Salve o evento para escalar a equipe e enviar os arquivos.
+                </div>
+
+                <ng-container *ngIf="!ehNovo">
+                    <div *ngIf="equipe.length === 0" class="text-sm text-secondary p-3 rounded-lg border bg-gray-50">Ninguém escalado neste evento ainda.</div>
+
+                    <div *ngFor="let m of equipe" class="flex flex-col gap-2 p-3 rounded-lg border">
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                            <div class="flex flex-col min-w-0 sm:flex-1">
+                                <div class="truncate font-medium">
+                                    {{ m.MEM_NOME }}<span *ngIf="!m.MEM_ATIVO" class="text-secondary font-normal"> (inativo)</span>
+                                </div>
+                                <div class="truncate text-xs text-secondary">
+                                    {{ funcaoRotulo[m.MEM_FUNCAO] }}<span *ngIf="m.MEM_INSTAGRAM"> · &#64;{{ m.MEM_INSTAGRAM }}</span>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense flex-1 sm:w-60" subscriptSizing="dynamic">
+                                    <mat-label>Posição</mat-label>
+                                    <input matInput #pos [value]="m.EVM_POSICAO ?? ''" maxlength="150" autocomplete="off" placeholder="Ex.: largada"
+                                        (blur)="salvarPosicao(m, pos)" (keydown.enter)="pos.blur()">
+                                </mat-form-field>
+                                <button mat-icon-button type="button" color="warn" aria-label="Remover da escala" title="Remover da escala"
+                                    [disabled]="ocupadoEscala" (click)="removerMembro(m)">
+                                    <mat-icon svgIcon="heroicons_outline:trash"></mat-icon>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Conflito: mesmo membro em outro evento no dia (não bloqueia) -->
+                        <div *ngIf="m.OutrosEventos?.length" role="alert"
+                            class="flex items-start gap-2 p-2 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 text-sm">
+                            <mat-icon class="icon-size-5 shrink-0 text-amber-600" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
+                            <div class="min-w-0">
+                                <span>{{ textoOutrosEventos(m.OutrosEventos) }}.</span>
+                                <a class="underline ml-1" [routerLink]="['/assinante/visao-do-dia']" [queryParams]="{ data: evento?.EVE_DATA }">Ver o dia</a>
+                            </div>
+                        </div>
+                    </div>
+                </ng-container>
+            </section>
+
+            <!-- 4. Observações -->
+            <section class="flex flex-col gap-2" [formGroup]="form">
+                <h2 class="text-xl font-bold text-accent">Observações</h2>
+                <div class="grid grid-cols-1 gap-y-1">
+                    <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                        <mat-label>Observações para a equipe</mat-label>
+                        <mat-hint>Aparecem no link público do evento.</mat-hint>
+                        <textarea matInput formControlName="EVE_OBSERVACOES_EQUIPE" rows="4" maxlength="4000"></textarea>
+                        <mat-error>{{ erro('EVE_OBSERVACOES_EQUIPE') }}</mat-error>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                        <mat-label>Notas internas</mat-label>
+                        <mat-hint>Só você vê.</mat-hint>
+                        <textarea matInput formControlName="EVE_NOTAS_INTERNAS" rows="4" maxlength="4000"></textarea>
+                        <mat-error>{{ erro('EVE_NOTAS_INTERNAS') }}</mat-error>
+                    </mat-form-field>
+                </div>
+                <div class="flex justify-end">
+                    <button mat-flat-button color="primary" type="submit" form="form-evento" [disabled]="salvando || excluindo">Salvar</button>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>

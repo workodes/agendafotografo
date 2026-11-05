@@ -1,0 +1,894 @@
+using System.Globalization;
+using AgendaFotografo.CrossCutting.Services.Arquivos;
+using AgendaFotografo.Domain.Constants;
+using AgendaFotografo.Domain.Entities;
+using AgendaFotografo.Domain.Enums;
+using AgendaFotografo.Domain.Interfaces;
+using AgendaFotografo.WebApi.Helpers;
+using AgendaFotografo.WebApi.Models;
+using AgendaFotografo.WebApi.Models.Eventos;
+using AgendaFotografo.WebApi.Services.CurrentUser;
+using AgendaFotografo.WebApi.Services.Eventos;
+using AgendaFotografo.WebApi.Validators.Evento;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace AgendaFotografo.WebApi.Controllers;
+
+/// <summary>
+/// Eventos do assinante (cadastro completo). Todo dado é filtrado pelo assinante do usuário logado
+/// (<see cref="AssinanteEscopo"/>); registro de outro assinante = 404. A escala (EVENTOXMEMBRO) e os arquivos (EVENTOARQUIVOS)
+/// são tabelas filhas e viram actions deste controller nas etapas seguintes.
+/// </summary>
+[Authorize(Roles = RoleNames.Assinante)]
+public class EventoController(
+    IBaseRepository<Evento> repEvento,
+    IBaseRepository<EventoMembro> repEventoMembro,
+    IBaseRepository<EventoArquivo> repEventoArquivo,
+    IBaseRepository<TipoEvento> repTipoEvento,
+    IBaseRepository<Organizador> repOrganizador,
+    IBaseRepository<Membro> repMembro,
+    EscalaConsultas escalaConsultas,
+    IArquivoStorage arquivoStorage,
+    IUnitOfWork unitOfWork,
+    AssinanteEscopo assinanteEscopo,
+    ILogger<EventoController> logger) : AgendaFotografoController
+{
+    private readonly IArquivoStorage _arquivoStorage = arquivoStorage;
+    private readonly IBaseRepository<Membro> _repMembro = repMembro;
+    private readonly EscalaConsultas _escalaConsultas = escalaConsultas;
+    private readonly IBaseRepository<Evento> _repEvento = repEvento;
+    private readonly IBaseRepository<EventoMembro> _repEventoMembro = repEventoMembro;
+    private readonly IBaseRepository<EventoArquivo> _repEventoArquivo = repEventoArquivo;
+    private readonly IBaseRepository<TipoEvento> _repTipoEvento = repTipoEvento;
+    private readonly IBaseRepository<Organizador> _repOrganizador = repOrganizador;
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly AssinanteEscopo _assinanteEscopo = assinanteEscopo;
+    private readonly ILogger<EventoController> _logger = logger;
+
+    private const int PageSizeMaximo = 100;
+
+    private const string MsgIdObrigatorio = "Id é obrigatório";
+    private const string MsgNaoEncontrado = "Evento não encontrado";
+    private const string MsgArquivoNaoEncontrado = "Arquivo não encontrado";
+    private const string MsgEscalaNaoEncontrada = "Membro da escala não encontrado";
+    private const string MsgMembroRepetido = "Este membro já está escalado neste evento.";
+    private const string FormatoData = "yyyy-MM-dd";
+
+    private IActionResult SemVinculo() => StatusCode(StatusCodes.Status403Forbidden, AssinanteEscopo.MensagemSemVinculo);
+
+    /// <summary>
+    /// Lista paginada. Filtros: busca (nome ou cidade), dataDe/dataAte ("yyyy-MM-dd", inclusivos), status (1 a 4), tipoEventoId,
+    /// organizadorId e ordem ("asc" padrão ou "desc", aplicada à data). Entradas inválidas = 400. Dentro do mesmo dia: hora
+    /// (os "a confirmar" por último), nome e Id.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Listar(CancellationToken cancellationToken, int page = 1, int pageSize = 25,
+        string? busca = null, string? dataDe = null, string? dataAte = null, int? status = null,
+        Guid? tipoEventoId = null, Guid? organizadorId = null, string? ordem = "asc")
+    {
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            if (!ModelState.IsValid) throw new Exception("Filtro inválido");
+
+            page = Math.Max(page, 1);
+            pageSize = pageSize < 1 ? 25 : Math.Min(pageSize, PageSizeMaximo);
+
+            var query = _repEvento.SelectContext().AsNoTracking().Where(x => x.EVE_ASSINANTE_ID == assinanteId);
+
+            if (!string.IsNullOrWhiteSpace(dataDe))
+            {
+                if (!DateOnly.TryParseExact(dataDe.Trim(), FormatoData, CultureInfo.InvariantCulture, DateTimeStyles.None, out var de))
+                    throw new Exception("Data inicial inválida");
+                query = query.Where(x => x.EVE_DATA >= de);
+            }
+
+            if (!string.IsNullOrWhiteSpace(dataAte))
+            {
+                if (!DateOnly.TryParseExact(dataAte.Trim(), FormatoData, CultureInfo.InvariantCulture, DateTimeStyles.None, out var ate))
+                    throw new Exception("Data final inválida");
+                query = query.Where(x => x.EVE_DATA <= ate);
+            }
+
+            if (DateOnly.TryParseExact((dataDe ?? string.Empty).Trim(), FormatoData, CultureInfo.InvariantCulture, DateTimeStyles.None, out var d1) &&
+                DateOnly.TryParseExact((dataAte ?? string.Empty).Trim(), FormatoData, CultureInfo.InvariantCulture, DateTimeStyles.None, out var d2) &&
+                d1 > d2)
+                throw new Exception("A data inicial não pode ser maior que a data final");
+
+            if (status is not null)
+            {
+                if (!Enum.IsDefined((StatusEvento)status.Value)) throw new Exception("Filtro de status inválido");
+                var st = (StatusEvento)status.Value;
+                query = query.Where(x => x.EVE_STATUS == st);
+            }
+
+            if (tipoEventoId is not null && tipoEventoId != Guid.Empty)
+                query = query.Where(x => x.EVE_TIPO_EVENTO_ID == tipoEventoId);
+
+            if (organizadorId is not null && organizadorId != Guid.Empty)
+                query = query.Where(x => x.EVE_ORGANIZADOR_ID == organizadorId);
+
+            if (!string.IsNullOrWhiteSpace(busca))
+            {
+                var termo = busca.Trim();
+                query = query.Where(x => x.EVE_NOME.Contains(termo) || x.EVE_CIDADE.Contains(termo));
+            }
+
+            bool decrescente;
+            if (string.IsNullOrWhiteSpace(ordem) || ordem.Trim().Equals("asc", StringComparison.OrdinalIgnoreCase))
+                decrescente = false;
+            else if (ordem.Trim().Equals("desc", StringComparison.OrdinalIgnoreCase))
+                decrescente = true;
+            else
+                throw new Exception("Ordem inválida");
+
+            var total = await query.CountAsync(cancellationToken);
+
+            var ordenada = decrescente
+                ? query.OrderByDescending(x => x.EVE_DATA)
+                : query.OrderBy(x => x.EVE_DATA);
+
+            var dados = await ordenada
+                .ThenBy(x => x.EVE_HORA == null)
+                .ThenBy(x => x.EVE_HORA)
+                .ThenBy(x => x.EVE_NOME)
+                .ThenBy(x => x.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new EventoListItem
+                {
+                    Id = x.Id,
+                    EVE_NOME = x.EVE_NOME,
+                    EVE_TIPO_EVENTO_ID = x.EVE_TIPO_EVENTO_ID,
+                    TipoEventoNome = x.TipoEvento!.TPE_NOME,
+                    EVE_DATA = x.EVE_DATA,
+                    EVE_HORA = x.EVE_HORA,
+                    EVE_CIDADE = x.EVE_CIDADE,
+                    EVE_STATUS = x.EVE_STATUS,
+                    EVE_ORGANIZADOR_ID = x.EVE_ORGANIZADOR_ID,
+                    OrganizadorNome = x.Organizador != null ? x.Organizador.ORG_NOME : null
+                })
+                .ToListAsync(cancellationToken);
+
+            if (dados.Count > 0)
+            {
+                var ids = dados.Select(x => x.Id).ToList();
+                var escala = await _repEventoMembro.SelectContext().AsNoTracking()
+                    .Where(x => x.EVM_ASSINANTE_ID == assinanteId && ids.Contains(x.EVM_EVENTO_ID))
+                    .OrderBy(x => x.Membro!.MEM_NOME).ThenBy(x => x.EVM_MEMBRO_ID)
+                    .Select(x => new
+                    {
+                        x.EVM_EVENTO_ID,
+                        Membro = new EventoEquipeItem
+                        {
+                            Id = x.EVM_MEMBRO_ID,
+                            MEM_NOME = x.Membro!.MEM_NOME,
+                            MEM_INSTAGRAM = x.Membro.MEM_INSTAGRAM
+                        }
+                    })
+                    .ToListAsync(cancellationToken);
+
+                var porEvento = escala.ToLookup(x => x.EVM_EVENTO_ID, x => x.Membro);
+                foreach (var item in dados) item.Equipe = porEvento[item.Id].ToList();
+            }
+
+            return Ok(new PaginatedResponse<EventoListItem>
+            {
+                TotalCount = total,
+                Page = page,
+                PageSize = pageSize,
+                Data = dados
+            });
+        }
+        catch (AssinanteSemVinculoException) { return SemVinculo(); }
+        catch (Exception ex)
+        {
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Obter(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            var model = await CarregarModelAsync(id, assinanteId, cancellationToken);
+            if (model is null) return NotFound(MsgNaoEncontrado);
+
+            return Ok(model);
+        }
+        catch (AssinanteSemVinculoException) { return SemVinculo(); }
+        catch (Exception ex)
+        {
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Criar([FromBody] EventoModel model, CancellationToken cancellationToken)
+    {
+        if (model is null) return BadRequest("Dados inválidos.");
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            Normalizar(model);
+            var error = ValidationHelper.ValidateModel(model, new EventoValidator());
+            if (error is not null) { await _unitOfWork.RollbackAsync(cancellationToken); return BadRequest(error); }
+
+            await GarantirTipoEOrganizadorAsync(assinanteId, model, null, cancellationToken);
+
+            // O assinante vem só do escopo; Id, nomes e arquivos do body são ignorados
+            var evento = new Evento { EVE_ASSINANTE_ID = assinanteId };
+            Aplicar(evento, model);
+            await _repEvento.InsertTransactionAsync(evento, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
+
+            var salvo = await CarregarModelAsync(evento.Id, assinanteId, cancellationToken);
+            return Ok(salvo);
+        }
+        catch (AssinanteSemVinculoException)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return SemVinculo();
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    [HttpPut]
+    public async Task<IActionResult> Atualizar([FromBody] EventoModel model, CancellationToken cancellationToken)
+    {
+        if (model is null) return BadRequest("Dados inválidos.");
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            Normalizar(model);
+            var error = ValidationHelper.ValidateModel(model, new EventoValidator());
+            if (error is not null) { await _unitOfWork.RollbackAsync(cancellationToken); return BadRequest(error); }
+
+            if (model.Id is null || model.Id == Guid.Empty)
+                throw new Exception(MsgIdObrigatorio);
+
+            // Entidade rastreada, carregada por Id E assinante (de outro assinante = 404)
+            var evento = await _repEvento.SelectContext()
+                .FirstOrDefaultAsync(x => x.Id == model.Id && x.EVE_ASSINANTE_ID == assinanteId, cancellationToken);
+            if (evento is null)
+            {
+                await _unitOfWork.RollbackAsync(cancellationToken);
+                return NotFound(MsgNaoEncontrado);
+            }
+
+            await GarantirTipoEOrganizadorAsync(assinanteId, model, evento, cancellationToken);
+
+            Aplicar(evento, model);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
+
+            var salvo = await CarregarModelAsync(evento.Id, assinanteId, cancellationToken);
+            return Ok(salvo);
+        }
+        catch (AssinanteSemVinculoException)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return SemVinculo();
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>
+    /// Exclui o evento, a escala e os registros de arquivo numa transação. Quem não vai realizar a prova deve usar o status
+    /// Cancelado (a exclusão apaga o histórico).
+    /// </summary>
+    [HttpDelete]
+    public async Task<IActionResult> Excluir(Guid id, CancellationToken cancellationToken)
+    {
+        if (id == Guid.Empty) return BadRequest(MsgIdObrigatorio);
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            var existe = await _repEvento.SelectContext().AsNoTracking()
+                .AnyAsync(x => x.Id == id && x.EVE_ASSINANTE_ID == assinanteId, cancellationToken);
+            if (!existe)
+            {
+                await _unitOfWork.RollbackAsync(cancellationToken);
+                return NotFound(MsgNaoEncontrado);
+            }
+
+            var escalaIds = await _repEventoMembro.SelectContext().AsNoTracking()
+                .Where(x => x.EVM_EVENTO_ID == id && x.EVM_ASSINANTE_ID == assinanteId)
+                .Select(x => x.Id).ToListAsync(cancellationToken);
+
+            var arquivos = await _repEventoArquivo.SelectContext().AsNoTracking()
+                .Where(x => x.EVA_EVENTO_ID == id && x.EVA_ASSINANTE_ID == assinanteId)
+                .Select(x => new { x.Id, x.EVA_CAMINHO }).ToListAsync(cancellationToken);
+
+            await _repEventoMembro.DeleteRangeTransactionAsync(escalaIds, cancellationToken);
+            await _repEventoArquivo.DeleteRangeTransactionAsync(arquivos.Select(x => x.Id), cancellationToken);
+            await _repEvento.DeleteTransactionAsync(id, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
+
+            // Depois do commit: apaga os arquivos físicos. Falha só registra aviso; nunca desfaz a exclusão.
+            foreach (var arquivo in arquivos)
+                await ExcluirFisicoAsync(arquivo.EVA_CAMINHO, id);
+
+            return Ok(new ApiResponse { Success = true, Message = "Evento excluído com sucesso" });
+        }
+        catch (AssinanteSemVinculoException)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return SemVinculo();
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    // ===== Escala (tabela filha EVENTOXMEMBRO) =====
+
+    /// <summary>Escala do evento, por nome do membro. Cada membro traz OutrosEventos (não cancelados da mesma data).</summary>
+    [HttpGet]
+    public async Task<IActionResult> Membros(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            var data = await ObterDataDoEventoAsync(id, assinanteId, cancellationToken);
+            if (data is null) return NotFound(MsgNaoEncontrado);
+
+            return Ok(await _escalaConsultas.ListarEscalaAsync(assinanteId, id, data.Value.Data, data.Value.Status, null, cancellationToken));
+        }
+        catch (AssinanteSemVinculoException) { return SemVinculo(); }
+        catch (Exception ex)
+        {
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>Membros ativos ainda fora da escala do evento, cada um com OutrosEventos (alerta na hora de escalar).</summary>
+    [HttpGet]
+    public async Task<IActionResult> OpcoesEscala(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            var data = await ObterDataDoEventoAsync(id, assinanteId, cancellationToken);
+            if (data is null) return NotFound(MsgNaoEncontrado);
+
+            return Ok(await _escalaConsultas.ListarOpcoesAsync(assinanteId, id, data.Value.Data, data.Value.Status, cancellationToken));
+        }
+        catch (AssinanteSemVinculoException) { return SemVinculo(); }
+        catch (Exception ex)
+        {
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>
+    /// Escala um membro ativo no evento (qualquer status, inclusive Realizado e Cancelado). O conflito de data NUNCA bloqueia:
+    /// o item devolvido traz OutrosEventos para o alerta.
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> AdicionarMembro([FromBody] EventoMembroModel model, CancellationToken cancellationToken)
+    {
+        if (model is null) return BadRequest("Dados inválidos.");
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        Guid assinanteId = Guid.Empty;
+        try
+        {
+            assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            model.EVM_POSICAO = Texto(model.EVM_POSICAO);
+            var error = ValidationHelper.ValidateModel(model, new EventoMembroValidator());
+            if (error is not null) { await _unitOfWork.RollbackAsync(cancellationToken); return BadRequest(error); }
+
+            var data = await ObterDataDoEventoAsync(model.EVM_EVENTO_ID, assinanteId, cancellationToken);
+            if (data is null)
+            {
+                await _unitOfWork.RollbackAsync(cancellationToken);
+                return NotFound(MsgNaoEncontrado);
+            }
+
+            var membro = await _repMembro.SelectContext().AsNoTracking()
+                .Where(x => x.Id == model.EVM_MEMBRO_ID && x.MEM_ASSINANTE_ID == assinanteId)
+                .Select(x => new { x.MEM_ATIVO })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (membro is null) throw new Exception("Membro não encontrado.");
+            if (!membro.MEM_ATIVO) throw new Exception("Membro inativo.");
+
+            if (await JaEscaladoAsync(assinanteId, model.EVM_EVENTO_ID, model.EVM_MEMBRO_ID, cancellationToken))
+                throw new Exception(MsgMembroRepetido);
+
+            // O assinante vem só do escopo
+            var escala = new EventoMembro
+            {
+                EVM_ASSINANTE_ID = assinanteId,
+                EVM_EVENTO_ID = model.EVM_EVENTO_ID,
+                EVM_MEMBRO_ID = model.EVM_MEMBRO_ID,
+                EVM_POSICAO = model.EVM_POSICAO
+            };
+            await _repEventoMembro.InsertTransactionAsync(escala, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
+
+            var itens = await _escalaConsultas.ListarEscalaAsync(assinanteId, model.EVM_EVENTO_ID, data.Value.Data, data.Value.Status, escala.Id, cancellationToken);
+            return Ok(itens.First());
+        }
+        catch (AssinanteSemVinculoException)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return SemVinculo();
+        }
+        catch (DbUpdateException ex)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            // Corrida: o índice único (evento, membro) barrou o repetido
+            if (assinanteId != Guid.Empty &&
+                await JaEscaladoAsync(assinanteId, model.EVM_EVENTO_ID, model.EVM_MEMBRO_ID, cancellationToken))
+                return BadRequest(MsgMembroRepetido);
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>Muda só a posição do membro na escala (id = Id da linha da escala). Vazio limpa a posição.</summary>
+    [HttpPut]
+    public async Task<IActionResult> AtualizarMembro(Guid id, [FromBody] EventoMembroPosicaoModel model, CancellationToken cancellationToken)
+    {
+        if (model is null) return BadRequest("Dados inválidos.");
+        if (id == Guid.Empty) return BadRequest(MsgIdObrigatorio);
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            model.EVM_POSICAO = Texto(model.EVM_POSICAO);
+            var error = ValidationHelper.ValidateModel(model, new EventoMembroPosicaoValidator());
+            if (error is not null) { await _unitOfWork.RollbackAsync(cancellationToken); return BadRequest(error); }
+
+            var escala = await _repEventoMembro.SelectContext()
+                .FirstOrDefaultAsync(x => x.Id == id && x.EVM_ASSINANTE_ID == assinanteId, cancellationToken);
+            if (escala is null)
+            {
+                await _unitOfWork.RollbackAsync(cancellationToken);
+                return NotFound(MsgEscalaNaoEncontrada);
+            }
+
+            escala.EVM_POSICAO = model.EVM_POSICAO;
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
+
+            var data = await ObterDataDoEventoAsync(escala.EVM_EVENTO_ID, assinanteId, cancellationToken);
+            var itens = await _escalaConsultas.ListarEscalaAsync(assinanteId, escala.EVM_EVENTO_ID, data!.Value.Data, data.Value.Status, escala.Id, cancellationToken);
+            return Ok(itens.First());
+        }
+        catch (AssinanteSemVinculoException)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return SemVinculo();
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>Tira o membro da escala (id = Id da linha da escala).</summary>
+    [HttpDelete]
+    public async Task<IActionResult> RemoverMembro(Guid id, CancellationToken cancellationToken)
+    {
+        if (id == Guid.Empty) return BadRequest(MsgIdObrigatorio);
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            var existe = await _repEventoMembro.SelectContext().AsNoTracking()
+                .AnyAsync(x => x.Id == id && x.EVM_ASSINANTE_ID == assinanteId, cancellationToken);
+            if (!existe)
+            {
+                await _unitOfWork.RollbackAsync(cancellationToken);
+                return NotFound(MsgEscalaNaoEncontrada);
+            }
+
+            await _repEventoMembro.DeleteTransactionAsync(id, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
+
+            return Ok(new ApiResponse { Success = true, Message = "Membro removido da escala com sucesso" });
+        }
+        catch (AssinanteSemVinculoException)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return SemVinculo();
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>
+    /// Visão do dia (data = "yyyy-MM-dd", obrigatória): todos os eventos da data (inclusive cancelados) com a equipe, os membros
+    /// livres e os membros em conflito.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Dia(CancellationToken cancellationToken, string? data = null)
+    {
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            if (string.IsNullOrWhiteSpace(data) ||
+                !DateOnly.TryParseExact(data.Trim(), FormatoData, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dia))
+                throw new Exception("Data inválida");
+
+            return Ok(await _escalaConsultas.ObterDiaAsync(assinanteId, dia, cancellationToken));
+        }
+        catch (AssinanteSemVinculoException) { return SemVinculo(); }
+        catch (Exception ex)
+        {
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    // ===== Arquivos (tabela filha EVENTOARQUIVOS) =====
+
+    /// <summary>
+    /// Envia flyer (tipo 1), imagem do percurso (tipo 2) ou GPX (tipo 3) do evento: multipart/form-data, campo "Arquivo".
+    /// Um arquivo de cada tipo por evento: enviar outro substitui o anterior. O arquivo novo é gravado no disco antes do banco;
+    /// se o banco falhar, ele é apagado; o antigo só é apagado depois do commit.
+    /// </summary>
+    [HttpPost]
+    [RequestSizeLimit(ArquivoEventoRegras.LimiteRequisicao)]
+    [RequestFormLimits(MultipartBodyLengthLimit = ArquivoEventoRegras.LimiteRequisicao)]
+    public async Task<IActionResult> EnviarArquivo(Guid id, int tipo, [FromForm] IFormFile? arquivo, CancellationToken cancellationToken)
+    {
+        if (id == Guid.Empty) return BadRequest(MsgIdObrigatorio);
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        string? chaveNova = null;
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            if (!Enum.IsDefined((TipoArquivoEvento)tipo)) throw new Exception("Tipo de arquivo inválido");
+            var tipoArquivo = (TipoArquivoEvento)tipo;
+
+            var existeEvento = await _repEvento.SelectContext().AsNoTracking()
+                .AnyAsync(x => x.Id == id && x.EVE_ASSINANTE_ID == assinanteId, cancellationToken);
+            if (!existeEvento)
+            {
+                await _unitOfWork.RollbackAsync(cancellationToken);
+                return NotFound(MsgNaoEncontrado);
+            }
+
+            var validado = await ArquivoEventoRegras.ValidarAsync(tipoArquivo, arquivo, cancellationToken);
+            var nomeOriginal = ArquivoEventoRegras.NomeOriginalSeguro(arquivo!.FileName, validado.Extensao);
+
+            // 1) grava o arquivo novo no disco (chave gerada pelo servidor)
+            chaveNova = ArquivoEventoRegras.GerarChave(assinanteId, id, validado.Extensao);
+            await using (var conteudo = arquivo.OpenReadStream())
+                await _arquivoStorage.SalvarAsync(chaveNova, conteudo, cancellationToken);
+
+            // 2) grava no banco: substitui o registro do mesmo tipo, se houver
+            var registro = await _repEventoArquivo.SelectContext()
+                .FirstOrDefaultAsync(x => x.EVA_EVENTO_ID == id && x.EVA_ASSINANTE_ID == assinanteId && x.EVA_TIPO == tipoArquivo,
+                    cancellationToken);
+
+            string? chaveAntiga = null;
+            if (registro is null)
+            {
+                registro = new EventoArquivo { EVA_ASSINANTE_ID = assinanteId, EVA_EVENTO_ID = id, EVA_TIPO = tipoArquivo };
+                await _repEventoArquivo.InsertTransactionAsync(registro, cancellationToken);
+            }
+            else
+                chaveAntiga = registro.EVA_CAMINHO;
+
+            registro.EVA_NOME_ORIGINAL = nomeOriginal;
+            registro.EVA_CAMINHO = chaveNova;
+            registro.EVA_CONTENT_TYPE = validado.ContentType;
+            registro.EVA_TAMANHO = arquivo.Length;
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
+            chaveNova = null; // gravado: não apagar mais
+
+            // 3) depois do commit: apaga o arquivo antigo (falha só registra aviso)
+            if (chaveAntiga is not null) await ExcluirFisicoAsync(chaveAntiga, id);
+
+            return Ok(new EventoArquivoItem
+            {
+                Id = registro.Id,
+                EVA_TIPO = registro.EVA_TIPO,
+                EVA_NOME_ORIGINAL = registro.EVA_NOME_ORIGINAL,
+                EVA_CONTENT_TYPE = registro.EVA_CONTENT_TYPE,
+                EVA_TAMANHO = registro.EVA_TAMANHO
+            });
+        }
+        catch (AssinanteSemVinculoException)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            await DescartarArquivoNovoAsync(chaveNova, id);
+            return SemVinculo();
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            await DescartarArquivoNovoAsync(chaveNova, id);
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>Baixa o arquivo (id = Id do EventoArquivoItem) com o nome original e nosniff. Outro assinante ou ausente no disco = 404.</summary>
+    [HttpGet]
+    public async Task<IActionResult> BaixarArquivo(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            var registro = await _repEventoArquivo.SelectContext().AsNoTracking()
+                .Where(x => x.Id == id && x.EVA_ASSINANTE_ID == assinanteId)
+                .Select(x => new { x.EVA_CAMINHO, x.EVA_CONTENT_TYPE, x.EVA_NOME_ORIGINAL })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (registro is null) return NotFound(MsgArquivoNaoEncontrado);
+
+            var stream = await _arquivoStorage.AbrirAsync(registro.EVA_CAMINHO, cancellationToken);
+            if (stream is null)
+            {
+                _logger.LogWarning("Arquivo {ArquivoId} existe no banco mas não foi encontrado no armazenamento.", id);
+                return NotFound(MsgArquivoNaoEncontrado);
+            }
+
+            Response.Headers["X-Content-Type-Options"] = "nosniff";
+            Response.Headers["Cache-Control"] = "private, no-store";
+            return File(stream, registro.EVA_CONTENT_TYPE, registro.EVA_NOME_ORIGINAL);
+        }
+        catch (AssinanteSemVinculoException) { return SemVinculo(); }
+        catch (Exception ex)
+        {
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>Exclui o arquivo do evento (id = Id do EventoArquivoItem): registro no banco e, depois do commit, o arquivo físico.</summary>
+    [HttpDelete]
+    public async Task<IActionResult> ExcluirArquivo(Guid id, CancellationToken cancellationToken)
+    {
+        if (id == Guid.Empty) return BadRequest(MsgIdObrigatorio);
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            var registro = await _repEventoArquivo.SelectContext().AsNoTracking()
+                .Where(x => x.Id == id && x.EVA_ASSINANTE_ID == assinanteId)
+                .Select(x => new { x.Id, x.EVA_EVENTO_ID, x.EVA_CAMINHO })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (registro is null)
+            {
+                await _unitOfWork.RollbackAsync(cancellationToken);
+                return NotFound(MsgArquivoNaoEncontrado);
+            }
+
+            await _repEventoArquivo.DeleteTransactionAsync(id, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
+
+            await ExcluirFisicoAsync(registro.EVA_CAMINHO, registro.EVA_EVENTO_ID);
+
+            return Ok(new ApiResponse { Success = true, Message = "Arquivo excluído com sucesso" });
+        }
+        catch (AssinanteSemVinculoException)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return SemVinculo();
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>Apaga o arquivo físico depois do commit. Nunca lança: falha só registra aviso (o registro já foi tratado no banco).</summary>
+    private async Task ExcluirFisicoAsync(string chave, Guid eventoId)
+    {
+        try
+        {
+            await _arquivoStorage.ExcluirAsync(chave, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Não foi possível apagar o arquivo físico {Chave} do evento {EventoId}.", chave, eventoId);
+        }
+    }
+
+    /// <summary>Apaga o arquivo recém-gravado quando o restante da operação falhou.</summary>
+    private async Task DescartarArquivoNovoAsync(string? chave, Guid eventoId)
+    {
+        if (chave is not null) await ExcluirFisicoAsync(chave, eventoId);
+    }
+
+    /// <summary>Data e status do evento do assinante; nulo se não existir ou for de outro assinante.</summary>
+    private async Task<(DateOnly Data, StatusEvento Status)?> ObterDataDoEventoAsync(Guid eventoId, Guid assinanteId, CancellationToken cancellationToken)
+    {
+        var datas = await _repEvento.SelectContext().AsNoTracking()
+            .Where(x => x.Id == eventoId && x.EVE_ASSINANTE_ID == assinanteId)
+            .Select(x => new { x.EVE_DATA, x.EVE_STATUS })
+            .ToListAsync(cancellationToken);
+        return datas.Count == 0 ? null : (datas[0].EVE_DATA, datas[0].EVE_STATUS);
+    }
+
+    private Task<bool> JaEscaladoAsync(Guid assinanteId, Guid eventoId, Guid membroId, CancellationToken cancellationToken)
+        => _repEventoMembro.SelectContext().AsNoTracking()
+            .AnyAsync(x => x.EVM_ASSINANTE_ID == assinanteId && x.EVM_EVENTO_ID == eventoId && x.EVM_MEMBRO_ID == membroId, cancellationToken);
+
+    /// <summary>
+    /// O tipo e o organizador (se informado) precisam ser do mesmo assinante e estar ativos, a menos que já sejam o valor
+    /// gravado no evento (no Criar não há valor gravado).
+    /// </summary>
+    private async Task GarantirTipoEOrganizadorAsync(Guid assinanteId, EventoModel model, Evento? gravado, CancellationToken cancellationToken)
+    {
+        var tipo = await _repTipoEvento.SelectContext().AsNoTracking()
+            .Where(x => x.Id == model.EVE_TIPO_EVENTO_ID && x.TPE_ASSINANTE_ID == assinanteId)
+            .Select(x => new { x.TPE_ATIVO })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (tipo is null) throw new Exception("Tipo de evento não encontrado.");
+        if (!tipo.TPE_ATIVO && gravado?.EVE_TIPO_EVENTO_ID != model.EVE_TIPO_EVENTO_ID)
+            throw new Exception("Tipo de evento inativo.");
+
+        if (model.EVE_ORGANIZADOR_ID is null) return;
+
+        var organizador = await _repOrganizador.SelectContext().AsNoTracking()
+            .Where(x => x.Id == model.EVE_ORGANIZADOR_ID && x.ORG_ASSINANTE_ID == assinanteId)
+            .Select(x => new { x.ORG_ATIVO })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (organizador is null) throw new Exception("Organizador não encontrado.");
+        if (!organizador.ORG_ATIVO && gravado?.EVE_ORGANIZADOR_ID != model.EVE_ORGANIZADOR_ID)
+            throw new Exception("Organizador inativo.");
+    }
+
+    /// <summary>Evento + nomes do tipo e do organizador + arquivos (sem o caminho). Nulo se não existir ou for de outro assinante.</summary>
+    private async Task<EventoModel?> CarregarModelAsync(Guid id, Guid assinanteId, CancellationToken cancellationToken)
+    {
+        var dados = await _repEvento.SelectContext().AsNoTracking()
+            .Where(x => x.Id == id && x.EVE_ASSINANTE_ID == assinanteId)
+            .Select(x => new
+            {
+                Evento = x,
+                TipoNome = x.TipoEvento!.TPE_NOME,
+                OrganizadorNome = x.Organizador != null ? x.Organizador.ORG_NOME : null
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (dados is null) return null;
+
+        var arquivos = await _repEventoArquivo.SelectContext().AsNoTracking()
+            .Where(x => x.EVA_EVENTO_ID == id && x.EVA_ASSINANTE_ID == assinanteId)
+            .OrderBy(x => x.EVA_TIPO)
+            .Select(x => new EventoArquivoItem
+            {
+                Id = x.Id,
+                EVA_TIPO = x.EVA_TIPO,
+                EVA_NOME_ORIGINAL = x.EVA_NOME_ORIGINAL,
+                EVA_CONTENT_TYPE = x.EVA_CONTENT_TYPE,
+                EVA_TAMANHO = x.EVA_TAMANHO
+            })
+            .ToListAsync(cancellationToken);
+
+        var model = ParaModel(dados.Evento);
+        model.TipoEventoNome = dados.TipoNome;
+        model.OrganizadorNome = dados.OrganizadorNome;
+        model.Arquivos = arquivos;
+        return model;
+    }
+
+    /// <summary>Trim nos textos; opcional vazio vira nulo; organizador com Guid vazio vira nulo.</summary>
+    private static void Normalizar(EventoModel m)
+    {
+        m.EVE_NOME = (m.EVE_NOME ?? string.Empty).Trim();
+        m.EVE_CIDADE = (m.EVE_CIDADE ?? string.Empty).Trim();
+        if (m.EVE_ORGANIZADOR_ID == Guid.Empty) m.EVE_ORGANIZADOR_ID = null;
+
+        m.EVE_LARGADA_LOCAL = Texto(m.EVE_LARGADA_LOCAL);
+        m.EVE_LARGADA_LINK = Texto(m.EVE_LARGADA_LINK);
+        m.EVE_CHEGADA_LOCAL = Texto(m.EVE_CHEGADA_LOCAL);
+        m.EVE_CHEGADA_LINK = Texto(m.EVE_CHEGADA_LINK);
+        m.EVE_LINK_INSCRICAO = Texto(m.EVE_LINK_INSCRICAO);
+        m.EVE_LINK_FOTOS = Texto(m.EVE_LINK_FOTOS);
+        m.EVE_ROTA_LINK_MAPS = Texto(m.EVE_ROTA_LINK_MAPS);
+        m.EVE_ROTA_LINK_STRAVA = Texto(m.EVE_ROTA_LINK_STRAVA);
+        m.EVE_INFORMACOES = Texto(m.EVE_INFORMACOES);
+        m.EVE_OBSERVACOES_EQUIPE = Texto(m.EVE_OBSERVACOES_EQUIPE);
+        m.EVE_NOTAS_INTERNAS = Texto(m.EVE_NOTAS_INTERNAS);
+    }
+
+    private static string? Texto(string? valor)
+    {
+        var t = (valor ?? string.Empty).Trim();
+        return t.Length == 0 ? null : t;
+    }
+
+    /// <summary>Copia só os campos editáveis. Nunca altera o assinante.</summary>
+    private static void Aplicar(Evento e, EventoModel m)
+    {
+        e.EVE_NOME = m.EVE_NOME;
+        e.EVE_TIPO_EVENTO_ID = m.EVE_TIPO_EVENTO_ID;
+        e.EVE_DATA = m.EVE_DATA;
+        e.EVE_HORA = m.EVE_HORA;
+        e.EVE_CIDADE = m.EVE_CIDADE;
+        e.EVE_STATUS = m.EVE_STATUS;
+        e.EVE_ORGANIZADOR_ID = m.EVE_ORGANIZADOR_ID;
+        e.EVE_LARGADA_LOCAL = m.EVE_LARGADA_LOCAL;
+        e.EVE_LARGADA_LINK = m.EVE_LARGADA_LINK;
+        e.EVE_CHEGADA_LOCAL = m.EVE_CHEGADA_LOCAL;
+        e.EVE_CHEGADA_LINK = m.EVE_CHEGADA_LINK;
+        e.EVE_LINK_INSCRICAO = m.EVE_LINK_INSCRICAO;
+        e.EVE_LINK_FOTOS = m.EVE_LINK_FOTOS;
+        e.EVE_ROTA_LINK_MAPS = m.EVE_ROTA_LINK_MAPS;
+        e.EVE_ROTA_LINK_STRAVA = m.EVE_ROTA_LINK_STRAVA;
+        e.EVE_INFORMACOES = m.EVE_INFORMACOES;
+        e.EVE_OBSERVACOES_EQUIPE = m.EVE_OBSERVACOES_EQUIPE;
+        e.EVE_NOTAS_INTERNAS = m.EVE_NOTAS_INTERNAS;
+    }
+
+    private static EventoModel ParaModel(Evento e) => new()
+    {
+        Id = e.Id,
+        EVE_NOME = e.EVE_NOME,
+        EVE_TIPO_EVENTO_ID = e.EVE_TIPO_EVENTO_ID,
+        EVE_DATA = e.EVE_DATA,
+        EVE_HORA = e.EVE_HORA,
+        EVE_CIDADE = e.EVE_CIDADE,
+        EVE_STATUS = e.EVE_STATUS,
+        EVE_ORGANIZADOR_ID = e.EVE_ORGANIZADOR_ID,
+        EVE_LARGADA_LOCAL = e.EVE_LARGADA_LOCAL,
+        EVE_LARGADA_LINK = e.EVE_LARGADA_LINK,
+        EVE_CHEGADA_LOCAL = e.EVE_CHEGADA_LOCAL,
+        EVE_CHEGADA_LINK = e.EVE_CHEGADA_LINK,
+        EVE_LINK_INSCRICAO = e.EVE_LINK_INSCRICAO,
+        EVE_LINK_FOTOS = e.EVE_LINK_FOTOS,
+        EVE_ROTA_LINK_MAPS = e.EVE_ROTA_LINK_MAPS,
+        EVE_ROTA_LINK_STRAVA = e.EVE_ROTA_LINK_STRAVA,
+        EVE_INFORMACOES = e.EVE_INFORMACOES,
+        EVE_OBSERVACOES_EQUIPE = e.EVE_OBSERVACOES_EQUIPE,
+        EVE_NOTAS_INTERNAS = e.EVE_NOTAS_INTERNAS
+    };
+}

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Report</title>
+  <style>
+  
+  * {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      font-size: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      vertical-align: baseline;
+    }
+
+    body {
+      width: 100%;
+    }
+
+    .tabela {
+      border: 1px solid #000000;
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 50px;
+
+    }
+
+    .tabela th {
+      border: 1px solid #000000;
+      padding: 5px;
+      background: #1C5378;
+      color: #FFFFFF;
+    }
+
+    .tabela td {
+      border: 1px solid #000000;
+      text-align: center;
+      padding: 5px;
+    }
+
+    .title-header {
+      color: #FFFFFF;
+      background: #111826 !important;
+    }
+  </style>
+</head>
+
+<body>
+
+  <table class="tabela">
+    <thead>
+      <tr>
+        <th colspan="6" class="title-header">RESUMO DAS APURAÇÕES</th>
+      </tr>
+
+      <th>CFOP</th>
+      <th>Modelo</th>
+      <th>Descrição</th>
+      <th>Normais</th>
+      <th>Monofásicos</th>
+      <th>Total</th>
+    </thead>
+    <tbody>
+      <tr>
+        <td>5102</td>
+        <td>NFCe</td>
+        <td>VENDAS DE MERC. ADQUIRIDAS E/OU RECEBIDAS DE TERCEIROS</td>
+        <td>R$ 2.283,00</td>
+        <td>R$ 512,88</td>
+        <td>R$ 2.795,88</td>
+      </tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <th colspan="3">Total de operações</th>
+        <td>R$ 2.283,00</td>
+        <td>R$ 512,88</td>
+        <td>R$ 2.795,88</td>
+      </tr>
+    </tfoot>
+  </table>
+
+
+  <table class="tabela">
+    <thead>
+      <tr>
+        <th colspan="7" class="title-header">RESUMO DAS DEDUÇÕES</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- //Filial -->
+      <tr>
+        <td colspan="7">AGROPECUARIA VV LTDA -35.252.673/0001-13</td>
+      </tr>
+      <!-- Valores -->
+      <tr>
+        <th>TOTAL</th>
+        <th>NORMAL</th>
+        <th>MONOFASICOS</th>
+        <th>ST</th>
+        <th>STMONO</th>
+        <th>DEDUZIDO</th>
+        <th>A DEDUZIR</th>
+      </tr>
+      <tr>
+        <td>R$ 237.000,00</td>
+        <td>R$ 0,00</td>
+        <td>R$ 92.862,88</td>
+        <td>R$ 0,00</td>
+        <td>R$ 0,00</td>
+        <td>R$ 92.862,88</td>
+        <td>R$ 144.137,12</td>
+      </tr>
+    </tbody>
+  </table>
+
+
+
+  <!-- RESUMO DOS ITENS MONOFASICOS -->
+  <table class="tabela">
+    <thead>
+      <tr>
+        <th colspan="4" class="title-header">RESUMO DOS ITENS MONOFASICOS</th>
+      </tr>
+      <tr>
+        <th>QUANTIDADE</th>
+        <th>CODIGO</th>
+        <th>Descrição</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>5</td>
+        <td>300</td>
+        <td>VEICULOS, MAQUINAS E AUTOPEÇAS</td>
+        <td>R$ 92.400,00</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>300</td>
+        <td>VEICULOS, MAQUINAS E AUTOPEÇAS</td>
+        <td>R$ 92.400,00</td>
+      </tr>
+
+    </tbody>
+    <tfoot>
+      <tr>
+        <th colspan="3">Total de operações</th>
+        <th colspan="1">R$ 92.862,88</th>
+      </tr>
+    </tfoot>
+  </table>
+
+
+  <!-- LISTAGEM DE ITENS ANALISADOS -->
+
+  <table class="tabela" id="tabelaItens">
+    <thead>
+      <tr>
+        <th colspan="7" class="title-header">LISTAGEM DE ITENS ANALISADOS</th>
+      </tr>
+
+      <th>Cód.</th>
+      <th>Descrição</th>
+      <th>NCM</th>
+      <th>R$ Venda</th>
+      <th>CFOP</th>
+      <th>N. Nota</th>
+      <th>Tributação</th>
+    </thead>
+    <tbody>
+      <!-- LISTA DE PRODUTOS -->
+      <tr>
+        <td>3301</td>
+        <td>CADEIRA PLASTICA INFANTIL AZUL</td>
+        <td>9403.70.00</td>
+        <td>R$ 50,00</td>
+        <td>5102</td>
+        <td>3786</td>
+        <td>Normal</td>
+
+      </tr>
+    </tbody>
+  </table>
+</body>
+
+</html>

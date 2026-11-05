@@ -1,0 +1,144 @@
+<div class="absolute inset-0 flex flex-col min-w-0 overflow-hidden">
+    <mat-drawer-container class="flex-auto h-full bg-white">
+
+        <mat-drawer class="w-full md:w-[560px] max-w-full" mode="over" position="end" autoFocus="first-tabbable" #detailsDrawer
+            (closedStart)="onFichaFechada()">
+            <router-outlet></router-outlet>
+        </mat-drawer>
+
+        <mat-drawer-content class="flex flex-col bg-white">
+            <div class="flex flex-col flex-auto min-h-0">
+                <div class="flex flex-col lg:flex-row items-start lg:items-center lg:justify-between gap-4 p-4 sm:p-6 md:px-8 border-b">
+                    <div class="text-3xl sm:text-4xl font-extrabold tracking-tight leading-none">Assinantes</div>
+
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
+                        <mat-form-field class="fuse-mat-dense fuse-mat-rounded sm:min-w-72 w-full sm:w-auto" subscriptSizing="dynamic">
+                            <mat-icon class="icon-size-5" svgIcon="heroicons_outline:magnifying-glass" matPrefix></mat-icon>
+                            <input matInput [formControl]="busca" autocomplete="off" placeholder="Nome, e-mail ou CPF/CNPJ">
+                        </mat-form-field>
+
+                        <mat-form-field class="fuse-mat-dense fuse-mat-rounded w-full sm:w-40" subscriptSizing="dynamic">
+                            <mat-select [formControl]="situacao" aria-label="Situação">
+                                <mat-option value="true">Ativos</mat-option>
+                                <mat-option value="false">Bloqueados</mat-option>
+                                <mat-option value="todos">Todos</mat-option>
+                            </mat-select>
+                        </mat-form-field>
+
+                        <a mat-flat-button color="primary" [routerLink]="['novo']">
+                            <mat-icon svgIcon="heroicons_outline:plus"></mat-icon>
+                            <span class="ml-2">Novo assinante</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="flex flex-col flex-auto min-h-0 py-4 px-2 sm:px-6 md:px-8">
+                    <div *ngIf="loading && dataSource.data.length === 0" class="flex items-center justify-center py-12">
+                        <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
+                    </div>
+
+                    <div *ngIf="!(loading && dataSource.data.length === 0)" [class.opacity-60]="loading" [attr.aria-busy]="loading"
+                        class="transition-opacity flex flex-col flex-1 min-h-0">
+                        <div class="flex-1 min-h-0 overflow-auto">
+                            <!-- Abaixo de sm: layout fixo e células com pouco padding, para caber em 360 px sem rolar na horizontal -->
+                            <table mat-table [dataSource]="dataSource" class="w-full max-sm:table-fixed">
+                                <ng-container matColumnDef="ASS_NOME">
+                                    <th mat-header-cell *matHeaderCellDef class="text-left max-sm:!px-2">Nome</th>
+                                    <td mat-cell *matCellDef="let a" class="max-sm:!px-2">
+                                        <div class="truncate font-medium" [attr.title]="a.ASS_NOME">{{ a.ASS_NOME }}</div>
+                                        <!-- No celular o e-mail e o selo "Aguardando 1º acesso" descem para baixo do nome -->
+                                        <div class="truncate text-xs text-secondary sm:hidden">{{ a.ASS_EMAIL }}</div>
+                                        <span *ngIf="a.ExigirTrocaSenha"
+                                            class="sm:hidden mt-1 leading-none rounded-full px-2 py-1 text-[11px] font-semibold inline-flex items-center whitespace-nowrap bg-amber-100 text-amber-900">
+                                            Aguardando 1º acesso
+                                        </span>
+                                    </td>
+                                </ng-container>
+
+                                <ng-container matColumnDef="ASS_EMAIL">
+                                    <th mat-header-cell *matHeaderCellDef class="text-left hidden sm:table-cell max-sm:!px-2">E-mail</th>
+                                    <td mat-cell *matCellDef="let a" class="hidden sm:table-cell max-sm:!px-2">
+                                        <div class="truncate max-w-[260px]" [attr.title]="a.ASS_EMAIL">{{ a.ASS_EMAIL }}</div>
+                                    </td>
+                                </ng-container>
+
+                                <ng-container matColumnDef="ASS_TELEFONE">
+                                    <th mat-header-cell *matHeaderCellDef class="text-left hidden md:table-cell max-sm:!px-2">Telefone</th>
+                                    <td mat-cell *matCellDef="let a" class="whitespace-nowrap hidden md:table-cell max-sm:!px-2">{{ a.ASS_TELEFONE ? formatTelefone(a.ASS_TELEFONE) : '-' }}</td>
+                                </ng-container>
+
+                                <ng-container matColumnDef="ASS_CPF_CNPJ">
+                                    <th mat-header-cell *matHeaderCellDef class="text-left hidden md:table-cell max-sm:!px-2">CPF/CNPJ</th>
+                                    <td mat-cell *matCellDef="let a" class="whitespace-nowrap hidden md:table-cell max-sm:!px-2">{{ a.ASS_CPF_CNPJ ? formatCpfCnpj(a.ASS_CPF_CNPJ) : '-' }}</td>
+                                </ng-container>
+
+                                <ng-container matColumnDef="ASS_ATIVO">
+                                    <th mat-header-cell *matHeaderCellDef class="text-left max-sm:w-[96px] max-sm:!px-2">Situação</th>
+                                    <td mat-cell *matCellDef="let a" class="max-sm:!px-2">
+                                        <div class="flex flex-col items-start gap-1 py-1">
+                                            <span class="leading-none rounded-full px-2 sm:px-3 py-1.5 text-xs font-semibold inline-flex items-center whitespace-nowrap"
+                                                [ngClass]="a.ASS_ATIVO ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
+                                                {{ a.ASS_ATIVO ? 'Ativo' : 'Bloqueado' }}
+                                            </span>
+                                            <span *ngIf="a.ExigirTrocaSenha"
+                                                class="hidden sm:inline-flex leading-none rounded-full px-2 sm:px-3 py-1.5 text-xs font-semibold items-center whitespace-nowrap bg-amber-100 text-amber-900">
+                                                Aguardando 1º acesso
+                                            </span>
+                                        </div>
+                                    </td>
+                                </ng-container>
+
+                                <ng-container matColumnDef="LastLogin">
+                                    <th mat-header-cell *matHeaderCellDef class="text-left hidden md:table-cell max-sm:!px-2">Último acesso</th>
+                                    <td mat-cell *matCellDef="let a" class="whitespace-nowrap hidden md:table-cell max-sm:!px-2">
+                                        {{ a.LastLogin ? (a.LastLogin | date: 'dd/MM/yyyy HH:mm') : '-' }}
+                                    </td>
+                                </ng-container>
+
+                                <ng-container matColumnDef="Acoes">
+                                    <th mat-header-cell *matHeaderCellDef class="w-11 sm:w-12"></th>
+                                    <td mat-cell *matCellDef="let a" class="w-11 sm:w-12 !px-0 sm:!pr-2 text-right">
+                                        <button mat-icon-button type="button" [matMenuTriggerFor]="menuLinha" aria-label="Ações"
+                                            (click)="$event.stopPropagation()">
+                                            <mat-icon svgIcon="heroicons_outline:ellipsis-vertical"></mat-icon>
+                                        </button>
+                                        <mat-menu #menuLinha="matMenu">
+                                            <button mat-menu-item type="button" (click)="abrir(a)">
+                                                <mat-icon svgIcon="heroicons_outline:pencil-square"></mat-icon>
+                                                <span>Editar</span>
+                                            </button>
+                                            <button *ngIf="a.ASS_ATIVO" mat-menu-item type="button" (click)="bloquear(a)">
+                                                <mat-icon svgIcon="heroicons_outline:no-symbol"></mat-icon>
+                                                <span>Bloquear</span>
+                                            </button>
+                                            <button *ngIf="!a.ASS_ATIVO" mat-menu-item type="button" (click)="reativar(a)">
+                                                <mat-icon svgIcon="heroicons_outline:check-circle"></mat-icon>
+                                                <span>Reativar</span>
+                                            </button>
+                                            <button mat-menu-item type="button" (click)="redefinirAcesso(a)">
+                                                <mat-icon svgIcon="heroicons_outline:key"></mat-icon>
+                                                <span>Redefinir acesso</span>
+                                            </button>
+                                        </mat-menu>
+                                    </td>
+                                </ng-container>
+
+                                <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                                <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+                                    class="cursor-pointer hover:bg-gray-50" (click)="abrir(row)"></tr>
+                            </table>
+
+                            <div *ngIf="dataSource.data.length === 0" class="text-sm text-secondary text-center py-6">
+                                Nenhum assinante encontrado.
+                            </div>
+                        </div>
+
+                        <mat-paginator [length]="totalCount" [pageIndex]="page" [pageSize]="pageSize"
+                            [pageSizeOptions]="[10, 25, 50, 100]" (page)="onPage($event)" showFirstLastButtons>
+                        </mat-paginator>
+                    </div>
+                </div>
+            </div>
+        </mat-drawer-content>
+    </mat-drawer-container>
+</div>

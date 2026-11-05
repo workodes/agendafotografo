@@ -1,0 +1,104 @@
+<div class="flex flex-col flex-1 gap-4 min-h-0 w-full">
+    <div class="flex items-center justify-between pt-6 pb-4 border-b border-gray-300">
+        <span class="text-2xl sm:text-3xl font-bold text-accent">{{ ehNovo ? 'Novo organizador' : 'Organizador' }}</span>
+        <button mat-icon-button type="button" aria-label="Fechar" (click)="voltar()">
+            <mat-icon class="text-warn" svgIcon="heroicons_outline:x-mark"></mat-icon>
+        </button>
+    </div>
+
+    <div class="flex flex-col flex-1 min-h-0 overflow-auto">
+        <!-- Status e ação (só na edição) -->
+        <div *ngIf="!ehNovo" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 p-3 rounded-lg bg-gray-50 border">
+            <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center self-start"
+                [ngClass]="organizador?.ORG_ATIVO ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-700'">
+                {{ organizador?.ORG_ATIVO ? 'Ativo' : 'Inativo' }}
+            </span>
+            <button *ngIf="organizador?.ORG_ATIVO" mat-stroked-button color="warn" type="button" [disabled]="acaoEmAndamento" (click)="inativar()">
+                <mat-icon svgIcon="heroicons_outline:no-symbol"></mat-icon>
+                <span class="ml-2">Inativar</span>
+            </button>
+            <button *ngIf="!organizador?.ORG_ATIVO" mat-stroked-button type="button" [disabled]="acaoEmAndamento" (click)="ativar()">
+                <mat-icon svgIcon="heroicons_outline:check-circle"></mat-icon>
+                <span class="ml-2">Ativar</span>
+            </button>
+        </div>
+
+        <!-- 1 coluna no celular, 2 a partir de sm -->
+        <form id="form-organizador" class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
+                <mat-label>Nome</mat-label>
+                <input matInput formControlName="ORG_NOME" maxlength="200" autocomplete="off">
+                <mat-error>{{ erro('ORG_NOME') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Contato (pessoa)</mat-label>
+                <input matInput formControlName="ORG_CONTATO" maxlength="150" autocomplete="off">
+                <mat-error>{{ erro('ORG_CONTATO') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Telefone</mat-label>
+                <input matInput formControlName="ORG_TELEFONE" mask="(00) 0000-0000||(00) 00000-0000" inputmode="tel" autocomplete="off">
+                <mat-error>{{ erro('ORG_TELEFONE') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>E-mail</mat-label>
+                <input matInput formControlName="ORG_EMAIL" type="email" maxlength="200" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false">
+                <mat-error>{{ erro('ORG_EMAIL') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Instagram</mat-label>
+                <span matTextPrefix class="text-secondary">&#64;</span>
+                <input matInput formControlName="ORG_INSTAGRAM" autocomplete="off" autocapitalize="none" spellcheck="false">
+                <mat-error>{{ erro('ORG_INSTAGRAM') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
+                <mat-label>Notas</mat-label>
+                <textarea matInput formControlName="ORG_NOTAS" rows="4" maxlength="2000"></textarea>
+                <mat-error>{{ erro('ORG_NOTAS') }}</mat-error>
+            </mat-form-field>
+        </form>
+
+        <!-- Histórico de eventos (só na edição) -->
+        <section *ngIf="!ehNovo" class="flex flex-col gap-2 mt-6">
+            <h2 class="text-xl font-bold text-accent">Histórico</h2>
+
+            <div *ngIf="carregandoHistorico" class="flex items-center justify-center py-4">
+                <mat-progress-spinner diameter="24" mode="indeterminate"></mat-progress-spinner>
+            </div>
+            <div *ngIf="erroHistorico" class="text-sm text-warn">{{ erroHistorico }}</div>
+            <div *ngIf="!carregandoHistorico && !erroHistorico && historico.length === 0" class="text-sm text-secondary">Nenhum evento deste organizador.</div>
+
+            <div *ngFor="let e of historico" role="link" tabindex="0"
+                class="flex flex-col gap-1 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 min-w-0"
+                (click)="abrirEvento(e, $event)" (auxclick)="abrirEvento(e, $event)" (keydown.enter)="abrirEvento(e)">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-sm font-medium whitespace-nowrap">{{ formatarData(e.EVE_DATA) }} <span class="text-xs text-secondary font-normal">{{ diaSemanaCurto(e.EVE_DATA) }}</span></span>
+                    <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center shrink-0"
+                        [ngClass]="statusCor[e.EVE_STATUS]">{{ statusRotulo[e.EVE_STATUS] }}</span>
+                </div>
+                <div class="truncate font-medium" [attr.title]="e.EVE_NOME">{{ e.EVE_NOME }}</div>
+                <div class="truncate text-xs text-secondary" [attr.title]="equipe(e)">
+                    {{ e.Equipe?.length ? 'Equipe: ' + equipe(e) : 'Sem equipe escalada' }}
+                </div>
+            </div>
+
+            <div *ngIf="historico.length" class="flex flex-wrap items-center justify-between gap-2 text-sm">
+                <span class="text-secondary">{{ historico.length < historicoTotal ? 'Mostrando ' + historico.length + ' de ' + historicoTotal : historicoTotal + (historicoTotal === 1 ? ' evento' : ' eventos') }}</span>
+                <a class="underline text-primary" [routerLink]="['/assinante/eventos']" [queryParams]="{ organizadorId: organizador?.Id, dataDe: '' }">Ver todos na lista de eventos</a>
+            </div>
+        </section>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-300">
+        <button mat-button type="button" [disabled]="salvando" (click)="voltar()">Fechar</button>
+        <button mat-flat-button color="primary" type="submit" form="form-organizador" [disabled]="salvando">
+            <mat-progress-spinner *ngIf="salvando" diameter="20" mode="indeterminate"></mat-progress-spinner>
+            <span *ngIf="!salvando">Salvar</span>
+        </button>
+    </div>
+</div>

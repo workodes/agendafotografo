@@ -1,0 +1,28 @@
+<div class="w-12 h-12 flex justify-center bg-card rounded-full overflow-hidden">
+    <button mat-icon-button [matMenuTriggerFor]="userActions">
+        <img *ngIf="this.logo" class="rounded-full" [src]="this.logo" alt="Logo"
+            style="object-fit: scale-down; width: 100%; height: 100%; border-radius: 50%;">
+        <mat-icon *ngIf="!this.logo" class="rounded-full" [svgIcon]="'heroicons_outline:user-circle'"
+            style="object-fit: scale-down; width: 100%; height: 100%; border-radius: 50%;"></mat-icon>
+    </button>
+</div>
+
+<mat-menu [xPosition]="'before'" #userActions="matMenu">
+    <div class="px-4 py-2 flex flex-col leading-none" (click)="$event.stopPropagation()">
+        <span class="text-xs text-secondary">Logado com</span>
+        <span class="mt-1.5 text-md font-medium break-all">{{usuario?.Email}}</span>
+        <span *ngIf="usuario?.AssinanteNome" class="mt-1 text-xs text-secondary">{{usuario?.AssinanteNome}}</span>
+    </div>
+    <mat-divider class="my-2"></mat-divider>
+
+    <button mat-menu-item (click)="alterarSenha()">
+        <mat-icon [svgIcon]="'heroicons_outline:key'"></mat-icon>
+        <span>Alterar senha</span>
+    </button>
+
+    <mat-divider class="my-2"></mat-divider>
+    <button mat-menu-item (click)="signOut()">
+        <mat-icon [svgIcon]="'heroicons_outline:arrow-right-on-rectangle'"></mat-icon>
+        <span>Sair</span>
+    </button>
+</mat-menu>

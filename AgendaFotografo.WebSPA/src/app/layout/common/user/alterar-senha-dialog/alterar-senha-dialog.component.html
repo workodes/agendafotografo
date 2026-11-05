@@ -1,0 +1,42 @@
+<h2 mat-dialog-title>{{ obrigatorio ? 'Defina uma nova senha' : 'Alterar senha' }}</h2>
+
+<mat-dialog-content>
+    <p *ngIf="obrigatorio" class="mb-4 text-secondary">
+        Por segurança, sua senha precisa ser trocada antes de continuar. Informe a senha atual e escolha uma nova
+        senha (mínimo de 8 caracteres, diferente da atual).
+    </p>
+    <form id="form-alterar-senha" class="flex flex-col gap-1 pt-2" [formGroup]="form" (ngSubmit)="salvar()">
+        <mat-form-field class="w-full">
+            <mat-label>Senha atual</mat-label>
+            <input matInput [type]="mostrarAtual ? 'text' : 'password'" formControlName="SenhaAtual"
+                autocomplete="current-password">
+            <button mat-icon-button matSuffix type="button" tabindex="-1"
+                [attr.aria-label]="mostrarAtual ? 'Ocultar senha' : 'Mostrar senha'" (click)="mostrarAtual = !mostrarAtual">
+                <mat-icon class="icon-size-5" [svgIcon]="mostrarAtual ? 'heroicons_solid:eye-slash' : 'heroicons_solid:eye'"></mat-icon>
+            </button>
+            <mat-error *ngIf="form.get('SenhaAtual')?.hasError('required')">Senha atual é obrigatória</mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="w-full">
+            <mat-label>Nova senha</mat-label>
+            <input matInput [type]="mostrarNova ? 'text' : 'password'" formControlName="NovaSenha"
+                autocomplete="new-password">
+            <button mat-icon-button matSuffix type="button" tabindex="-1"
+                [attr.aria-label]="mostrarNova ? 'Ocultar senha' : 'Mostrar senha'" (click)="mostrarNova = !mostrarNova">
+                <mat-icon class="icon-size-5" [svgIcon]="mostrarNova ? 'heroicons_solid:eye-slash' : 'heroicons_solid:eye'"></mat-icon>
+            </button>
+            <mat-error *ngIf="form.get('NovaSenha')?.hasError('required')">Nova senha é obrigatória</mat-error>
+            <mat-error *ngIf="!form.get('NovaSenha')?.hasError('required') && form.get('NovaSenha')?.hasError('minlength')">A senha deve ter no mínimo 8 caracteres</mat-error>
+            <mat-error *ngIf="!form.get('NovaSenha')?.hasError('required') && !form.get('NovaSenha')?.hasError('minlength') && form.get('NovaSenha')?.hasError('igualAtual')">A nova senha deve ser diferente da senha atual</mat-error>
+        </mat-form-field>
+    </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button *ngIf="!obrigatorio" mat-button type="button" [disabled]="saving" (click)="cancelar()">Cancelar</button>
+    <button *ngIf="obrigatorio" mat-button type="button" [disabled]="saving" (click)="sair()">Sair</button>
+    <button mat-flat-button color="primary" type="submit" form="form-alterar-senha" [disabled]="saving">
+        <mat-progress-spinner *ngIf="saving" diameter="20" mode="indeterminate"></mat-progress-spinner>
+        <span *ngIf="!saving">Salvar</span>
+    </button>
+</mat-dialog-actions>

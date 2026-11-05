@@ -1,0 +1,42 @@
+<div class="flex flex-col flex-1 gap-4 min-h-0 w-full">
+    <div class="flex items-center justify-between pt-6 pb-4 border-b border-gray-300">
+        <span class="text-2xl sm:text-3xl font-bold text-accent">{{ ehNovo ? 'Novo tipo de evento' : 'Tipo de evento' }}</span>
+        <button mat-icon-button type="button" aria-label="Fechar" (click)="voltar()">
+            <mat-icon class="text-warn" svgIcon="heroicons_outline:x-mark"></mat-icon>
+        </button>
+    </div>
+
+    <div class="flex flex-col flex-1 min-h-0 overflow-auto">
+        <!-- Status e ação (só na edição) -->
+        <div *ngIf="!ehNovo" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 p-3 rounded-lg bg-gray-50 border">
+            <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center self-start"
+                [ngClass]="tipo?.TPE_ATIVO ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-700'">
+                {{ tipo?.TPE_ATIVO ? 'Ativo' : 'Inativo' }}
+            </span>
+            <button *ngIf="tipo?.TPE_ATIVO" mat-stroked-button color="warn" type="button" [disabled]="acaoEmAndamento" (click)="inativar()">
+                <mat-icon svgIcon="heroicons_outline:no-symbol"></mat-icon>
+                <span class="ml-2">Inativar</span>
+            </button>
+            <button *ngIf="!tipo?.TPE_ATIVO" mat-stroked-button type="button" [disabled]="acaoEmAndamento" (click)="ativar()">
+                <mat-icon svgIcon="heroicons_outline:check-circle"></mat-icon>
+                <span class="ml-2">Ativar</span>
+            </button>
+        </div>
+
+        <form id="form-tipo-evento" class="flex flex-col gap-1" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Nome</mat-label>
+                <input matInput formControlName="TPE_NOME" maxlength="60" autocomplete="off">
+                <mat-error>{{ erro('TPE_NOME') }}</mat-error>
+            </mat-form-field>
+        </form>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-300">
+        <button mat-button type="button" [disabled]="salvando" (click)="voltar()">Fechar</button>
+        <button mat-flat-button color="primary" type="submit" form="form-tipo-evento" [disabled]="salvando">
+            <mat-progress-spinner *ngIf="salvando" diameter="20" mode="indeterminate"></mat-progress-spinner>
+            <span *ngIf="!salvando">Salvar</span>
+        </button>
+    </div>
+</div>

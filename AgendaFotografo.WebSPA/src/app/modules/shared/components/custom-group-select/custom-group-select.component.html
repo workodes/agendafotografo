@@ -1,0 +1,40 @@
+<mat-form-field class="w-full" [appearance]="outline() ? 'outline' : 'fill'">
+    @if(label()) {
+    <mat-label>{{ label() }}</mat-label>
+    }
+    <mat-icon matPrefix>list</mat-icon>
+    <mat-select 
+        [formControl]="$any(ngControl.control)"
+        [value]="value" 
+        (valueChange)="handleValueChange($event)"
+        (closed)="handleClosed()" 
+    >
+
+        <mat-option>
+            <ngx-mat-select-search [formControl]="filterControl" [placeholderLabel]="placeholder()"
+                noEntriesFoundLabel="Nenhuma opção encontrada">
+            </ngx-mat-select-search>
+        </mat-option>
+
+
+        <mat-option [value]="null">
+            Selecione
+        </mat-option>
+
+        @for (group of filteredOptions(); track group.display) {
+        <mat-optgroup [label]="group.display" class="text-gray-600 font-semibold">
+            @for (option of group.options; track option.value) {
+            <mat-option [value]="option.value">
+                {{ option.display }}
+            </mat-option>
+            }
+        </mat-optgroup>
+        }
+    </mat-select>
+
+    @if (ngControl?.control?.invalid && ngControl?.control?.touched) {
+    <mat-error>
+        Campo <strong>obrigatório</strong>
+    </mat-error>
+    }
+</mat-form-field>

@@ -1,0 +1,23 @@
+bin/
+obj/
+.vs/
+.idea/
+*.user
+node_modules/
+dist/
+.angular/
+
+# Arquivos enviados pelos usuários (nunca versionar)
+AgendaFotografo.WebApi/App_Data/
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+*.swp
+*.suo
+*.log
+.env
+.env.*
+coverage/
+TestResults/
+publish/
