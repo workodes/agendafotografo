@@ -3,6 +3,9 @@ import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { AgendaFiltro } from 'app/models/DTOs/filters/AgendaFiltro';
 import { EventoFiltro } from 'app/models/DTOs/filters/EventoFiltro';
+import { PendenciaFiltro } from 'app/models/DTOs/filters/PendenciaFiltro';
+import { EventoPendenciaModel, EventoPendenciaStatusModel } from 'app/models/DTOs/requests/EventoPendenciaModel';
+import { EventoPendenciaItem } from 'app/models/DTOs/responses/EventoPendenciaItem';
 import { EventoMembroModel, EventoMembroPosicaoModel } from 'app/models/DTOs/requests/EventoMembroModel';
 import { DiaResponse } from 'app/models/DTOs/responses/DiaResponse';
 import { EventoLinkModel } from 'app/models/DTOs/requests/EventoLinkModel';
@@ -115,6 +118,48 @@ export class EventoService {
     // id = Id da linha da escala (EventoMembroItem.Id).
     RemoverMembro(id: string): Observable<ApiResponse> {
         return this._httpClient.delete<ApiResponse>(environment.Evento.removerMembro, { params: new HttpParams().set('id', id) });
+    }
+
+    // ---- Pendências ----
+
+    // Pendências de um evento, na ordem da ficha (abertas antes das concluídas, depois prazo e prioridade).
+    Pendencias(eventoId: string): Observable<EventoPendenciaItem[]> {
+        return this._httpClient.get<EventoPendenciaItem[]>(environment.Evento.pendencias, { params: new HttpParams().set('id', eventoId) });
+    }
+
+    // Lista geral (eventos não cancelados). Sem status = só as abertas. Filtros só vão na query quando preenchidos.
+    ListarPendencias(page: number, pageSize: number, filtro: PendenciaFiltro = {}): Observable<PaginatedResponse<EventoPendenciaItem>> {
+        let params = new HttpParams().set('page', page).set('pageSize', pageSize);
+        if (filtro.status) {
+            params = params.set('status', filtro.status);
+        }
+        if (filtro.prioridade != null) {
+            params = params.set('prioridade', filtro.prioridade);
+        }
+        if (filtro.membroId) {
+            params = params.set('membroId', filtro.membroId);
+        }
+        if (filtro.prazo) {
+            params = params.set('prazo', filtro.prazo);
+        }
+        return this._httpClient.get<PaginatedResponse<EventoPendenciaItem>>(environment.Evento.listarPendencias, { params });
+    }
+
+    AdicionarPendencia(model: EventoPendenciaModel): Observable<EventoPendenciaItem> {
+        return this._httpClient.post<EventoPendenciaItem>(environment.Evento.adicionarPendencia, model, { headers: this._headers });
+    }
+
+    AtualizarPendencia(model: EventoPendenciaModel): Observable<EventoPendenciaItem> {
+        return this._httpClient.put<EventoPendenciaItem>(environment.Evento.atualizarPendencia, model, { headers: this._headers });
+    }
+
+    // Troca só o status (menu do chip).
+    AtualizarStatusPendencia(id: string, model: EventoPendenciaStatusModel): Observable<EventoPendenciaItem> {
+        return this._httpClient.put<EventoPendenciaItem>(environment.Evento.atualizarStatusPendencia, model, { headers: this._headers, params: new HttpParams().set('id', id) });
+    }
+
+    ExcluirPendencia(id: string): Observable<ApiResponse> {
+        return this._httpClient.delete<ApiResponse>(environment.Evento.excluirPendencia, { params: new HttpParams().set('id', id) });
     }
 
     // data "yyyy-MM-dd": eventos do dia, membros livres e conflitos.

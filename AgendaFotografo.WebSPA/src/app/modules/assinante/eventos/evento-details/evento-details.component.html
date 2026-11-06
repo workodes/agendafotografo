@@ -204,6 +204,54 @@
                 </ng-container>
             </section>
 
+            <!-- Pendências (fora do <form>) -->
+            <section class="flex flex-col gap-3">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-baseline gap-2 min-w-0">
+                        <h2 class="text-xl font-bold text-accent">Pendências</h2>
+                        <span *ngIf="!ehNovo && !avisoCancelado" class="text-sm text-secondary whitespace-nowrap">{{ pendenciasAbertas }} {{ pendenciasAbertas === 1 ? 'aberta' : 'abertas' }}</span>
+                    </div>
+                    <button mat-flat-button color="primary" type="button" class="shrink-0" [disabled]="ehNovo" (click)="abrirPendencia()">
+                        <mat-icon svgIcon="heroicons_outline:plus"></mat-icon>
+                        <span class="ml-2">Nova pendência</span>
+                    </button>
+                </div>
+
+                <div *ngIf="ehNovo" class="text-sm text-secondary p-3 rounded-lg border bg-gray-50">
+                    Salve o evento para registrar pendências.
+                </div>
+
+                <ng-container *ngIf="!ehNovo">
+                    <div *ngIf="avisoCancelado" role="alert" class="p-3 rounded-lg border bg-gray-100 text-gray-700 text-sm">
+                        Evento cancelado: estas pendências não aparecem na lista de Pendências nem nos alertas.
+                    </div>
+
+                    <div *ngIf="pendencias.length === 0" class="text-sm text-secondary p-3 rounded-lg border bg-gray-50">Nenhuma pendência neste evento.</div>
+
+                    <div *ngFor="let p of pendencias; trackBy: trackPendencia" role="button" tabindex="0"
+                        class="flex flex-col gap-2 p-3 rounded-lg border bg-white cursor-pointer hover:shadow-md transition-shadow min-w-0"
+                        (click)="abrirPendencia(p)" (keydown.enter)="abrirPendencia(p)">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="font-semibold break-words min-w-0" [class.line-through]="p.EVP_STATUS === concluida" [class.opacity-60]="p.EVP_STATUS === concluida">{{ p.EVP_TITULO }}</div>
+                            <app-pendencia-status-chip [item]="p" (alterado)="recarregarPendencias()"></app-pendencia-status-chip>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-secondary" [class.opacity-60]="p.EVP_STATUS === concluida">
+                            <span class="break-words">{{ categoriaPendenciaRotulo[p.EVP_CATEGORIA] }}</span>
+                            <span class="leading-none rounded-full px-2.5 py-1 text-xs font-semibold" [ngClass]="prioridadePendenciaCor[p.EVP_PRIORIDADE]">{{ prioridadePendenciaRotulo[p.EVP_PRIORIDADE] }}</span>
+                            <span *ngIf="p.EVP_PRAZO" class="inline-flex items-center gap-1">
+                                <mat-icon class="icon-size-4" svgIcon="heroicons_outline:calendar"></mat-icon>{{ formatarPrazo(p.EVP_PRAZO) }}
+                            </span>
+                            <span *ngIf="p.Vencida" class="leading-none rounded-full px-2 py-1 text-xs font-semibold bg-red-100 text-red-800">Vencida</span>
+                            <span *ngIf="p.Vencendo" class="leading-none rounded-full px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800">Vencendo</span>
+                            <span *ngIf="p.EVP_MEMBRO_ID" class="inline-flex items-center gap-1 min-w-0">
+                                <mat-icon class="icon-size-4" svgIcon="heroicons_outline:user"></mat-icon>
+                                <span class="break-words">{{ p.MEM_NOME }}<span *ngIf="p.MEM_ATIVO === false"> (inativo)</span></span>
+                            </span>
+                        </div>
+                    </div>
+                </ng-container>
+            </section>
+
             <!-- 4. Observações -->
             <section class="flex flex-col gap-2" [formGroup]="form">
                 <h2 class="text-xl font-bold text-accent">Observações</h2>

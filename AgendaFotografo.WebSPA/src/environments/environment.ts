@@ -71,6 +71,12 @@ export const environment = {
         atualizarLink: `${baseUrl}/Evento/AtualizarLink`,
         regerarCodigoLink: `${baseUrl}/Evento/RegerarCodigoLink`,
         regerarLink: `${baseUrl}/Evento/RegerarLink`,
+        pendencias: `${baseUrl}/Evento/Pendencias`,
+        listarPendencias: `${baseUrl}/Evento/ListarPendencias`,
+        adicionarPendencia: `${baseUrl}/Evento/AdicionarPendencia`,
+        atualizarPendencia: `${baseUrl}/Evento/AtualizarPendencia`,
+        atualizarStatusPendencia: `${baseUrl}/Evento/AtualizarStatusPendencia`,
+        excluirPendencia: `${baseUrl}/Evento/ExcluirPendencia`,
     },
 
     LinkPublico: {

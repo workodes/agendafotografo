@@ -194,6 +194,7 @@ public static class Setup
         services.AddScoped<IAssinanteInicializacao, AssinanteInicializacao>();
         services.AddScoped<TipoEventoPadrao>();
         services.AddScoped<EscalaConsultas>();
+        services.AddScoped<PendenciaConsultas>();
 
         services.Configure<MailSettings>(configuration.GetSection("MailSettings"));
         services.AddSingleton<IEmailService, EmailService>();

@@ -20,6 +20,7 @@ export const eventoFichaResolver: ResolveFn<any> = (route: ActivatedRouteSnapsho
         return forkJoin({
             evento: of(null),
             equipe: of([]),
+            pendencias: of([]),
             tipos: tipoService.Opcoes(true),
             organizadores: organizadorService.Opcoes(true),
         }).pipe(catchError(error => errorHandler.handle(error)));
@@ -29,6 +30,7 @@ export const eventoFichaResolver: ResolveFn<any> = (route: ActivatedRouteSnapsho
         switchMap(evento => forkJoin({
             evento: of(evento),
             equipe: service.Membros(id),
+            pendencias: service.Pendencias(id),
             tipos: tipoService.Opcoes(true, evento.EVE_TIPO_EVENTO_ID),
             organizadores: organizadorService.Opcoes(true, evento.EVE_ORGANIZADOR_ID),
         })),

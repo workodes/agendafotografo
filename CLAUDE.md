@@ -79,7 +79,7 @@ Passo a passo e pontos de atenção em `docs/deploy.md`. Endpoint ou arquivo nov
 3. Escala da equipe + Visão do dia + conflitos/livres: **pronto** (mesmo plano 03; actions do `EventoController` e tela Visão do dia no SPA)
 4. Agenda (lista + calendário): **pronto** (`docs/planos/04 - Agenda.md`; actions `Agenda` e `Cidades` do `EventoController` e tela Agenda no SPA, que substituiu a lista "Eventos")
 5. Link público: **pronto** (`docs/planos/05 - Link publico.md`; `EventoLink`/`EVENTOLINKS`, 4 actions no `EventoController`, `LinkPublicoController` anônimo e página `/e/:token` no SPA)
-6. Pendências
+6. Pendências: **pronto** (`docs/planos/06 - Pendências.md`; actions de pendência no `EventoController`, seção na ficha do evento e tela Pendências no SPA)
 7. Recorrência
 8. Painel + e-mail de lembretes
 9. Área admin de assinantes (criar, ativar, bloquear, redefinir acesso) em `AssinanteController` (`[Authorize(Roles = Admin)]`): **pronto, entregue antes do módulo 1** (`docs/planos/01 - Assinantes.md`)
@@ -91,4 +91,4 @@ Nomes de tabela/entidade/controller sugeridos: ver `AgendaFotografo.WebApi/CLAUD
 
 ## Subagents
 `fartec:backend` (API), `fartec:frontend` (SPA), `fartec:engenheiro` (planos), `fartec:revisor`, `fartec:testador`.
-Somente o colaborador faz commit/branch/worktree. A base da API e a do SPA (ambas alinhadas ao Portal, com o contrato de Auth novo) estão prontas, assim como os planos 01 (Assinantes), 02 (módulo 1), 03 (módulos 2 e 3) e 04 (módulo 4, Agenda); o plano 05 (Link público) está construído (aguarda revisão e testes); o próximo módulo é o 6, Pendências (`fartec:engenheiro`).
+Somente o colaborador faz commit/branch/worktree. A base da API e a do SPA (ambas alinhadas ao Portal, com o contrato de Auth novo) estão prontas, assim como os planos 01 (Assinantes), 02 (módulo 1), 03 (módulos 2 e 3) e 04 (módulo 4, Agenda); os planos 05 (Link público) e 06 (Pendências) estão construídos (aguardam revisão e testes); o próximo módulo é o 7, Recorrência (`fartec:engenheiro`).

@@ -62,8 +62,8 @@ Não há testes automatizados no padrão. Para logar é preciso a API no ar (`do
 
 ## Menu
 `NavigationService.get()` escolhe o menu pelo role do token (`MenuData.porRole[role]`): o usuário só vê os itens do próprio perfil. Sem mecanismo de itens ocultos:
-só aparece o que existe. Hoje o Admin tem **Início** e **Assinantes**; o Assinante tem **Início**, **Agenda** (plano 04; no lugar de "Eventos"), **Visão do dia** (plano 03) e o grupo `collapsable` **Cadastros** (Equipe, Organizadores, Tipos de evento; plano 02).
-Os demais módulos entram com seus planos (Assinante: Pendências...): criar a rota e o item de menu juntos (`MenuData.montarMenu(prefixo, extras)`). `Navigation` tem só `horizontal` (usado também na gaveta do celular).
+só aparece o que existe. Hoje o Admin tem **Início** e **Assinantes**; o Assinante tem **Início**, **Agenda** (plano 04; no lugar de "Eventos"), **Visão do dia** (plano 03), **Pendências** (plano 06) e o grupo `collapsable` **Cadastros** (Equipe, Organizadores, Tipos de evento; plano 02).
+Os demais módulos entram com seus planos: criar a rota e o item de menu juntos (`MenuData.montarMenu(prefixo, extras)`). `Navigation` tem só `horizontal` (usado também na gaveta do celular).
 
 ## Estrutura (`src/app/`)
 `core/{auth,constants,icons,navigation,services}`, `layout/` (Fuse: layout horizontal "modern" + `empty`; `layout/common/user` com o menu do usuário e o modal de senha),
@@ -151,7 +151,7 @@ Rotas em `rotasAssinante`: `/assinante/eventos` (`modules/assinante/eventos/even
   `Dia`, `Agenda`, `Cidades`, `EnviarArquivo` (multipart, campo `Arquivo`), `BaixarArquivo` (blob) e `ExcluirArquivo`. Resolvers em `resolvers/evento.resolver.ts`: `eventoFichaResolver` (Obter e depois Membros +
   Opcoes de tipo e organizador com `incluirId`, para tipo/organizador inativo já gravado continuar no combo; em `novo` só as opções ativas) e `eventoDiaResolver` (`?data=`, padrão hoje).
 - **Lista de eventos**: não existe mais tela de tabela paginada; a navegação por eventos é a **Agenda** (seção abaixo). `EventoService.GetAllPaginated` e `EventoFiltro` continuam, usados pelo histórico do organizador.
-- **Ficha** (`evento-details`): seções Dados, Local e rota, Equipe e Observações; Salvar/Fechar/Excluir no cabeçalho (Excluir com confirmação Fuse que orienta usar Cancelado). **Fechar e o pós-Excluir voltam à Agenda** no mês e dia da data gravada (`/assinante/agenda?mes=&dia=`; em `novo`, o `?data=` ou o mês atual); o pós-Criar vai para `/assinante/eventos/:id` (`ROTA_EVENTOS`/`ROTA_AGENDA`). Em `novo`, Equipe e uploads ficam desabilitados
+- **Ficha** (`evento-details`): seções Dados, Local e rota, Equipe, Pendências (plano 06) e Observações; Salvar/Fechar/Excluir no cabeçalho (Excluir com confirmação Fuse que orienta usar Cancelado). **Fechar e o pós-Excluir voltam à Agenda** no mês e dia da data gravada (`/assinante/agenda?mes=&dia=`; em `novo`, o `?data=` ou o mês atual); o pós-Criar vai para `/assinante/eventos/:id` (`ROTA_EVENTOS`/`ROTA_AGENDA`). Em `novo`, Equipe e uploads ficam desabilitados
   até o primeiro salvamento (depois navega para `:id`). Links completam o `https://` ao sair do campo. Equipe fica fora do `<form>` (Enter na posição não salva o evento).
 - **Conflito de escala** (mesmo membro em 2+ eventos não cancelados na mesma data) é calculado só pela API (`OutrosEventos`, `EmConflito`, `Conflitos`) e **nunca bloqueia**: o SPA mostra o alerta âmbar e um snackbar ao escalar.
 - **Escala**: modal `escalar-membro-dialog` (membros ativos fora da escala, via `OpcoesEscala`) com o **cadastro rápido** "+ Novo fotógrafo": nome (obrigatório), @instagram e telefone (opcionais), função (padrão Fotógrafo) e posição;
@@ -193,6 +193,26 @@ Cada evento tem um link `/e/<token>` com código de 4 números. O coordenador co
   Segurança: só interpolação (nunca `innerHTML`), links externos só http/https com `rel="noopener noreferrer"`, `meta` robots `noindex, nofollow` e referrer `no-referrer` enquanto aberta (removidos no `ngOnDestroy`), blobs revogados ao sair.
   O interceptor ignora 401 sem token e a API nunca devolve 401 nessas rotas, então um coordenador logado que erra o código continua logado.
 - Nginx (`nginx.conf`) tem `location /e/` própria com `try_files`, `no-store` e `X-Robots-Tag`.
+
+## Pendências (assinante, plano 06)
+Tela `/assinante/pendencias` (item "Pendências" do menu, depois de "Visão do dia") e seção **Pendências** na ficha do evento. Só o Assinante. Pendências nunca aparecem no link público.
+- **Environments**: `Evento.pendencias`, `listarPendencias`, `adicionarPendencia`, `atualizarPendencia`, `atualizarStatusPendencia`, `excluirPendencia` nos dois arquivos. `EventoService`: `Pendencias(eventoId)`,
+  `ListarPendencias(page, pageSize, PendenciaFiltro)`, `AdicionarPendencia`, `AtualizarPendencia`, `AtualizarStatusPendencia(id, { EVP_STATUS })`, `ExcluirPendencia(id)` (`id` sempre na query).
+- **Enums** (`models/enums/`, espelham o C#, cada um com rótulos, cores Tailwind e lista para o select): `StatusPendencia` (1 A fazer, 2 Em andamento, 3 Concluída), `PrioridadePendencia` (1 Alta, 2 Média, 3 Baixa),
+  `CategoriaPendencia` (1 a 8, "Outros" por último). Models: `EventoPendenciaItem` (resposta), `EventoPendenciaModel`/`EventoPendenciaStatusModel` (requests), `PendenciaFiltro`.
+- **Selos vêm da API**: `Vencida` e `Vencendo` (só abertas de eventos não cancelados; `DiasAVencer = 3` fica na API). O front nunca recalcula. Prazo e data do evento "yyyy-MM-dd" sem fuso (`utils/data-evento.ts`); `utils/pendencia.ts`
+  tem `formatarPrazo` ("dd/MM", com o ano se não for o atual; "Sem prazo").
+- **Modal único** `modules/assinante/pendencias/pendencia-dialog/` (`PENDENCIA_DIALOG_CONFIG`: 560 px, `maxWidth` 95vw): criar, editar e excluir (confirmação Fuse). Recebe `PendenciaDialogData { eventoId, eventoNome, eventoData, pendencia? }` e fecha com
+  `PendenciaDialogResultado { acao: 'salva' | 'excluida', item? }` (sem resultado = cancelado). Responsável por `custom-search-select` ("Ninguém"; `Membro/Opcoes(true, incluirId)` carregado pelo próprio modal, o inativo já gravado aparece com "(inativo)");
+  prazo com datepicker 2000 a 2100 e botão limpar. Erros 400 da API (texto pt-BR) aparecem no próprio modal.
+- **Chip de status** `pendencia-status-chip` (`app-pendencia-status-chip`): chip com `mat-menu` dos 3 status, chama `AtualizarStatusPendencia` e emite `alterado`; quem usa recarrega a lista (a ordem e os selos vêm da API).
+- **Ficha**: `eventoFichaResolver` traz `pendencias` (lista vazia em `novo`). Seção depois de Equipe, fora do `<form>`: "N abertas", "Nova pendência" (desabilitado em `novo`, com aviso), itens clicáveis (concluídas riscadas),
+  aviso cinza para evento Cancelado com pendências abertas. Relê `Pendencias` depois de criar, editar, mudar status, excluir e salvar o evento. A confirmação de excluir o evento cita as pendências.
+- **Tela** (`modules/assinante/pendencias/`: `pendencias.routes.ts`, `pendencia-index`; `pendenciaOpcoesResolver` em `resolvers/pendencia.resolver.ts` traz `Membro/Opcoes(false)`): estado na query string, escrita pela tela
+  (`?status=&prioridade=&membroId=&prazo=`, `queryParamsHandling: 'merge'`). `status`: `abertas` (padrão, fora da URL) | `1` | `2` | `3` | `todas`; `prazo`: `todos` (padrão) | `vencidas` | `vencendo` | `vencidasOuVencendo`
+  (`/assinante/pendencias?prazo=vencidasOuVencendo` é o link que o Painel usará). Valor inválido é ignorado; mudar filtro volta à página 1; F5 e link colado reproduzem. Filtros em `app-filtro-botao`/`app-filtro-painel`.
+  Lista paginada no servidor (25, `mat-paginator`): tabela `table-fixed` a partir de `md` e cartões abaixo; clique abre o modal; o nome do evento abre a ficha (`abrirRota`); qualquer mudança recarrega a página atual
+  (se a última página esvaziar, volta uma). Estados: vazio ("Nenhuma pendência aberta." / "...com estes filtros."), erro com "Tentar de novo" e carregando.
 
 ## Convenções de lista e erros (ajustes pós-testes)
 - Tabelas das listas: abaixo de `sm` usam `max-sm:table-fixed`, células com `max-sm:!px-2`, larguras fixas só nas colunas curtas (Status/Função/Situação) e `div truncate` dentro da célula; nunca `max-w` no `td`.

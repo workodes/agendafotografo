@@ -17,12 +17,16 @@ import { FuseConfirmationService } from '@fuse/services/confirmation';
 import { Subject, filter, takeUntil } from 'rxjs';
 import { EventoArquivoItem } from 'app/models/DTOs/responses/EventoArquivoItem';
 import { EventoMembroItem } from 'app/models/DTOs/responses/EventoMembroItem';
+import { EventoPendenciaItem } from 'app/models/DTOs/responses/EventoPendenciaItem';
 import { Opcao } from 'app/models/DTOs/responses/Opcao';
 import { Organizador } from 'app/models/entities/Organizador';
 import { Evento } from 'app/models/entities/Evento';
 import { FUNCAO_MEMBRO_ROTULO } from 'app/models/enums/FuncaoMembro';
 import { STATUS_EVENTO, STATUS_EVENTO_COR, STATUS_EVENTO_ROTULO, StatusEvento } from 'app/models/enums/StatusEvento';
 import { TipoArquivoEvento } from 'app/models/enums/TipoArquivoEvento';
+import { CATEGORIA_PENDENCIA_ROTULO } from 'app/models/enums/CategoriaPendencia';
+import { PRIORIDADE_PENDENCIA_COR, PRIORIDADE_PENDENCIA_ROTULO } from 'app/models/enums/PrioridadePendencia';
+import { StatusPendencia } from 'app/models/enums/StatusPendencia';
 import { OrganizadorService } from 'app/services/organizador.service';
 import { CustomSearchSelectComponent } from 'app/modules/shared/components/custom-select/custom-select.component';
 import { OpcoesSelect } from 'app/utils/opcoes-select';
@@ -31,10 +35,13 @@ import { EventoService } from 'app/services/evento.service';
 import { diaSemana, formatarDataIso, horaDaApi, horaParaApi, parseDataIso } from 'app/utils/data-evento';
 import { textoOutrosEventos } from 'app/utils/escala';
 import { mensagemErro } from 'app/utils/mensagem-erro';
+import { formatarPrazo } from 'app/utils/pendencia';
 import { normalizarUrl, urlHttp } from 'app/utils/url-evento';
 import { EscalarMembroDialogComponent, EscalarMembroDialogData } from '../escalar-membro-dialog/escalar-membro-dialog.component';
 import { EventoArquivoComponent } from '../evento-arquivo/evento-arquivo.component';
 import { EventoLinkPublicoComponent } from '../evento-link-publico/evento-link-publico.component';
+import { PENDENCIA_DIALOG_CONFIG, PendenciaDialogComponent, PendenciaDialogData, PendenciaDialogResultado } from '../../pendencias/pendencia-dialog/pendencia-dialog.component';
+import { PendenciaStatusChipComponent } from '../../pendencias/pendencia-status-chip/pendencia-status-chip.component';
 
 const ROTA_EVENTOS = '/assinante/eventos';
 const ROTA_AGENDA = '/assinante/agenda';
@@ -47,7 +54,7 @@ const CAMPOS_LINK = [
     'EVE_LARGADA_LINK', 'EVE_CHEGADA_LINK', 'EVE_LINK_INSCRICAO', 'EVE_LINK_FOTOS', 'EVE_ROTA_LINK_MAPS', 'EVE_ROTA_LINK_STRAVA',
 ] as const;
 
-// Ficha do evento em página inteira (cabeçalho fixo com Excluir/Fechar/Salvar): Dados, Local e rota, Equipe e Observações.
+// Ficha do evento em página inteira (cabeçalho fixo com Excluir/Fechar/Salvar): Dados, Local e rota, Equipe, Pendências, Observações e Link público.
 // Em `novo` a Equipe e os uploads ficam desabilitados até o primeiro salvamento (depois navega para :id).
 @Component({
     standalone: true,
@@ -58,7 +65,7 @@ const CAMPOS_LINK = [
         CommonModule, RouterModule, ReactiveFormsModule,
         MatButtonModule, MatCheckboxModule, MatDatepickerModule, MatFormFieldModule, MatIconModule, MatInputModule,
         MatProgressSpinnerModule, MatSelectModule, CustomSearchSelectComponent,
-        EventoArquivoComponent, EventoLinkPublicoComponent,
+        EventoArquivoComponent, EventoLinkPublicoComponent, PendenciaStatusChipComponent,
     ],
 })
 export class EventoDetailsComponent implements OnInit, OnDestroy {
@@ -66,6 +73,7 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
     // Preenchido na edição (vem do resolver e é atualizado ao salvar).
     evento?: Evento | null;
     equipe: EventoMembroItem[] = [];
+    pendencias: EventoPendenciaItem[] = [];
     arquivos: EventoArquivoItem[] = [];
     tipos: Opcao[] = [];
     organizadores: Opcao[] = [];
@@ -81,6 +89,11 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
     funcaoRotulo = FUNCAO_MEMBRO_ROTULO;
     tipoArquivo = TipoArquivoEvento;
     textoOutrosEventos = textoOutrosEventos;
+    categoriaPendenciaRotulo = CATEGORIA_PENDENCIA_ROTULO;
+    prioridadePendenciaRotulo = PRIORIDADE_PENDENCIA_ROTULO;
+    prioridadePendenciaCor = PRIORIDADE_PENDENCIA_COR;
+    concluida = StatusPendencia.Concluida;
+    formatarPrazo = formatarPrazo;
 
     readonly dataMin = new Date(2000, 0, 1);
     readonly dataMax = new Date(2100, 11, 31);
@@ -117,6 +130,15 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
 
     get ehNovo(): boolean {
         return !this.evento?.Id;
+    }
+
+    get pendenciasAbertas(): number {
+        return this.pendencias.filter(p => p.EVP_STATUS !== StatusPendencia.Concluida).length;
+    }
+
+    // Evento cancelado com pendências abertas: elas não aparecem na lista de Pendências nem nos alertas.
+    get avisoCancelado(): boolean {
+        return this.evento?.EVE_STATUS === StatusEvento.Cancelado && this.pendenciasAbertas > 0;
     }
 
     get arquivoFlyer(): EventoArquivoItem | null {
@@ -170,6 +192,7 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
             this.tipos = d?.tipos ?? [];
             this.organizadores = d?.organizadores ?? [];
             this.equipe = d?.equipe ?? [];
+            this.pendencias = d?.pendencias ?? [];
             this.evento = d?.evento ?? null;
             this.arquivos = [...(this.evento?.Arquivos ?? [])];
             this.preencher(this.evento ?? null);
@@ -245,6 +268,7 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
                     this.preencher(this.evento);
                     this._title.setTitle(`Evento: ${this.evento.EVE_NOME}`);
                     this.recarregarEquipe();
+                    this.recarregarPendencias();
                     this._service.NotificarAlteracao();
                     this._snackBar.open('Evento salvo com sucesso.', 'X', { duration: 4000 });
                 },
@@ -272,7 +296,7 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
         const id = this.evento.Id;
         this._confirmacao.open({
             title: 'Excluir evento',
-            message: `Excluir o evento "${this.evento.EVE_NOME}"? A escala da equipe e os arquivos enviados também serão apagados e não dá para desfazer. `
+            message: `Excluir o evento "${this.evento.EVE_NOME}"? A escala da equipe, as pendências e os arquivos enviados também serão apagados e não dá para desfazer. `
                 + 'Se a prova não vai acontecer, prefira mudar o status para Cancelado.',
             icon: { show: true, name: 'heroicons_outline:trash', color: 'warn' },
             actions: { cancel: { label: 'Cancelar' }, confirm: { label: 'Excluir', color: 'warn' } },
@@ -417,6 +441,38 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
             });
         });
     }
+
+    // ---- Pendências ----
+
+    // Abre o modal (nova ou edição); depois de salvar ou excluir relê a lista (a ordem e os selos vêm da API).
+    abrirPendencia(pendencia?: EventoPendenciaItem): void {
+        if (!this.evento?.Id) {
+            return;
+        }
+        const data: PendenciaDialogData = {
+            eventoId: this.evento.Id,
+            eventoNome: this.evento.EVE_NOME,
+            eventoData: this.evento.EVE_DATA,
+            pendencia: pendencia ?? null,
+        };
+        this._dialog.open<PendenciaDialogComponent, PendenciaDialogData, PendenciaDialogResultado>(PendenciaDialogComponent, { ...PENDENCIA_DIALOG_CONFIG, data })
+            .afterClosed().pipe(filter((r): r is PendenciaDialogResultado => !!r)).subscribe(r => {
+                this.recarregarPendencias();
+                this._snackBar.open(r.acao === 'excluida' ? 'Pendência excluída.' : 'Pendência salva.', 'X', { duration: 3000 });
+            });
+    }
+
+    recarregarPendencias(): void {
+        if (!this.evento?.Id) {
+            return;
+        }
+        this._service.Pendencias(this.evento.Id).subscribe({
+            next: lista => (this.pendencias = lista),
+            error: () => { /* mantém a lista na tela; os selos ficam desatualizados até recarregar */ },
+        });
+    }
+
+    trackPendencia = (_: number, p: EventoPendenciaItem) => p.Id;
 
     // Uma mensagem por campo.
     erro(nome: string): string {

@@ -29,10 +29,12 @@ public class EventoController(
     IBaseRepository<EventoMembro> repEventoMembro,
     IBaseRepository<EventoArquivo> repEventoArquivo,
     IBaseRepository<EventoLink> repEventoLink,
+    IBaseRepository<EventoPendencia> repEventoPendencia,
     IBaseRepository<TipoEvento> repTipoEvento,
     IBaseRepository<Organizador> repOrganizador,
     IBaseRepository<Membro> repMembro,
     EscalaConsultas escalaConsultas,
+    PendenciaConsultas pendenciaConsultas,
     IArquivoStorage arquivoStorage,
     IUnitOfWork unitOfWork,
     AssinanteEscopo assinanteEscopo,
@@ -45,6 +47,8 @@ public class EventoController(
     private readonly IBaseRepository<EventoMembro> _repEventoMembro = repEventoMembro;
     private readonly IBaseRepository<EventoArquivo> _repEventoArquivo = repEventoArquivo;
     private readonly IBaseRepository<EventoLink> _repEventoLink = repEventoLink;
+    private readonly IBaseRepository<EventoPendencia> _repEventoPendencia = repEventoPendencia;
+    private readonly PendenciaConsultas _pendenciaConsultas = pendenciaConsultas;
     private readonly IBaseRepository<TipoEvento> _repTipoEvento = repTipoEvento;
     private readonly IBaseRepository<Organizador> _repOrganizador = repOrganizador;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
@@ -59,6 +63,7 @@ public class EventoController(
     private const string MsgArquivoNaoEncontrado = "Arquivo não encontrado";
     private const string MsgEscalaNaoEncontrada = "Membro da escala não encontrado";
     private const string MsgMembroRepetido = "Este membro já está escalado neste evento.";
+    private const string MsgPendenciaNaoEncontrada = "Pendência não encontrada";
     private const string FormatoData = "yyyy-MM-dd";
 
     private static DateOnly ParseData(string texto, string mensagemErro)
@@ -417,7 +422,7 @@ public class EventoController(
     }
 
     /// <summary>
-    /// Exclui o evento, a escala, o link público e os registros de arquivo numa transação. Quem não vai realizar a prova deve usar o status
+    /// Exclui o evento, a escala, as pendências, o link público e os registros de arquivo numa transação. Quem não vai realizar a prova deve usar o status
     /// Cancelado (a exclusão apaga o histórico).
     /// </summary>
     [HttpDelete]
@@ -450,6 +455,11 @@ public class EventoController(
                 .Where(x => x.EVL_EVENTO_ID == id && x.EVL_ASSINANTE_ID == assinanteId)
                 .Select(x => x.Id).ToListAsync(cancellationToken);
 
+            var pendenciaIds = await _repEventoPendencia.SelectContext().AsNoTracking()
+                .Where(x => x.EVP_EVENTO_ID == id && x.EVP_ASSINANTE_ID == assinanteId)
+                .Select(x => x.Id).ToListAsync(cancellationToken);
+
+            await _repEventoPendencia.DeleteRangeTransactionAsync(pendenciaIds, cancellationToken);
             await _repEventoMembro.DeleteRangeTransactionAsync(escalaIds, cancellationToken);
             await _repEventoArquivo.DeleteRangeTransactionAsync(arquivos.Select(x => x.Id), cancellationToken);
             await _repEventoLink.DeleteRangeTransactionAsync(linkIds, cancellationToken);
@@ -1170,6 +1180,284 @@ public class EventoController(
 
             Response.Headers.CacheControl = "no-store";
             return Ok(ParaLinkItem(link));
+        }
+        catch (AssinanteSemVinculoException)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return SemVinculo();
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    // ===== Pendências (tabela filha EVENTOPENDENCIAS; regras de prazo em PendenciaConsultas) =====
+
+    private static DateOnly Hoje() => DateOnly.FromDateTime(DateTime.Now);
+
+    private static void NormalizarPendencia(EventoPendenciaModel m)
+    {
+        m.EVP_TITULO = (m.EVP_TITULO ?? string.Empty).Trim();
+        m.EVP_OBSERVACOES = Texto(m.EVP_OBSERVACOES);
+        if (m.EVP_MEMBRO_ID == Guid.Empty) m.EVP_MEMBRO_ID = null;
+    }
+
+    /// <summary>Responsável: membro do assinante e ativo, a menos que já seja o valor gravado na pendência.</summary>
+    private async Task GarantirResponsavelAsync(Guid assinanteId, Guid? membroId, Guid? gravado, CancellationToken cancellationToken)
+    {
+        if (membroId is null) return;
+
+        var membro = await _repMembro.SelectContext().AsNoTracking()
+            .Where(x => x.Id == membroId && x.MEM_ASSINANTE_ID == assinanteId)
+            .Select(x => new { x.MEM_ATIVO })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (membro is null) throw new Exception("Membro não encontrado.");
+        if (!membro.MEM_ATIVO && gravado != membroId) throw new Exception("Membro inativo.");
+    }
+
+    /// <summary>Pendências do evento na ordem da ficha (abertas primeiro, prazo, prioridade, título). Evento de outro assinante = 404.</summary>
+    [HttpGet]
+    public async Task<IActionResult> Pendencias(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            if (await ObterDataDoEventoAsync(id, assinanteId, cancellationToken) is null) return NotFound(MsgNaoEncontrado);
+
+            return Ok(await _pendenciaConsultas.ListarDoEventoAsync(assinanteId, id, Hoje(), null, cancellationToken));
+        }
+        catch (AssinanteSemVinculoException) { return SemVinculo(); }
+        catch (Exception ex)
+        {
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>
+    /// Lista geral de pendências do assinante (só eventos não cancelados), paginada. Filtros: status (vazio/abertas, todas, 1, 2, 3),
+    /// prioridade (1 a 3), membroId e prazo (todos, vencidas, vencendo, vencidasOuVencendo). Entradas inválidas = 400.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> ListarPendencias(CancellationToken cancellationToken, int page = 1, int pageSize = 25,
+        string? status = null, int? prioridade = null, Guid? membroId = null, string? prazo = null)
+    {
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            if (!ModelState.IsValid) throw new Exception("Filtro inválido");
+
+            page = Math.Max(page, 1);
+            pageSize = pageSize < 1 ? 25 : Math.Min(pageSize, PageSizeMaximo);
+
+            StatusPendencia? statusFiltro = null;
+            var todas = false;
+            var termoStatus = (status ?? string.Empty).Trim();
+            if (termoStatus.Length == 0 || termoStatus.Equals("abertas", StringComparison.OrdinalIgnoreCase)) { }
+            else if (termoStatus.Equals("todas", StringComparison.OrdinalIgnoreCase)) todas = true;
+            else if (int.TryParse(termoStatus, System.Globalization.NumberStyles.None, CultureInfo.InvariantCulture, out var st) &&
+                     Enum.IsDefined((StatusPendencia)st))
+                statusFiltro = (StatusPendencia)st;
+            else throw new Exception("Filtro de status inválido");
+
+            PrioridadePendencia? prioridadeFiltro = null;
+            if (prioridade is not null)
+            {
+                if (!Enum.IsDefined((PrioridadePendencia)prioridade.Value)) throw new Exception("Filtro de prioridade inválido");
+                prioridadeFiltro = (PrioridadePendencia)prioridade.Value;
+            }
+
+            var termoPrazo = (prazo ?? string.Empty).Trim();
+            PendenciaConsultas.FiltroPrazo prazoFiltro;
+            if (termoPrazo.Length == 0 || termoPrazo.Equals("todos", StringComparison.OrdinalIgnoreCase)) prazoFiltro = PendenciaConsultas.FiltroPrazo.Todos;
+            else if (termoPrazo.Equals("vencidas", StringComparison.OrdinalIgnoreCase)) prazoFiltro = PendenciaConsultas.FiltroPrazo.Vencidas;
+            else if (termoPrazo.Equals("vencendo", StringComparison.OrdinalIgnoreCase)) prazoFiltro = PendenciaConsultas.FiltroPrazo.Vencendo;
+            else if (termoPrazo.Equals("vencidasOuVencendo", StringComparison.OrdinalIgnoreCase)) prazoFiltro = PendenciaConsultas.FiltroPrazo.VencidasOuVencendo;
+            else throw new Exception("Filtro de prazo inválido");
+
+            return Ok(await _pendenciaConsultas.ListarAsync(assinanteId, Hoje(), page, pageSize, statusFiltro, todas,
+                prioridadeFiltro, membroId, prazoFiltro, cancellationToken));
+        }
+        catch (AssinanteSemVinculoException) { return SemVinculo(); }
+        catch (Exception ex)
+        {
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>Cria uma pendência no evento (qualquer status). O responsável, se houver, precisa ser membro ativo do assinante.</summary>
+    [HttpPost]
+    public async Task<IActionResult> AdicionarPendencia([FromBody] EventoPendenciaModel model, CancellationToken cancellationToken)
+    {
+        if (model is null) return BadRequest("Dados inválidos.");
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            NormalizarPendencia(model);
+            var error = ValidationHelper.ValidateModel(model, new EventoPendenciaValidator());
+            if (error is not null) { await _unitOfWork.RollbackAsync(cancellationToken); return BadRequest(error); }
+
+            if (await ObterDataDoEventoAsync(model.EVP_EVENTO_ID, assinanteId, cancellationToken) is null)
+            {
+                await _unitOfWork.RollbackAsync(cancellationToken);
+                return NotFound(MsgNaoEncontrado);
+            }
+
+            await GarantirResponsavelAsync(assinanteId, model.EVP_MEMBRO_ID, null, cancellationToken);
+
+            // O assinante vem só do escopo
+            var pendencia = new EventoPendencia
+            {
+                EVP_ASSINANTE_ID = assinanteId,
+                EVP_EVENTO_ID = model.EVP_EVENTO_ID,
+                EVP_TITULO = model.EVP_TITULO,
+                EVP_CATEGORIA = model.EVP_CATEGORIA,
+                EVP_PRIORIDADE = model.EVP_PRIORIDADE,
+                EVP_STATUS = model.EVP_STATUS,
+                EVP_MEMBRO_ID = model.EVP_MEMBRO_ID,
+                EVP_PRAZO = model.EVP_PRAZO,
+                EVP_OBSERVACOES = model.EVP_OBSERVACOES
+            };
+            await _repEventoPendencia.InsertTransactionAsync(pendencia, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
+
+            return Ok(await _pendenciaConsultas.ObterAsync(assinanteId, pendencia.Id, Hoje(), cancellationToken));
+        }
+        catch (AssinanteSemVinculoException)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return SemVinculo();
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>Atualiza a pendência (body com Id). O evento não muda (EVP_EVENTO_ID do body é ignorado).</summary>
+    [HttpPut]
+    public async Task<IActionResult> AtualizarPendencia([FromBody] EventoPendenciaModel model, CancellationToken cancellationToken)
+    {
+        if (model is null) return BadRequest("Dados inválidos.");
+        if (model.Id is null || model.Id == Guid.Empty) return BadRequest(MsgIdObrigatorio);
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            var pendencia = await _repEventoPendencia.SelectContext()
+                .FirstOrDefaultAsync(x => x.Id == model.Id && x.EVP_ASSINANTE_ID == assinanteId, cancellationToken);
+            if (pendencia is null)
+            {
+                await _unitOfWork.RollbackAsync(cancellationToken);
+                return NotFound(MsgPendenciaNaoEncontrada);
+            }
+
+            NormalizarPendencia(model);
+            model.EVP_EVENTO_ID = pendencia.EVP_EVENTO_ID;
+            var error = ValidationHelper.ValidateModel(model, new EventoPendenciaValidator());
+            if (error is not null) { await _unitOfWork.RollbackAsync(cancellationToken); return BadRequest(error); }
+
+            await GarantirResponsavelAsync(assinanteId, model.EVP_MEMBRO_ID, pendencia.EVP_MEMBRO_ID, cancellationToken);
+
+            pendencia.EVP_TITULO = model.EVP_TITULO;
+            pendencia.EVP_CATEGORIA = model.EVP_CATEGORIA;
+            pendencia.EVP_PRIORIDADE = model.EVP_PRIORIDADE;
+            pendencia.EVP_STATUS = model.EVP_STATUS;
+            pendencia.EVP_MEMBRO_ID = model.EVP_MEMBRO_ID;
+            pendencia.EVP_PRAZO = model.EVP_PRAZO;
+            pendencia.EVP_OBSERVACOES = model.EVP_OBSERVACOES;
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
+
+            return Ok(await _pendenciaConsultas.ObterAsync(assinanteId, pendencia.Id, Hoje(), cancellationToken));
+        }
+        catch (AssinanteSemVinculoException)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return SemVinculo();
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>Troca só o status da pendência (troca livre entre os 3).</summary>
+    [HttpPut]
+    public async Task<IActionResult> AtualizarStatusPendencia(Guid id, [FromBody] EventoPendenciaStatusModel model, CancellationToken cancellationToken)
+    {
+        if (model is null) return BadRequest("Dados inválidos.");
+        if (id == Guid.Empty) return BadRequest(MsgIdObrigatorio);
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            var error = ValidationHelper.ValidateModel(model, new EventoPendenciaStatusValidator());
+            if (error is not null) { await _unitOfWork.RollbackAsync(cancellationToken); return BadRequest(error); }
+
+            var pendencia = await _repEventoPendencia.SelectContext()
+                .FirstOrDefaultAsync(x => x.Id == id && x.EVP_ASSINANTE_ID == assinanteId, cancellationToken);
+            if (pendencia is null)
+            {
+                await _unitOfWork.RollbackAsync(cancellationToken);
+                return NotFound(MsgPendenciaNaoEncontrada);
+            }
+
+            pendencia.EVP_STATUS = model.EVP_STATUS;
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
+
+            return Ok(await _pendenciaConsultas.ObterAsync(assinanteId, pendencia.Id, Hoje(), cancellationToken));
+        }
+        catch (AssinanteSemVinculoException)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return SemVinculo();
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>Exclui a pendência (exclusão real).</summary>
+    [HttpDelete]
+    public async Task<IActionResult> ExcluirPendencia(Guid id, CancellationToken cancellationToken)
+    {
+        if (id == Guid.Empty) return BadRequest(MsgIdObrigatorio);
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            var existe = await _repEventoPendencia.SelectContext().AsNoTracking()
+                .AnyAsync(x => x.Id == id && x.EVP_ASSINANTE_ID == assinanteId, cancellationToken);
+            if (!existe)
+            {
+                await _unitOfWork.RollbackAsync(cancellationToken);
+                return NotFound(MsgPendenciaNaoEncontrada);
+            }
+
+            await _repEventoPendencia.DeleteTransactionAsync(id, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
+
+            return Ok(new ApiResponse { Success = true, Message = "Pendência excluída com sucesso" });
         }
         catch (AssinanteSemVinculoException)
         {
