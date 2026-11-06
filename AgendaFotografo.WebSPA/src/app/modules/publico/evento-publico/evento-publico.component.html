@@ -121,25 +121,7 @@
                 </div>
             </section>
 
-            <!-- 3. Flyer -->
-            <section *ngIf="evento.TemFlyer && !flyerFalhou" class="rounded-2xl bg-card shadow p-3">
-                <div *ngIf="!flyerUrl" class="flex justify-center py-8"><mat-progress-spinner diameter="24" mode="indeterminate"></mat-progress-spinner></div>
-                <img *ngIf="flyerUrl" [src]="flyerUrl" alt="Flyer do evento" class="w-full h-auto rounded-xl">
-            </section>
-
-            <!-- 4. Informações da prova -->
-            <section *ngIf="evento.EVE_INFORMACOES" class="rounded-2xl bg-card shadow p-5 flex flex-col gap-3">
-                <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:information-circle', titulo: 'Informações da prova', cor: 'bg-blue-100 text-blue-700' }"></ng-container>
-                <div class="whitespace-pre-line break-words leading-relaxed">{{ evento.EVE_INFORMACOES }}</div>
-            </section>
-
-            <!-- 5. Observações para a equipe -->
-            <section *ngIf="evento.EVE_OBSERVACOES_EQUIPE" class="rounded-2xl bg-card shadow p-5 flex flex-col gap-3 border-l-4 border-amber-400">
-                <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:chat-bubble-left-ellipsis', titulo: 'Observações para a equipe', cor: 'bg-amber-100 text-amber-700' }"></ng-container>
-                <div class="whitespace-pre-line break-words leading-relaxed">{{ evento.EVE_OBSERVACOES_EQUIPE }}</div>
-            </section>
-
-            <!-- 6. Rota: trajeto do GPX já desenhado, My Maps incorporado e imagem -->
+            <!-- 3. Rota: trajeto do GPX já desenhado, My Maps incorporado e imagem -->
             <section *ngIf="temRota" id="sec-rota" class="rounded-2xl bg-card shadow p-5 flex flex-col gap-4 scroll-mt-4">
                 <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:map', titulo: 'Rota', cor: 'bg-blue-100 text-blue-700' }"></ng-container>
                 <app-mapa-gpx *ngIf="evento.GpxNome" [carregar]="carregarGpx" [automatico]="true"></app-mapa-gpx>
@@ -163,7 +145,19 @@
                 <div *ngIf="mensagemGpx" role="alert" class="text-sm text-red-700">{{ mensagemGpx }}</div>
             </section>
 
-            <!-- 7. Equipe (só quando o coordenador liga) -->
+            <!-- 4. Informações da prova -->
+            <section *ngIf="evento.EVE_INFORMACOES" class="rounded-2xl bg-card shadow p-5 flex flex-col gap-3">
+                <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:information-circle', titulo: 'Informações da prova', cor: 'bg-blue-100 text-blue-700' }"></ng-container>
+                <div class="whitespace-pre-line break-words leading-relaxed">{{ evento.EVE_INFORMACOES }}</div>
+            </section>
+
+            <!-- 5. Observações para a equipe -->
+            <section *ngIf="evento.EVE_OBSERVACOES_EQUIPE" class="rounded-2xl bg-card shadow p-5 flex flex-col gap-3 border-l-4 border-amber-400">
+                <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:chat-bubble-left-ellipsis', titulo: 'Observações para a equipe', cor: 'bg-amber-100 text-amber-700' }"></ng-container>
+                <div class="whitespace-pre-line break-words leading-relaxed">{{ evento.EVE_OBSERVACOES_EQUIPE }}</div>
+            </section>
+
+            <!-- 6. Equipe (só quando o coordenador liga) -->
             <section *ngIf="evento.Equipe" id="sec-equipe" class="rounded-2xl bg-card shadow p-5 flex flex-col gap-3 scroll-mt-4">
                 <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:user-group', titulo: 'Equipe', cor: 'bg-green-100 text-green-700' }"></ng-container>
                 <div *ngIf="evento.Equipe.length === 0" class="text-secondary">Equipe ainda não definida.</div>
@@ -178,7 +172,7 @@
                 </ul>
             </section>
 
-            <!-- 8. Fotos -->
+            <!-- 7. Fotos -->
             <section *ngIf="linkFotos" class="rounded-2xl bg-card shadow p-5 flex flex-wrap items-center justify-between gap-3">
                 <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:photo', titulo: 'Fotos do evento', cor: 'bg-purple-100 text-purple-700' }"></ng-container>
                 <a mat-flat-button color="primary" [href]="linkFotos" target="_blank" rel="noopener noreferrer">
@@ -186,7 +180,7 @@
                 </a>
             </section>
 
-            <!-- 9. Rodapé -->
+            <!-- 8. Rodapé -->
             <footer *ngIf="expiraEm" class="text-center text-xs text-secondary pb-4">Acesso liberado neste aparelho até {{ expiraEm }}</footer>
         </ng-container>
 

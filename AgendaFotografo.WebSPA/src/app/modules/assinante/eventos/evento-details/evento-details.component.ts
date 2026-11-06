@@ -198,9 +198,6 @@ export class EventoDetailsComponent implements OnInit, AfterViewInit, OnDestroy 
         return this.evento?.EVE_STATUS === StatusEvento.Cancelado && this.pendenciasAbertas > 0;
     }
 
-    get arquivoFlyer(): EventoArquivoItem | null {
-        return this.arquivoDoTipo(TipoArquivoEvento.Flyer);
-    }
 
     get arquivoImagemRota(): EventoArquivoItem | null {
         return this.arquivoDoTipo(TipoArquivoEvento.ImagemRota);

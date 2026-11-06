@@ -1,3 +1,4 @@
+import { InstalarAppComponent, instalarAppPendente, marcarInstalarAppVisto } from 'app/layout/common/instalar-app/instalar-app.component';
 import { Overlay, OverlayRef } from '@angular/cdk/overlay';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { NgClass, NgFor, NgIf } from '@angular/common';
@@ -24,7 +25,7 @@ const TETO_CONTADOR = 99;
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush,
     standalone: true,
-    imports: [NgClass, NgFor, NgIf, MatButtonModule, MatIconModule, AvisoItemComponent],
+    imports: [NgClass, NgFor, NgIf, MatButtonModule, MatIconModule, AvisoItemComponent, InstalarAppComponent],
 })
 export class AvisosComponent implements OnInit, OnDestroy {
     @ViewChild('avisosOrigin') private _origem: MatButton;
@@ -44,9 +45,12 @@ export class AvisosComponent implements OnInit, OnDestroy {
         private _changeDetectorRef: ChangeDetectorRef,
     ) { }
 
-    /** Texto do contador: o `Total` da API, "99+" no teto; vazio quando não há avisos (ou a carga falhou). */
+    // Convite para instalar o app: soma 1 no sino até a primeira abertura do painel.
+    instalarPendente = instalarAppPendente();
+
+    /** Texto do contador: o `Total` da API (+1 do convite do app pendente), "99+" no teto; vazio quando não há avisos. */
     get contador(): string {
-        const total = this.avisos?.Total ?? 0;
+        const total = (this.avisos?.Total ?? 0) + (this.instalarPendente ? 1 : 0);
         return total > TETO_CONTADOR ? `${TETO_CONTADOR}+` : total > 0 ? String(total) : '';
     }
 
@@ -109,6 +113,10 @@ export class AvisosComponent implements OnInit, OnDestroy {
         }
         this._overlayRef.attach(new TemplatePortal(this._painel, this._viewContainerRef));
         this._avisoService.Carregar(); // atualiza ao abrir
+        if (this.instalarPendente) {
+            marcarInstalarAppVisto();
+            this.instalarPendente = false;
+        }
     }
 
     fecharPainel(): void {

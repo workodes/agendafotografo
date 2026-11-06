@@ -168,10 +168,6 @@
                             <mat-error>{{ erro('EVE_INFORMACOES') }}</mat-error>
                         </mat-form-field>
 
-                        <div class="sm:col-span-2">
-                            <app-evento-arquivo [eventoId]="evento?.Id" [tipo]="tipoArquivo.Flyer" [arquivo]="arquivoFlyer"
-                                (arquivoChange)="aoMudarArquivo(tipoArquivo.Flyer, $event)"></app-evento-arquivo>
-                        </div>
                     </div>
                 </section>
 
@@ -248,7 +244,7 @@
                             <mat-icon class="icon-size-5 shrink-0 text-amber-600" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
                             <div class="min-w-0">
                                 <span>{{ textoOutrosEventos(m.OutrosEventos) }}.</span>
-                                <a class="underline ml-1" [routerLink]="['/assinante/visao-do-dia']" [queryParams]="{ data: evento?.EVE_DATA }">Ver o dia</a>
+                                <a class="underline ml-1" [routerLink]="['/assinante/visao-do-dia']" [queryParams]="{ data: evento?.EVE_DATA, visao: 'dia' }">Ver o dia</a>
                             </div>
                         </div>
                     </div>

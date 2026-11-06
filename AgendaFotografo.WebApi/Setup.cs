@@ -203,6 +203,8 @@ public static class Setup
 
         // Autocomplete de locais (Geoapify): chave em Geoapify:ApiKey, nunca no SPA
         services.AddHttpClient<LocalBusca>(c => c.Timeout = TimeSpan.FromSeconds(5));
+        services.AddHttpClient<LinkMapsExpansor>(c => c.Timeout = TimeSpan.FromSeconds(5))
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 
         services.Configure<MailSettings>(configuration.GetSection("MailSettings"));
         services.AddSingleton<IEmailService, EmailService>();

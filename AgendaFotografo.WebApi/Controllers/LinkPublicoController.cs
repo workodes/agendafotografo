@@ -7,6 +7,7 @@ using AgendaFotografo.Domain.Interfaces;
 using AgendaFotografo.WebApi.Helpers;
 using AgendaFotografo.WebApi.Models.LinkPublico;
 using AgendaFotografo.WebApi.Services.LinkPublico;
+using AgendaFotografo.WebApi.Services.Locais;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -31,6 +32,7 @@ public partial class LinkPublicoController(
     IArquivoStorage arquivoStorage,
     LinkPublicoSegredos segredos,
     LinkPublicoTentativas tentativas,
+    LinkMapsExpansor expansorMaps,
     ILogger<LinkPublicoController> logger) : AgendaFotografoController
 {
     private readonly IBaseRepository<EventoLink> _repEventoLink = repEventoLink;
@@ -40,6 +42,7 @@ public partial class LinkPublicoController(
     private readonly IArquivoStorage _arquivoStorage = arquivoStorage;
     private readonly LinkPublicoSegredos _segredos = segredos;
     private readonly LinkPublicoTentativas _tentativas = tentativas;
+    private readonly LinkMapsExpansor _expansorMaps = expansorMaps;
     private readonly ILogger<LinkPublicoController> _logger = logger;
 
     private const string MsgIndisponivel = "Link indisponível. Peça o link atualizado ao coordenador.";
@@ -173,6 +176,11 @@ public partial class LinkPublicoController(
                 })
                 .FirstOrDefaultAsync(cancellationToken);
             if (model is null) return Indisponivel();
+
+            // Links curtos do Maps (maps.app.goo.gl) viram o link completo, para a página mostrar a rota/ponto como mapa
+            model.EVE_ROTA_LINK_MAPS = await _expansorMaps.ExpandirAsync(model.EVE_ROTA_LINK_MAPS, cancellationToken);
+            model.EVE_LARGADA_LINK = await _expansorMaps.ExpandirAsync(model.EVE_LARGADA_LINK, cancellationToken);
+            model.EVE_CHEGADA_LINK = await _expansorMaps.ExpandirAsync(model.EVE_CHEGADA_LINK, cancellationToken);
 
             var arquivos = await _repEventoArquivo.SelectContext().AsNoTracking()
                 .Where(x => x.EVA_EVENTO_ID == link.EventoId && x.EVA_ASSINANTE_ID == link.AssinanteId)

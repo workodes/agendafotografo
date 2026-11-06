@@ -5,17 +5,39 @@ import { MatIconModule } from '@angular/material/icon';
 
 type Plataforma = 'prompt' | 'ios-safari' | 'ios-outro' | 'generico';
 
+const CHAVE_VISTO = 'instalarApp.vistoNoSino';
+
+/** true quando o sistema já roda como app instalado (sem barra do navegador). */
+export function rodandoComoApp(): boolean {
+    try {
+        return window.matchMedia('(display-mode: standalone)').matches
+            || window.matchMedia('(display-mode: fullscreen)').matches
+            || (navigator as any).standalone === true;
+    } catch { return false; }
+}
+
+/** O convite ainda conta no sino: fora do app e o painel de avisos nunca foi aberto neste aparelho. */
+export function instalarAppPendente(): boolean {
+    if (rodandoComoApp()) return false;
+    try { return !localStorage.getItem(CHAVE_VISTO); } catch { return false; }
+}
+
+/** Chamado ao abrir o painel do sino: dali em diante o convite fica no painel, mas sem contar no sino. */
+export function marcarInstalarAppVisto(): void {
+    try { localStorage.setItem(CHAVE_VISTO, '1'); } catch { }
+}
+
 /**
- * Faixa "Instale o app" do cabeçalho do assinante/admin: aparece em TODO acesso feito fora do app instalado
- * (navegador comum) e some quando o sistema já roda como app (display-mode standalone / iOS standalone).
- * "Agora não" só esconde até recarregar a página ou entrar de novo (nada é guardado: a ideia é lembrar sempre).
+ * Convite "Use o FOKOPP como aplicativo", mostrado como item no topo do painel do sino de avisos (não é mais faixa no cabeçalho).
+ * Fica no painel enquanto o sistema roda no navegador comum e some sozinho dentro do app instalado. Conta 1 no sino só até a
+ * primeira abertura do painel (ver `instalarAppPendente` / `marcarInstalarAppVisto`); depois fica lá, sem contar.
  */
 @Component({
     selector: 'instalar-app',
     standalone: true,
     imports: [NgIf, MatButtonModule, MatIconModule],
     template: `
-    <div *ngIf="visivel" class="print:hidden flex items-start gap-3 px-3 sm:px-6 py-3 bg-primary-50 border-b border-primary-200 text-primary-900" role="region" aria-label="Instalar o aplicativo">
+    <div *ngIf="visivel" class="flex items-start gap-3 px-4 py-3 bg-primary-50 border-b border-primary-200 text-primary-900" role="region" aria-label="Instalar o aplicativo">
         <mat-icon class="mt-0.5 shrink-0 text-primary-700" [svgIcon]="'heroicons_outline:device-phone-mobile'"></mat-icon>
         <div class="flex-auto min-w-0 text-sm">
             <div class="font-semibold">Use o FOKOPP como aplicativo</div>
@@ -33,14 +55,10 @@ type Plataforma = 'prompt' | 'ios-safari' | 'ios-outro' | 'generico';
                     <li>Confirme em <strong>Instalar</strong>.</li>
                 </ol>
             </ng-container>
-            <div class="mt-2 flex flex-wrap gap-2">
-                <button *ngIf="plataforma === 'prompt'" mat-flat-button color="primary" type="button" (click)="instalar()">Instalar agora</button>
-                <button mat-button type="button" (click)="dispensar()">Agora não</button>
+            <div *ngIf="plataforma === 'prompt'" class="mt-2">
+                <button mat-flat-button color="primary" type="button" (click)="instalar()">Instalar agora</button>
             </div>
         </div>
-        <button mat-icon-button type="button" class="shrink-0 -mt-1 -mr-1" aria-label="Fechar aviso" (click)="dispensar()">
-            <mat-icon [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
-        </button>
     </div>`,
 })
 export class InstalarAppComponent implements OnInit {
@@ -48,36 +66,10 @@ export class InstalarAppComponent implements OnInit {
     plataforma: Plataforma = 'generico';
     private _evento: any = null;
 
-    // Discreto: aparece no máximo uma vez por sessão do navegador (F5 não repete) e, depois de "Agora não"/X, some por 7 dias.
-    private static readonly CHAVE_DISPENSA = 'instalarApp.dispensadoEm';
-    private static readonly CHAVE_SESSAO = 'instalarApp.mostradoNaSessao';
-    private static readonly DIAS_DISPENSA = 7;
-
     ngOnInit(): void {
         this._evento = (window as any).__pwaPrompt ?? null;
         this.plataforma = this._evento ? 'prompt' : this.detectar();
-        this.mostrarSePuder();
-    }
-
-    dispensar(): void {
-        this.visivel = false;
-        try { localStorage.setItem(InstalarAppComponent.CHAVE_DISPENSA, String(Date.now())); } catch { }
-    }
-
-    private mostrarSePuder(): void {
-        if (this.visivel || this.rodandoComoApp() || this.dispensadoRecente()) return;
-        try {
-            if (sessionStorage.getItem(InstalarAppComponent.CHAVE_SESSAO)) return;
-            sessionStorage.setItem(InstalarAppComponent.CHAVE_SESSAO, '1');
-        } catch { }
-        this.visivel = true;
-    }
-
-    private dispensadoRecente(): boolean {
-        try {
-            const em = Number(localStorage.getItem(InstalarAppComponent.CHAVE_DISPENSA));
-            return !!em && Date.now() - em < InstalarAppComponent.DIAS_DISPENSA * 24 * 60 * 60 * 1000;
-        } catch { return false; }
+        this.visivel = !rodandoComoApp();
     }
 
     @HostListener('window:beforeinstallprompt', ['$event'])
@@ -86,7 +78,7 @@ export class InstalarAppComponent implements OnInit {
         this._evento = e;
         (window as any).__pwaPrompt = e;
         this.plataforma = 'prompt';
-        this.mostrarSePuder();
+        this.visivel = !rodandoComoApp();
     }
 
     @HostListener('window:appinstalled')
@@ -102,14 +94,6 @@ export class InstalarAppComponent implements OnInit {
         } catch { this.plataforma = 'generico'; }
         this._evento = null;
         (window as any).__pwaPrompt = null;
-    }
-
-    private rodandoComoApp(): boolean {
-        try {
-            return window.matchMedia('(display-mode: standalone)').matches
-                || window.matchMedia('(display-mode: fullscreen)').matches
-                || (navigator as any).standalone === true;
-        } catch { return false; }
     }
 
     private detectar(): Plataforma {

@@ -40,7 +40,7 @@ export class MenuData {
             },
             {
                 id: 'visao-do-dia',
-                title: 'Visão do dia',
+                title: 'Visão da semana',
                 type: 'basic',
                 icon: 'heroicons_outline:sun',
                 link: `/${ROLE_NAMES.Assinante.toLowerCase()}/visao-do-dia`,

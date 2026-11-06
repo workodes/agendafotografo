@@ -33,7 +33,7 @@ export function destinoAviso(aviso: AvisoItem): DestinoAviso {
         case TipoAviso.EventoProximo:
             return aviso.EventoId ? { comandos: [PREFIXO, 'eventos', aviso.EventoId] } : { comandos: [PREFIXO, 'agenda'] };
         case TipoAviso.ConflitoEscala:
-            return { comandos: [PREFIXO, 'visao-do-dia'], queryParams: aviso.Data ? { data: aviso.Data } : undefined };
+            return { comandos: [PREFIXO, 'visao-do-dia'], queryParams: aviso.Data ? { data: aviso.Data, visao: 'dia' } : { visao: 'dia' } };
         case TipoAviso.EventosPassadosSemBaixa:
             return { comandos: [PREFIXO, 'agenda'], queryParams: mesDaData(aviso.Data) ? { mes: mesDaData(aviso.Data) } : undefined };
         default:

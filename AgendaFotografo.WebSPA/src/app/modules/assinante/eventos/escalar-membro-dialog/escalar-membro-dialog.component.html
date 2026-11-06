@@ -49,7 +49,7 @@
                     <div class="min-w-0 flex flex-col gap-1">
                         <div *ngFor="let o of comConflitoMarcados">{{ textoOutrosEventos(o.OutrosEventos) }}</div>
                         <div class="text-xs">Você pode escalar mesmo assim.
-                            <a class="underline" [routerLink]="['/assinante/visao-do-dia']" [queryParams]="{ data: data.dataEvento }" target="_blank">Ver o dia</a>
+                            <a class="underline" [routerLink]="['/assinante/visao-do-dia']" [queryParams]="{ data: data.dataEvento, visao: 'dia' }" target="_blank">Ver o dia</a>
                         </div>
                     </div>
                 </div>

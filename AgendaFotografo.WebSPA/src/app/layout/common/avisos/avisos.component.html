@@ -25,6 +25,8 @@
 
         <!-- Conteúdo -->
         <div class="relative flex flex-col flex-auto sm:max-h-120 overflow-y-auto bg-card">
+            <!-- Convite para instalar o app (só fora do app instalado) -->
+            <instalar-app></instalar-app>
             <!-- Falha ao atualizar: a lista abaixo é a última carregada -->
             <div *ngIf="avisos && falhou && !carregando" class="px-4 py-2 text-xs text-secondary bg-gray-50 dark:bg-gray-800 border-b">
                 Não foi possível atualizar agora. Mostrando os últimos avisos carregados.

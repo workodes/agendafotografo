@@ -123,7 +123,8 @@ export function embedDoLink(link: string | null | undefined): string | null {
     }
     let u: URL;
     try { u = new URL(seguro); } catch { return null; }
-    if (!/(^|\.)google\.[a-z.]+$/i.test(u.hostname) || !u.pathname.startsWith('/maps')) {
+    const hostMaps = /^maps\.google\.[a-z.]+$/i.test(u.hostname);
+    if (!/(^|\.)google\.[a-z.]+$/i.test(u.hostname) || (!hostMaps && !u.pathname.startsWith('/maps'))) {
         return null;
     }
 
@@ -134,13 +135,26 @@ export function embedDoLink(link: string | null | undefined): string | null {
     }
 
     // Rota: /maps/dir/A/B[/...] ou ?api=1&origin&destination
-    const partes = u.pathname.split('/').filter(p => !!p).map(p => decodeURIComponent(p.replace(/\+/g, ' ')));
+    // Com host maps.google.com o caminho pode vir sem o "/maps" inicial: normaliza para partes[0] = 'maps'
+    const partes = u.pathname.split('/').filter(p => !!p).map(p => { try { return decodeURIComponent(p.replace(/\+/g, ' ')); } catch { return p; } });
+    if (partes[0] !== 'maps') {
+        partes.unshift('maps');
+    }
+    const saddr = u.searchParams.get('saddr');
+    const daddr = u.searchParams.get('daddr');
+    if (saddr && daddr) {
+        return `${EMBED_MAPS}?saddr=${encodeURIComponent(saddr)}&daddr=${encodeURIComponent(daddr)}&output=embed`;
+    }
     if (partes[1] === 'dir') {
-        const paradas = partes.slice(2).filter(p => !p.startsWith('@') && !p.startsWith('data='));
+        const paradas = partes.slice(2).filter(p => !!p.trim() && !p.startsWith('@') && !p.startsWith('data='));
+        const viaApi = (u.searchParams.get('waypoints') ?? '').split('|').map(p => p.trim()).filter(p => !!p);
         const origem = u.searchParams.get('origin') ?? paradas[0];
         const destino = u.searchParams.get('destination') ?? paradas[paradas.length - 1];
+        // Paradas do meio entram como "B to:C to:D" (formato clássico do embed, sem chave de API)
+        const meio = u.searchParams.get('destination') ? viaApi : paradas.slice(1, -1);
         if (origem && destino && origem !== destino) {
-            return `${EMBED_MAPS}?saddr=${encodeURIComponent(origem)}&daddr=${encodeURIComponent(destino)}&output=embed`;
+            const daddrs = [...meio, destino].map(encodeURIComponent).join('+to:');
+            return `${EMBED_MAPS}?saddr=${encodeURIComponent(origem)}&daddr=${daddrs}&output=embed`;
         }
         if (destino) {
             return embedBusca(destino);

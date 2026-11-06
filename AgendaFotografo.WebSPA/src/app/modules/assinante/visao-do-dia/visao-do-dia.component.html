@@ -1,120 +1,270 @@
-<div class="absolute inset-0 flex flex-col min-w-0 overflow-hidden bg-white">
-    <!-- Cabeçalho: data com o dia da semana e navegação (◀ Hoje ▶ + datepicker) -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 md:px-8 py-3 sm:py-4 border-b shrink-0">
-        <div class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">{{ titulo }}</div>
+<div class="absolute inset-0 flex flex-col min-w-0 overflow-hidden bg-white" cdkDropListGroup>
+    <!-- Cabeçalho: período, Semana | Dia e navegação (◀ Hoje ▶ + datepicker) -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 px-4 sm:px-6 md:px-8 py-3 sm:py-4 border-b shrink-0">
+        <div class="min-w-0">
+            <div class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">{{ titulo }}</div>
+            <div class="text-sm text-secondary mt-0.5">
+                <ng-container *ngIf="visao === 'semana'">{{ totalEventos === 1 ? '1 evento' : totalEventos + ' eventos' }} na semana · </ng-container>
+                <span class="hidden lg:inline">arraste alguém da equipe até um evento para escalar</span>
+                <span class="lg:hidden">toque em alguém da equipe e depois no evento para escalar</span>
+            </div>
+        </div>
 
-        <div class="flex items-center gap-1">
-            <button mat-icon-button type="button" aria-label="Dia anterior" title="Dia anterior" (click)="anterior()">
-                <mat-icon svgIcon="heroicons_outline:chevron-left"></mat-icon>
-            </button>
-            <button mat-stroked-button type="button" [disabled]="ehHoje" (click)="hoje()">Hoje</button>
-            <button mat-icon-button type="button" aria-label="Próximo dia" title="Próximo dia" (click)="proximo()">
-                <mat-icon svgIcon="heroicons_outline:chevron-right"></mat-icon>
-            </button>
-            <!-- Datepicker ancorado num input invisível -->
-            <span class="relative inline-flex">
-                <button mat-icon-button type="button" aria-label="Escolher data" title="Escolher data" (click)="picker.open()">
-                    <mat-icon svgIcon="heroicons_outline:calendar-days"></mat-icon>
+        <div class="flex flex-wrap items-center gap-2">
+            <mat-button-toggle-group [value]="visao" (change)="trocarVisao($event.value)" hideSingleSelectionIndicator aria-label="Visão">
+                <mat-button-toggle value="semana">Semana</mat-button-toggle>
+                <mat-button-toggle value="dia">Dia</mat-button-toggle>
+            </mat-button-toggle-group>
+            <div class="flex items-center gap-1">
+                <button mat-icon-button type="button" [attr.aria-label]="visao === 'dia' ? 'Dia anterior' : 'Semana anterior'" [title]="visao === 'dia' ? 'Dia anterior' : 'Semana anterior'" (click)="anterior()">
+                    <mat-icon svgIcon="heroicons_outline:chevron-left"></mat-icon>
                 </button>
-                <input class="absolute bottom-0 left-0 w-0 h-0 opacity-0 pointer-events-none" tabindex="-1" aria-hidden="true"
-                    [matDatepicker]="picker" [value]="dataDate" (dateChange)="aoEscolherData($event.value)">
-                <mat-datepicker #picker></mat-datepicker>
-            </span>
+                <button mat-stroked-button type="button" [disabled]="noPeriodoAtual" (click)="irHoje()">Hoje</button>
+                <button mat-icon-button type="button" [attr.aria-label]="visao === 'dia' ? 'Próximo dia' : 'Próxima semana'" [title]="visao === 'dia' ? 'Próximo dia' : 'Próxima semana'" (click)="proximo()">
+                    <mat-icon svgIcon="heroicons_outline:chevron-right"></mat-icon>
+                </button>
+                <!-- Datepicker ancorado num input invisível -->
+                <span class="relative inline-flex">
+                    <button mat-icon-button type="button" aria-label="Escolher data" title="Escolher data" (click)="picker.open()">
+                        <mat-icon svgIcon="heroicons_outline:calendar-days"></mat-icon>
+                    </button>
+                    <input class="absolute bottom-0 left-0 w-0 h-0 opacity-0 pointer-events-none" tabindex="-1" aria-hidden="true"
+                        [matDatepicker]="picker" [value]="dataDate" (dateChange)="aoEscolherData($event.value)">
+                    <mat-datepicker #picker></mat-datepicker>
+                </span>
+            </div>
+        </div>
+    </div>
+    <mat-progress-bar *ngIf="carregando" mode="indeterminate" class="shrink-0 !h-0.5"></mat-progress-bar>
+
+    <!-- Escolha por toque: o próximo toque num evento escala -->
+    <div *ngIf="selecionado" role="status" class="flex items-center gap-3 px-4 sm:px-6 md:px-8 py-2 bg-primary-50 border-b border-primary-200 text-primary-900 shrink-0">
+        <mat-icon class="icon-size-5 shrink-0 text-primary-700" svgIcon="heroicons_outline:cursor-arrow-rays"></mat-icon>
+        <div class="flex-auto min-w-0 text-sm">Toque no evento para escalar <strong>{{ selecionado.MEM_NOME }}</strong></div>
+        <button mat-button type="button" (click)="selecionado = null">Cancelar</button>
+    </div>
+
+    <!-- Equipe em faixa (abaixo de lg): tocar escolhe; segurar e arrastar também funciona -->
+    <div class="lg:hidden shrink-0 border-b bg-gray-50">
+        <div class="flex gap-2 overflow-x-auto px-4 sm:px-6 py-2" cdkDropList cdkDropListSortingDisabled cdkDropListOrientation="horizontal"
+            [cdkDropListData]="null" [cdkDropListEnterPredicate]="nunca" aria-label="Equipe">
+            <button *ngFor="let m of membros; trackBy: trackMembro" type="button" cdkDrag [cdkDragData]="m" [cdkDragStartDelay]="atrasoArrasto"
+                (cdkDragEnded)="fimArrasto()" (click)="alternarSelecao(m)" [attr.aria-pressed]="selecionado?.Id === m.Id"
+                [title]="m.MEM_NOME + ' · ' + rotuloOcupacao(m.Id)"
+                class="flex items-center gap-1.5 shrink-0 h-9 pl-1 pr-3 rounded-full border bg-card text-sm select-none"
+                [ngClass]="selecionado?.Id === m.Id ? 'border-primary ring-2 ring-primary-300' : ''">
+                <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+                    [ngClass]="eventosDoMembro(m.Id) ? 'bg-primary-100 text-primary-800' : 'bg-green-100 text-green-800'">{{ iniciais(m.MEM_NOME) }}</span>
+                <span class="font-medium">{{ primeiroNome(m.MEM_NOME) }}</span>
+                <span *ngIf="eventosDoMembro(m.Id)" class="text-xs text-secondary">{{ eventosDoMembro(m.Id) }}</span>
+                <span *cdkDragPlaceholder class="inline-flex items-center h-6 px-2 rounded-full border border-dashed border-primary-400 bg-primary-50 text-xs text-primary-800">{{ primeiroNome(m.MEM_NOME) }}</span>
+            </button>
+            <div *ngIf="!membros.length" class="text-sm text-secondary py-1.5">Nenhum membro ativo na equipe.</div>
         </div>
     </div>
 
-    <div class="flex-auto min-h-0 overflow-auto" *ngIf="dia">
-        <div class="flex flex-col gap-6 w-full px-4 sm:px-6 md:px-8 py-6">
+    <div class="flex flex-auto min-h-0">
+        <div class="flex-auto min-w-0 overflow-auto" cdkScrollable>
 
-            <!-- Conflitos: um bloco por membro, com os eventos lado a lado -->
-            <div *ngIf="dia.Conflitos?.length" role="alert" class="flex flex-col gap-3 p-4 rounded-lg border border-amber-300 bg-amber-50 text-amber-900">
-                <div class="flex items-center gap-2 font-semibold">
-                    <mat-icon class="icon-size-5 shrink-0 text-amber-600" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
-                    <span>{{ dia.Conflitos.length === 1 ? '1 membro está' : dia.Conflitos.length + ' membros estão' }} em mais de um evento neste dia</span>
-                </div>
-                <div *ngFor="let c of dia.Conflitos" class="flex flex-col gap-2">
-                    <div class="text-sm font-medium">
-                        {{ c.MEM_NOME }}<span *ngIf="!c.MEM_ATIVO"> (inativo)</span><span *ngIf="c.MEM_INSTAGRAM" class="font-normal"> &#64;{{ c.MEM_INSTAGRAM }}</span>
-                        <span class="font-normal"> · {{ funcaoRotulo[c.MEM_FUNCAO] }}</span>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                        <div *ngFor="let e of c.Eventos" class="min-w-0 p-2 rounded border border-amber-200 bg-white text-sm">
-                            <div class="font-semibold">{{ formatarHora(e.EVE_HORA) }}</div>
-                            <div class="truncate" [attr.title]="e.EVE_NOME">{{ e.EVE_NOME }}</div>
-                            <div class="truncate text-xs text-secondary">{{ localCidade(e) }}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Dia sem eventos -->
-            <div *ngIf="dia.Eventos.length === 0" class="flex flex-col items-center gap-3 py-8 text-center">
-                <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:calendar"></mat-icon>
-                <div class="text-lg text-secondary">Nenhum evento em {{ diaMes }}</div>
-                <button mat-flat-button color="primary" type="button" (click)="novoEvento()">
-                    <mat-icon svgIcon="heroicons_outline:plus"></mat-icon>
-                    <span class="ml-2">Novo evento</span>
-                </button>
-            </div>
-
-            <!-- Cards dos eventos: 1, 2 ou 3 colunas conforme a largura -->
-            <div *ngIf="dia.Eventos.length" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                <div *ngFor="let e of dia.Eventos" role="link" tabindex="0"
-                    class="flex flex-col gap-3 p-4 rounded-lg border cursor-pointer hover:shadow-md transition-shadow min-w-0"
-                    [class.opacity-60]="e.EVE_STATUS === cancelado"
-                    (click)="abrirEvento(e, $event)" (auxclick)="abrirEvento(e, $event)" (keydown.enter)="abrirEvento(e)">
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="text-xl font-bold" [class.text-secondary]="!e.EVE_HORA" [class.line-through]="e.EVE_STATUS === cancelado">{{ formatarHora(e.EVE_HORA) }}</div>
-                        <span class="flex items-center gap-1 shrink-0">
-                            <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center shrink-0"
-                                [ngClass]="statusCor[e.EVE_STATUS]">{{ statusRotulo[e.EVE_STATUS] }}</span>
-                            <button mat-icon-button type="button" class="!w-8 !h-8 !p-0 !leading-none shrink-0" aria-label="Copiar link do evento" title="Copiar link do evento"
-                            (click)="copiarLink(e, $event)" (keydown.enter)="$event.stopPropagation()">
-                                <mat-icon class="icon-size-5" svgIcon="heroicons_outline:link"></mat-icon>
+            <!-- ================= SEMANA ================= -->
+            <div *ngIf="visao === 'semana' && dias.length" class="p-3 sm:p-4 md:p-6">
+                <div class="grid grid-cols-1 md:grid-cols-[repeat(7,minmax(7.5rem,1fr))] gap-3 md:gap-2">
+                    <section *ngFor="let d of dias; trackBy: trackDia" class="flex flex-col min-w-0 rounded-xl border bg-gray-50"
+                        [ngClass]="d.Data === hoje ? 'border-primary-300' : ''">
+                        <header class="flex items-center justify-between gap-1 pl-3 pr-1 py-1.5 border-b">
+                            <button type="button" class="flex items-center gap-2 min-w-0 text-left rounded hover:text-primary" (click)="abrirDia(d.Data)"
+                                [attr.aria-label]="'Abrir o dia ' + formatarDiaMes(d.Data)" title="Abrir o dia">
+                                <span class="text-xs font-semibold uppercase tracking-wide" [class.text-primary]="d.Data === hoje">{{ diaSemanaCurto(d.Data) }}</span>
+                                <span class="flex items-center justify-center w-7 h-7 rounded-full text-base font-bold"
+                                    [ngClass]="d.Data === hoje ? 'bg-primary text-on-primary' : ''">{{ diaDoMes(d.Data) }}</span>
                             </button>
-                        </span>
+                            <span class="flex items-center shrink-0">
+                                <mat-icon *ngIf="d.Conflitos.length" class="icon-size-4 text-amber-600" svgIcon="heroicons_outline:exclamation-triangle"
+                                    [matTooltip]="d.Conflitos.length === 1 ? '1 pessoa em mais de um evento' : d.Conflitos.length + ' pessoas em mais de um evento'"></mat-icon>
+                                <button mat-icon-button type="button" class="!w-8 !h-8 !p-0" aria-label="Novo evento neste dia" title="Novo evento neste dia"
+                                    (click)="novoEvento(d.Data, $event)">
+                                    <mat-icon class="icon-size-4" svgIcon="heroicons_outline:plus"></mat-icon>
+                                </button>
+                            </span>
+                        </header>
+
+                        <div class="flex flex-col gap-2 p-2 flex-auto">
+                            <div *ngIf="!d.Eventos.length" class="py-3 text-center text-xs text-hint">Sem eventos</div>
+
+                            <div *ngFor="let e of d.Eventos; trackBy: trackEvento" role="link" tabindex="0"
+                                class="alvo-escala flex flex-col gap-1 p-2 rounded-lg border bg-card cursor-pointer hover:shadow-md transition-shadow min-w-0"
+                                [ngClass]="{ 'opacity-60': e.EVE_STATUS === cancelado, 'ring-2 ring-primary-200': selecionado && e.EVE_STATUS !== cancelado, 'animate-pulse': ocupado.has(e.Id) }"
+                                cdkDropList cdkDropListSortingDisabled cdkDropListElementContainer=".equipe-alvo" [cdkDropListDisabled]="e.EVE_STATUS === cancelado"
+                                [cdkDropListData]="{ evento: e, data: d.Data }" (cdkDropListDropped)="aoSoltar($event)"
+                                (click)="aoClicarEvento(e, d.Data, $event)" (auxclick)="aoClicarEvento(e, d.Data, $event)" (keydown.enter)="aoClicarEvento(e, d.Data)">
+                                <div class="flex items-center justify-between gap-1">
+                                    <span class="text-sm font-bold" [class.text-secondary]="!e.EVE_HORA" [class.line-through]="e.EVE_STATUS === cancelado">{{ formatarHora(e.EVE_HORA, 'A conf.') }}</span>
+                                    <span class="w-2 h-2 rounded-full shrink-0" [ngClass]="statusPonto[e.EVE_STATUS]" [title]="statusRotulo[e.EVE_STATUS]"></span>
+                                </div>
+                                <div class="text-sm font-semibold leading-snug line-clamp-2 break-words" [class.line-through]="e.EVE_STATUS === cancelado" [title]="e.EVE_NOME">{{ e.EVE_NOME }}</div>
+                                <div class="text-xs text-secondary truncate" [title]="localCidade(e)">{{ e.EVE_CIDADE }}</div>
+                                <div class="equipe-alvo flex flex-wrap gap-1 pt-1">
+                                    <span *ngFor="let m of e.Equipe" class="inline-flex items-center gap-0.5 max-w-full h-6 pl-2 pr-0.5 rounded-full text-xs"
+                                        [ngClass]="m.EmConflito ? 'bg-amber-100 text-amber-900' : 'bg-gray-100 text-gray-800'"
+                                        [title]="m.MEM_NOME + (m.EVM_POSICAO ? ' · ' + m.EVM_POSICAO : '') + (m.EmConflito ? ' · também em outro evento neste dia' : '')">
+                                        <span class="truncate">{{ primeiroNome(m.MEM_NOME) }}</span>
+                                        <button type="button" class="flex items-center justify-center w-5 h-5 shrink-0 rounded-full hover:bg-black/10"
+                                            [attr.aria-label]="'Tirar ' + m.MEM_NOME + ' de ' + e.EVE_NOME" (click)="remover(m, e, d.Data, $event)" (keydown.enter)="$event.stopPropagation()">
+                                            <mat-icon class="icon-size-3" svgIcon="heroicons_mini:x-mark"></mat-icon>
+                                        </button>
+                                    </span>
+                                    <span *ngIf="!e.Equipe.length" class="text-xs italic text-hint">Sem equipe</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- ================= DIA ================= -->
+            <div *ngIf="visao === 'dia' && dia" class="flex flex-col gap-6 w-full px-4 sm:px-6 md:px-8 py-6">
+
+                <!-- Conflitos: um bloco por membro, com os eventos lado a lado -->
+                <div *ngIf="dia.Conflitos?.length" role="alert" class="flex flex-col gap-3 p-4 rounded-lg border border-amber-300 bg-amber-50 text-amber-900">
+                    <div class="flex items-center gap-2 font-semibold">
+                        <mat-icon class="icon-size-5 shrink-0 text-amber-600" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
+                        <span>{{ dia.Conflitos.length === 1 ? '1 membro está' : dia.Conflitos.length + ' membros estão' }} em mais de um evento neste dia</span>
                     </div>
-
-                    <div class="min-w-0">
-                        <div class="font-semibold break-words" [class.line-through]="e.EVE_STATUS === cancelado">{{ e.EVE_NOME }}</div>
-                        <div class="text-sm text-secondary break-words">{{ e.TipoEventoNome }} · {{ localCidade(e) }}</div>
-                        <div *ngIf="e.OrganizadorNome" class="text-xs text-secondary break-words">{{ e.OrganizadorNome }}</div>
-                    </div>
-
-                    <app-progresso-pendencias *ngIf="e.EVE_STATUS !== cancelado" [abertas]="e.PendenciasAbertas" [total]="e.PendenciasTotal"></app-progresso-pendencias>
-
-                    <div class="flex flex-col gap-1 pt-2 border-t">
-                        <div class="text-xs font-semibold uppercase tracking-wide text-secondary">Equipe</div>
-                        <div *ngIf="e.Equipe.length === 0" class="text-sm text-secondary">Ninguém escalado.</div>
-                        <div *ngFor="let m of e.Equipe" class="flex items-start gap-2 px-2 py-1 rounded text-sm"
-                            [ngClass]="m.EmConflito ? 'bg-amber-100 text-amber-900' : ''">
-                            <mat-icon *ngIf="m.EmConflito" class="icon-size-4 shrink-0 mt-0.5 text-amber-600" svgIcon="heroicons_outline:exclamation-triangle"
-                                title="Também em outro evento neste dia"></mat-icon>
-                            <div class="min-w-0">
-                                <span class="font-medium">{{ m.MEM_NOME }}</span><span *ngIf="!m.MEM_ATIVO" class="text-secondary"> (inativo)</span>
-                                <span *ngIf="m.MEM_INSTAGRAM" class="text-secondary"> &#64;{{ m.MEM_INSTAGRAM }}</span>
-                                <div *ngIf="m.EVM_POSICAO" class="text-xs text-secondary break-words">{{ m.EVM_POSICAO }}</div>
+                    <div *ngFor="let c of dia.Conflitos" class="flex flex-col gap-2">
+                        <div class="text-sm font-medium">
+                            {{ c.MEM_NOME }}<span *ngIf="!c.MEM_ATIVO"> (inativo)</span><span *ngIf="c.MEM_INSTAGRAM" class="font-normal"> &#64;{{ c.MEM_INSTAGRAM }}</span>
+                            <span class="font-normal"> · {{ funcaoRotulo[c.MEM_FUNCAO] }}</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            <div *ngFor="let e of c.Eventos" class="min-w-0 p-2 rounded border border-amber-200 bg-white text-sm">
+                                <div class="font-semibold">{{ formatarHora(e.EVE_HORA) }}</div>
+                                <div class="truncate" [attr.title]="e.EVE_NOME">{{ e.EVE_NOME }}</div>
+                                <div class="truncate text-xs text-secondary">{{ localCidade(e) }}</div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Livres, agrupados por função -->
-            <div class="flex flex-col gap-3">
-                <h2 class="text-xl font-bold text-accent">Livres neste dia</h2>
-                <div *ngIf="dia.Livres.length === 0" class="text-sm text-secondary">Ninguém livre neste dia.</div>
-                <ng-container *ngFor="let f of funcoes">
-                    <div *ngIf="livresDaFuncao(f.valor).length" class="flex flex-col gap-1">
-                        <div class="text-xs font-semibold uppercase tracking-wide text-secondary">{{ f.rotulo }}</div>
-                        <div class="flex flex-wrap gap-2">
-                            <span *ngFor="let l of livresDaFuncao(f.valor)" class="rounded-full bg-green-100 text-green-800 px-3 py-1 text-sm">
-                                {{ l.MEM_NOME }}<span *ngIf="l.MEM_INSTAGRAM" class="opacity-70"> &#64;{{ l.MEM_INSTAGRAM }}</span>
+                <!-- Dia sem eventos -->
+                <div *ngIf="dia.Eventos.length === 0" class="flex flex-col items-center gap-3 py-8 text-center">
+                    <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:calendar"></mat-icon>
+                    <div class="text-lg text-secondary">Nenhum evento em {{ formatarDiaMes(dia.Data) }}</div>
+                    <button mat-flat-button color="primary" type="button" (click)="novoEvento(dia.Data)">
+                        <mat-icon svgIcon="heroicons_outline:plus"></mat-icon>
+                        <span class="ml-2">Novo evento</span>
+                    </button>
+                </div>
+
+                <!-- Cards dos eventos: 1, 2 ou 3 colunas conforme a largura; cada card recebe quem for solto nele -->
+                <div *ngIf="dia.Eventos.length" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <div *ngFor="let e of dia.Eventos; trackBy: trackEvento" role="link" tabindex="0"
+                        class="alvo-escala flex flex-col gap-3 p-4 rounded-lg border cursor-pointer hover:shadow-md transition-shadow min-w-0"
+                        [ngClass]="{ 'opacity-60': e.EVE_STATUS === cancelado, 'ring-2 ring-primary-200': selecionado && e.EVE_STATUS !== cancelado, 'animate-pulse': ocupado.has(e.Id) }"
+                        cdkDropList cdkDropListSortingDisabled cdkDropListElementContainer=".equipe-alvo" [cdkDropListDisabled]="e.EVE_STATUS === cancelado"
+                        [cdkDropListData]="{ evento: e, data: dia.Data }" (cdkDropListDropped)="aoSoltar($event)"
+                        (click)="aoClicarEvento(e, dia.Data, $event)" (auxclick)="aoClicarEvento(e, dia.Data, $event)" (keydown.enter)="aoClicarEvento(e, dia.Data)">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="text-xl font-bold" [class.text-secondary]="!e.EVE_HORA" [class.line-through]="e.EVE_STATUS === cancelado">{{ formatarHora(e.EVE_HORA) }}</div>
+                            <span class="flex items-center gap-1 shrink-0">
+                                <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center shrink-0"
+                                    [ngClass]="statusCor[e.EVE_STATUS]">{{ statusRotulo[e.EVE_STATUS] }}</span>
+                                <button mat-icon-button type="button" class="!w-8 !h-8 !p-0 !leading-none shrink-0" aria-label="Copiar link do evento" title="Copiar link do evento"
+                                    (click)="copiarLink(e, dia.Data, $event)" (keydown.enter)="$event.stopPropagation()">
+                                    <mat-icon class="icon-size-5" svgIcon="heroicons_outline:link"></mat-icon>
+                                </button>
                             </span>
+                        </div>
+
+                        <div class="min-w-0">
+                            <div class="font-semibold break-words" [class.line-through]="e.EVE_STATUS === cancelado">{{ e.EVE_NOME }}</div>
+                            <div class="text-sm text-secondary break-words">{{ e.TipoEventoNome }} · {{ localCidade(e) }}</div>
+                            <div *ngIf="e.OrganizadorNome" class="text-xs text-secondary break-words">{{ e.OrganizadorNome }}</div>
+                        </div>
+
+                        <app-progresso-pendencias *ngIf="e.EVE_STATUS !== cancelado" [abertas]="e.PendenciasAbertas" [total]="e.PendenciasTotal"></app-progresso-pendencias>
+
+                        <div class="flex flex-col gap-1 pt-2 border-t">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-secondary">Equipe</div>
+                            <div class="equipe-alvo flex flex-col gap-1">
+                                <div *ngIf="e.Equipe.length === 0" class="text-sm text-secondary">Ninguém escalado.</div>
+                                <div *ngFor="let m of e.Equipe" class="group flex items-start gap-2 pl-2 pr-1 py-1 rounded text-sm"
+                                    [ngClass]="m.EmConflito ? 'bg-amber-100 text-amber-900' : 'hover:bg-gray-50'">
+                                    <mat-icon *ngIf="m.EmConflito" class="icon-size-4 shrink-0 mt-0.5 text-amber-600" svgIcon="heroicons_outline:exclamation-triangle"
+                                        title="Também em outro evento neste dia"></mat-icon>
+                                    <div class="min-w-0 flex-auto">
+                                        <span class="font-medium">{{ m.MEM_NOME }}</span><span *ngIf="!m.MEM_ATIVO" class="text-secondary"> (inativo)</span>
+                                        <span *ngIf="m.MEM_INSTAGRAM" class="text-secondary"> &#64;{{ m.MEM_INSTAGRAM }}</span>
+                                        <div *ngIf="m.EVM_POSICAO" class="text-xs text-secondary break-words">{{ m.EVM_POSICAO }}</div>
+                                    </div>
+                                    <button type="button" class="flex items-center justify-center w-6 h-6 shrink-0 rounded-full text-secondary hover:bg-black/10"
+                                        [attr.aria-label]="'Tirar ' + m.MEM_NOME + ' de ' + e.EVE_NOME" title="Tirar do evento"
+                                        (click)="remover(m, e, dia.Data, $event)" (keydown.enter)="$event.stopPropagation()">
+                                        <mat-icon class="icon-size-4" svgIcon="heroicons_mini:x-mark"></mat-icon>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Livres, agrupados por função -->
+                <div class="flex flex-col gap-3">
+                    <h2 class="text-xl font-bold text-accent">Livres neste dia</h2>
+                    <div *ngIf="dia.Livres.length === 0" class="text-sm text-secondary">Ninguém livre neste dia.</div>
+                    <ng-container *ngFor="let f of funcoes">
+                        <div *ngIf="livresDaFuncao(f.valor).length" class="flex flex-col gap-1">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-secondary">{{ f.rotulo }}</div>
+                            <div class="flex flex-wrap gap-2">
+                                <span *ngFor="let l of livresDaFuncao(f.valor)" class="rounded-full bg-green-100 text-green-800 px-3 py-1 text-sm">
+                                    {{ l.MEM_NOME }}<span *ngIf="l.MEM_INSTAGRAM" class="opacity-70"> &#64;{{ l.MEM_INSTAGRAM }}</span>
+                                </span>
+                            </div>
+                        </div>
+                    </ng-container>
+                </div>
+            </div>
+        </div>
+
+        <!-- Painel da equipe (a partir de lg): arrastar até um evento escala -->
+        <aside class="hidden lg:flex flex-col w-64 shrink-0 min-h-0 border-l bg-gray-50" aria-label="Equipe">
+            <div class="px-4 pt-4 pb-3 border-b">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 font-semibold">
+                        <mat-icon class="icon-size-5 text-secondary" svgIcon="heroicons_outline:user-group"></mat-icon>
+                        <span>Equipe</span>
+                    </div>
+                    <span class="text-xs text-secondary">{{ membros.length }}</span>
+                </div>
+                <div class="text-xs text-secondary mt-1">Arraste até um evento para escalar, ou clique na pessoa e depois no evento.</div>
+                <mat-form-field class="fuse-mat-dense fuse-mat-rounded w-full mt-3" subscriptSizing="dynamic">
+                    <mat-icon matPrefix class="icon-size-5" svgIcon="heroicons_solid:magnifying-glass"></mat-icon>
+                    <input matInput [(ngModel)]="busca" placeholder="Buscar na equipe" aria-label="Buscar na equipe" autocomplete="off">
+                </mat-form-field>
+            </div>
+            <div class="flex-auto overflow-y-auto px-3 py-3 flex flex-col gap-4" cdkDropList cdkDropListSortingDisabled
+                [cdkDropListData]="null" [cdkDropListEnterPredicate]="nunca">
+                <ng-container *ngFor="let f of funcoes">
+                    <div *ngIf="membrosDaFuncao(f.valor).length" class="flex flex-col gap-1.5">
+                        <div class="px-1 text-xs font-semibold uppercase tracking-wide text-secondary">{{ f.rotulo }}</div>
+                        <div *ngFor="let m of membrosDaFuncao(f.valor); trackBy: trackMembro" cdkDrag [cdkDragData]="m" (cdkDragEnded)="fimArrasto()"
+                            role="button" tabindex="0" [attr.aria-pressed]="selecionado?.Id === m.Id" (click)="alternarSelecao(m)" (keydown.enter)="alternarSelecao(m)"
+                            class="flex items-center gap-2 px-2 py-1.5 rounded-lg border bg-card cursor-grab active:cursor-grabbing select-none hover:shadow-sm"
+                            [ngClass]="selecionado?.Id === m.Id ? 'border-primary ring-2 ring-primary-300' : ''">
+                            <span class="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-xs font-bold"
+                                [ngClass]="eventosDoMembro(m.Id) ? 'bg-primary-100 text-primary-800' : 'bg-green-100 text-green-800'">{{ iniciais(m.MEM_NOME) }}</span>
+                            <div class="min-w-0 flex-auto">
+                                <div class="text-sm font-medium truncate" [title]="m.MEM_NOME">{{ m.MEM_NOME }}</div>
+                                <div class="text-xs truncate" [ngClass]="eventosDoMembro(m.Id) ? 'text-secondary' : 'text-green-700'">{{ rotuloOcupacao(m.Id) }}</div>
+                            </div>
+                            <mat-icon class="icon-size-4 shrink-0 text-hint" svgIcon="heroicons_outline:bars-3"></mat-icon>
+                            <span *cdkDragPlaceholder class="inline-flex items-center h-6 px-2 rounded-full border border-dashed border-primary-400 bg-primary-50 text-xs text-primary-800">{{ primeiroNome(m.MEM_NOME) }}</span>
                         </div>
                     </div>
                 </ng-container>
+                <div *ngIf="!membrosFiltrados.length" class="py-6 text-center text-sm text-secondary">
+                    {{ membros.length ? 'Ninguém com esse nome.' : 'Nenhum membro ativo na equipe.' }}
+                </div>
             </div>
-        </div>
+        </aside>
     </div>
 </div>

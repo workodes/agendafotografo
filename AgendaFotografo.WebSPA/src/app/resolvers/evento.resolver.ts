@@ -5,7 +5,6 @@ import { EventoService } from 'app/services/evento.service';
 import { OrganizadorService } from 'app/services/organizador.service';
 import { TipoEventoService } from 'app/services/tipo-evento.service';
 import { AuthorizationErrorHandlerService } from 'app/services/utils/authorization-error-handler.service';
-import { hojeIso, parseDataIso } from 'app/utils/data-evento';
 
 // Ficha do evento (página inteira). Em `novo` (sem :id) devolve só as opções de tipo e organizador;
 // na edição traz também o evento e a escala. Tipo e organizador inativos já gravados no evento entram no combo (incluirId).
@@ -39,13 +38,4 @@ export const eventoFichaResolver: ResolveFn<any> = (route: ActivatedRouteSnapsho
 };
 
 // Visão do dia: lê ?data=yyyy-MM-dd (sem data ou inválida = hoje).
-export const eventoDiaResolver: ResolveFn<any> = (route: ActivatedRouteSnapshot) => {
-    const service = inject(EventoService);
-    const errorHandler = inject(AuthorizationErrorHandlerService);
-    const param = route.queryParamMap.get('data');
-    const data = parseDataIso(param) ? param! : hojeIso();
 
-    return forkJoin({
-        dia: service.Dia(data),
-    }).pipe(catchError(error => errorHandler.handle(error)));
-};

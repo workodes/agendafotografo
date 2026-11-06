@@ -20,12 +20,12 @@
 
         <!-- Números -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <a class="flex flex-col p-4 sm:p-5 rounded-2xl shadow bg-card min-w-0 hover:shadow-md" routerLink="/assinante/visao-do-dia">
+            <a class="flex flex-col p-4 sm:p-5 rounded-2xl shadow bg-card min-w-0 hover:shadow-md" routerLink="/assinante/visao-do-dia" [queryParams]="{ visao: 'dia' }">
                 <div class="text-sm sm:text-lg font-medium text-secondary truncate">Hoje</div>
                 <div class="mt-1 text-4xl sm:text-5xl font-bold tracking-tight leading-none text-primary">{{ hojeQtd }}</div>
                 <div class="mt-2 text-sm text-secondary truncate">{{ hojeQtd === 1 ? 'evento' : 'eventos' }}</div>
             </a>
-            <a class="flex flex-col p-4 sm:p-5 rounded-2xl shadow bg-card min-w-0 hover:shadow-md" routerLink="/assinante/visao-do-dia" [queryParams]="{ data: amanha }">
+            <a class="flex flex-col p-4 sm:p-5 rounded-2xl shadow bg-card min-w-0 hover:shadow-md" routerLink="/assinante/visao-do-dia" [queryParams]="{ data: amanha, visao: 'dia' }">
                 <div class="text-sm sm:text-lg font-medium text-secondary truncate">Amanhã</div>
                 <div class="mt-1 text-4xl sm:text-5xl font-bold tracking-tight leading-none text-primary">{{ amanhaQtd }}</div>
                 <div class="mt-2 text-sm text-secondary truncate">{{ amanhaQtd === 1 ? 'evento' : 'eventos' }}</div>

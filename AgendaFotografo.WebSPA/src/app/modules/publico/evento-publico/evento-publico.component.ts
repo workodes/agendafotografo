@@ -65,9 +65,7 @@ export class EventoPublicoComponent implements OnInit, OnDestroy {
     private _retomar: 'evento' | 'codigo' = 'evento';
 
     // Imagens e GPX
-    flyerUrl: string | null = null;
     rotaUrl: string | null = null;
-    flyerFalhou = false;
     rotaFalhou = false;
     baixandoGpx = false;
     mensagemGpx = '';
@@ -300,9 +298,6 @@ export class EventoPublicoComponent implements OnInit, OnDestroy {
         if (!this.acesso || !this.evento) {
             return;
         }
-        if (this.evento.TemFlyer) {
-            this.baixarImagem(TipoArquivoEvento.Flyer, url => this.flyerUrl = url, () => this.flyerFalhou = true);
-        }
         if (this.evento.TemImagemRota) {
             this.baixarImagem(TipoArquivoEvento.ImagemRota, url => this.rotaUrl = url, () => this.rotaFalhou = true);
         }
@@ -325,15 +320,10 @@ export class EventoPublicoComponent implements OnInit, OnDestroy {
     }
 
     private revogarImagens(): void {
-        if (this.flyerUrl) {
-            URL.revokeObjectURL(this.flyerUrl);
-        }
         if (this.rotaUrl) {
             URL.revokeObjectURL(this.rotaUrl);
         }
-        this.flyerUrl = null;
         this.rotaUrl = null;
-        this.flyerFalhou = false;
         this.rotaFalhou = false;
     }
 
