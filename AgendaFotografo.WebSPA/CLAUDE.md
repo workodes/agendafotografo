@@ -194,6 +194,12 @@ Cada evento tem um link `/e/<token>` com código de 4 números. O coordenador co
   O interceptor ignora 401 sem token e a API nunca devolve 401 nessas rotas, então um coordenador logado que erra o código continua logado.
 - Nginx (`nginx.conf`) tem `location /e/` própria com `try_files`, `no-store` e `X-Robots-Tag`.
 
+## Mapa do trajeto GPX
+`modules/shared/components/mapa-gpx/` (`app-mapa-gpx`, Leaflet 1.9.4 fixo + `@types/leaflet`; CSS importado no `.scss` do componente). Leitura só no front (`mapa-gpx.util.ts`: DOMParser, `trkseg/trkpt`, fallback `rtept` e `wpt`, descarta coordenada inválida; distância por haversine).
+Recebe `[gpx]` (Blob/texto) ou `[carregar]` (função que devolve o Blob). **Lazy**: só baixa e cria o mapa ao clicar em "Ver trajeto no mapa". Linha laranja, largada verde e chegada vermelha (`L.circleMarker`, sem imagens de ícone), `fitBounds`, 300 px de altura, erro "Não foi possível ler o trajeto deste GPX.".
+Usado na página pública (cartão Rota, `LinkPublicoService.Arquivo(token, 3)`) e na ficha do evento (`evento-arquivo` do tipo GPX, `BaixarArquivo`); os botões de download continuam. Nada do GPX vira HTML.
+**Único tráfego externo novo**: tiles `https://tile.openstreetmap.org` (atribuição OSM visível). Os tiles saem com `referrerPolicy: 'origin'` (nunca o caminho `/e/<token>`; o código e o acesso não vão para lugar nenhum). Sem CSP no `nginx.conf`: nada a liberar; se um CSP entrar, permitir `img-src https://*.tile.openstreetmap.org`.
+
 ## Pendências (assinante, plano 06)
 Tela `/assinante/pendencias` (item "Pendências" do menu, depois de "Visão do dia") e seção **Pendências** na ficha do evento. Só o Assinante. Pendências nunca aparecem no link público.
 - **Environments**: `Evento.pendencias`, `listarPendencias`, `adicionarPendencia`, `atualizarPendencia`, `atualizarStatusPendencia`, `excluirPendencia` nos dois arquivos. `EventoService`: `Pendencias(eventoId)`,

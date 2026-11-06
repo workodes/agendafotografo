@@ -43,4 +43,9 @@
             </button>
         </div>
     </div>
+
+    <!-- Trajeto do GPX no mapa (sob demanda; o ngFor recria o mapa quando o arquivo é trocado) -->
+    <ng-container *ngIf="eventoId && arquivo && !ehImagem">
+        <app-mapa-gpx *ngFor="let id of [arquivo.Id]" [carregar]="carregarGpx"></app-mapa-gpx>
+    </ng-container>
 </div>

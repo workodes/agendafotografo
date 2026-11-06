@@ -62,3 +62,5 @@ Por que a rede `interna`: na `dokploy-network` todos os projetos da VM se enxerg
 - **Contadores em memória**: tentativas erradas e bloqueios ficam na memória da API (`LinkPublicoTentativas`) e somem a cada deploy/reinício.
   **Não escalar `agenda-api` para mais de uma instância** sem antes trocar por cache distribuído, senão o limite multiplica por réplica.
 - **Segredos**: o acesso de 7 dias é um JWT com chave derivada do `Jwt:Key`. Trocar `Jwt__Key` derruba também esses acessos (a página volta a pedir o código).
+
+- **Mapa do GPX**: o navegador carrega tiles de `https://tile.openstreetmap.org` (único tráfego externo novo; só ao clicar em "Ver trajeto no mapa"). O `nginx.conf` não tem CSP, então nada a liberar; se entrar um CSP, permitir `img-src https://*.tile.openstreetmap.org`. Os tiles levam só a origem como Referer, nunca o token.

@@ -92,6 +92,7 @@
                     <div *ngIf="!rotaUrl" class="flex justify-center py-8"><mat-progress-spinner diameter="24" mode="indeterminate"></mat-progress-spinner></div>
                     <img *ngIf="rotaUrl" [src]="rotaUrl" alt="Imagem do percurso" class="w-full h-auto rounded-lg">
                 </ng-container>
+                <app-mapa-gpx *ngIf="evento.GpxNome" [carregar]="carregarGpx"></app-mapa-gpx>
                 <div class="flex flex-col sm:flex-row sm:flex-wrap gap-2">
                     <a *ngIf="linkRotaMaps" mat-stroked-button [href]="linkRotaMaps" target="_blank" rel="noopener noreferrer">
                         <mat-icon svgIcon="heroicons_outline:map"></mat-icon><span class="ml-2">Abrir rota no Maps</span>

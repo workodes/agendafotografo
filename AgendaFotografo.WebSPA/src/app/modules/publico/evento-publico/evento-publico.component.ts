@@ -10,6 +10,8 @@ import { FUNCAO_MEMBRO_ROTULO } from 'app/models/enums/FuncaoMembro';
 import { TipoArquivoEvento } from 'app/models/enums/TipoArquivoEvento';
 import { LinkPublicoService } from 'app/services/link-publico.service';
 import { extrairMensagemErroBlob } from 'app/utils/blob-error.util';
+import { MapaGpxComponent } from 'app/modules/shared/components/mapa-gpx/mapa-gpx.component';
+import { Observable, EMPTY } from 'rxjs';
 import { diaSemana, formatarData, formatarHora, parseDataIso } from 'app/utils/data-evento';
 import { AcessoGuardado, apagarAcesso, guardarAcesso, lerAcesso, linkMaps, obterAparelho, urlSegura } from 'app/utils/link-publico';
 import { localCidade } from 'app/utils/local-evento';
@@ -25,7 +27,7 @@ const TOKEN_VALIDO = /^[0-9a-f]{32}$/;
     standalone: true,
     selector: 'app-evento-publico',
     templateUrl: './evento-publico.component.html',
-    imports: [CommonModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+    imports: [CommonModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MapaGpxComponent],
 })
 export class EventoPublicoComponent implements OnInit, OnDestroy {
     private _route = inject(ActivatedRoute);
@@ -278,6 +280,9 @@ export class EventoPublicoComponent implements OnInit, OnDestroy {
         this.flyerFalhou = false;
         this.rotaFalhou = false;
     }
+
+    // Fonte do GPX para o mapa (mesmo blob do download, com o acesso guardado; nada é enviado a terceiros).
+    carregarGpx = (): Observable<Blob> => this.acesso ? this._service.Arquivo(this.token, TipoArquivoEvento.Gpx, this.acesso.Acesso) : EMPTY;
 
     baixarGpx(): void {
         if (!this.acesso || !this.evento?.GpxNome || this.baixandoGpx) {

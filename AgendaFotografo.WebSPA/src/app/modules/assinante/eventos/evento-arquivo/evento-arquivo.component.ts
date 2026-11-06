@@ -5,9 +5,10 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { FuseConfirmationService } from '@fuse/services/confirmation';
-import { filter } from 'rxjs';
+import { EMPTY, Observable, filter } from 'rxjs';
 import { EventoArquivoItem } from 'app/models/DTOs/responses/EventoArquivoItem';
 import { TIPO_ARQUIVO_EVENTO_REGRAS, TIPO_ARQUIVO_EVENTO_ROTULO, TipoArquivoEvento } from 'app/models/enums/TipoArquivoEvento';
+import { MapaGpxComponent } from 'app/modules/shared/components/mapa-gpx/mapa-gpx.component';
 import { EventoService } from 'app/services/evento.service';
 import { extrairMensagemErroBlob } from 'app/utils/blob-error.util';
 import { mensagemErro } from 'app/utils/mensagem-erro';
@@ -18,7 +19,7 @@ import { mensagemErro } from 'app/utils/mensagem-erro';
     standalone: true,
     selector: 'app-evento-arquivo',
     templateUrl: './evento-arquivo.component.html',
-    imports: [CommonModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
+    imports: [CommonModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MapaGpxComponent],
 })
 export class EventoArquivoComponent implements OnChanges, OnDestroy {
     @Input() eventoId?: string | null;
@@ -61,6 +62,9 @@ export class EventoArquivoComponent implements OnChanges, OnDestroy {
         const b = this.arquivo?.EVA_TAMANHO ?? 0;
         return b >= 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1).replace('.', ',')} MB` : `${Math.max(1, Math.round(b / 1024))} KB`;
     }
+
+    // Fonte do GPX para o mapa (download autenticado em blob).
+    carregarGpx = (): Observable<Blob> => this.arquivo ? this._service.BaixarArquivo(this.arquivo.Id) : EMPTY;
 
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['arquivo'] && this._previewDe !== this.arquivo?.Id) {

@@ -27,6 +27,7 @@
                         "inlineStyleLanguage": "scss",
                         "allowedCommonJsDependencies": [
                             "apexcharts",
+                            "leaflet",
                             "highlight.js",
                             "crypto-js/enc-utf8",
                             "crypto-js/hmac-sha256",

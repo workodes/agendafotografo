@@ -1,0 +1,22 @@
+<div class="flex flex-col gap-2 min-w-0">
+    <button *ngIf="estado === 'inicial'" mat-stroked-button type="button" class="self-start" (click)="abrir()">
+        <mat-icon svgIcon="heroicons_outline:map"></mat-icon><span class="ml-2">Ver trajeto no mapa</span>
+    </button>
+
+    <div *ngIf="estado === 'carregando'" class="flex items-center gap-2 py-4 text-sm text-secondary">
+        <mat-progress-spinner diameter="20" mode="indeterminate"></mat-progress-spinner><span>Carregando o trajeto...</span>
+    </div>
+
+    <div *ngIf="estado === 'erro'" role="alert" class="flex flex-col items-start gap-2 text-sm text-red-700">
+        <span>{{ mensagemErro }}</span>
+        <button mat-stroked-button type="button" (click)="abrir()">Tentar de novo</button>
+    </div>
+
+    <div [class.hidden]="estado !== 'pronto'" class="flex flex-col gap-2 min-w-0">
+        <div #mapa class="w-full h-[300px] rounded-lg border overflow-hidden relative z-0" role="img" aria-label="Mapa do trajeto"></div>
+        <div class="text-sm text-secondary">Distância do trajeto: <strong>{{ distanciaTexto }}</strong>
+            <span class="ml-2"><span class="inline-block w-2.5 h-2.5 rounded-full align-middle" style="background:#16a34a"></span> largada</span>
+            <span class="ml-2"><span class="inline-block w-2.5 h-2.5 rounded-full align-middle" style="background:#dc2626"></span> chegada</span>
+        </div>
+    </div>
+</div>
