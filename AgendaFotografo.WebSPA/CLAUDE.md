@@ -22,8 +22,9 @@ Não há testes automatizados no padrão. Para logar é preciso a API no ar (`do
 ## API e build de produção
 - `environment.ts`: `http://localhost:5289/api` (porta do perfil padrão `http` do `dotnet run`; com `--launch-profile https` a API também escuta em https://localhost:7118).
 - `environment.prod.ts` (como o Portal): `baseUrl = '/api'`, **URL relativa**, porque a WebApi serve o SPA pelo `wwwroot` (fallback `index.html` no `Program.cs`).
-  O build escreve em `dist/wwwroot` (`outputPath`, igual ao Portal); no deploy, o conteúdo vai para o `wwwroot` da WebApi. Se um dia o SPA for hospedado em
-  outra origem, trocar o `baseUrl` e configurar `Cors:Origins` na API.
+  O build escreve em `dist/wwwroot` (`outputPath`, igual ao Portal). **Deploy atual (Dokploy)**: `Dockerfile` + `nginx.conf` desta pasta; o Nginx serve o
+  `dist/wwwroot` e faz proxy de `/api/` para o container da API, então a URL relativa continua valendo (mesma origem, sem CORS). O `wwwroot` da WebApi
+  segue como alternativa (IIS). Se um dia o SPA for hospedado em outra origem, trocar o `baseUrl` e configurar `Cors:Origins` na API. Ver `docs/deploy.md`.
 - Controllers seguem o nome das tabelas (`api/<Controller>/<Action>`, sem prefixo `api/Admin`); o service do front tem o mesmo nome do controller.
   Todo endpoint novo entra nos dois arquivos de environment, com a mesma chave (objeto por controller, chaves em camelCase: `Auth.login`, `Auth.alterarSenha`).
   JSON com nomes C# exatos (nunca camelCase).

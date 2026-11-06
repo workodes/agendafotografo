@@ -50,6 +50,14 @@ dotnet ef migrations add <NomeEmPascalCase> --project AgendaFotografo.Infra.Data
 ```
 Swagger fica em `/swagger` (somente Development). Não existem testes automatizados no padrão.
 
+## Deploy (Dokploy, VM Hostinger)
+Docker Compose na raiz (`docker-compose.yml`): `agenda-web` (Nginx com o build do Angular, proxy de `/api/` para a API; único serviço com domínio),
+`agenda-api` (`Dockerfile` da raiz, `ASPNETCORE_ENVIRONMENT=Production`) e `agenda-mysql` (MySQL 8.0, banco `agenda_fotografo`, sem porta publicada).
+Há **um só** `appsettings.json`, sempre no zeus (o `fartec:testador` bloqueia se qualquer connection string dos appsettings não for o zeus): **não criar
+`appsettings.Production.json`**. Produção sobrescreve por variáveis de ambiente do `agenda-api` no compose (`ConnectionStrings__DefaultConection` para o banco do
+container, `Arquivos__Pasta=/app/dados/arquivos`, num volume). Exceção decidida pelo colaborador: as credenciais do MySQL de produção ficam no `docker-compose.yml`.
+Passo a passo e pontos de atenção em `docs/deploy.md`. Endpoint ou arquivo novo que mude porta, tamanho de upload ou pasta persistente: revisar `nginx.conf`, compose e Dockerfiles.
+
 ## Regras transversais
 - **Multi-tenancy**: todo dado de negócio pertence a um assinante. O id do tenant vem **sempre do banco** via `AssinanteEscopo.ObterAssinanteIdAsync` (lê `Usuario.AssinanteId`), nunca de claim, body ou query. Em Update/Delete, carregar por `Id` **e** assinante.
 - **Assinante inativo** (`ASS_ATIVO = false`): bloqueia o login (400) e derruba a sessão em até ~30 s (401 por `OnTokenValidated` + `SessaoUsuarioCache`); quem altera `ASS_ATIVO` deve chamar `SessaoUsuarioCache.Invalidar` para cada usuário do assinante.

@@ -1,0 +1,71 @@
+# Deploy do AgendaFotografo no Dokploy (VM Hostinger). Ver docs/deploy.md.
+#
+#   Traefik (Dokploy, HTTPS) -> agenda-web (Nginx :80) -> /api/* -> agenda-api (:8080) -> agenda-mysql (:3306)
+#
+# Só o agenda-web entra na rede do Dokploy (é o único publicado por domínio). API e MySQL ficam na rede
+# "interna" do projeto: nomes únicos e isolados, sem colidir com o "mysql" de outros projetos da mesma VM.
+
+services:
+  agenda-mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "WorkodesDbRoot@2026"
+      MYSQL_DATABASE: "agenda_fotografo"
+      MYSQL_USER: "workode_user"
+      MYSQL_PASSWORD: "WorkodesDb@2026"
+      TZ: "America/Sao_Paulo"
+    volumes:
+      - agenda-mysql-data:/var/lib/mysql
+    healthcheck:
+      # 127.0.0.1 (TCP): durante a inicialização do volume o MySQL sobe sem rede, então só fica "healthy" quando estiver pronto de verdade.
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    networks:
+      - interna
+
+  agenda-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_HTTP_PORTS: "8080"
+      TZ: "America/Sao_Paulo"
+      # Sobrescrevem o appsettings.json (que aponta para o zeus, usado no desenvolvimento).
+      # "DefaultConection" com um "n" só: é o nome usado pelo projeto (Setup.MontarConnectionString).
+      ConnectionStrings__DefaultConection: "Server=agenda-mysql;Port=3306;Database=agenda_fotografo;User Id=workode_user;Password=WorkodesDb@2026;"
+      Arquivos__Pasta: "/app/dados/arquivos"
+      Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command: "Warning"
+    volumes:
+      # Flyer, imagem de rota e GPX (Arquivos:Pasta = /app/dados/arquivos). Sem volume, somem a cada deploy.
+      - agenda-arquivos:/app/dados
+    depends_on:
+      agenda-mysql:
+        condition: service_healthy
+    networks:
+      - interna
+
+  agenda-web:
+    build:
+      context: ./AgendaFotografo.WebSPA
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - agenda-api
+    networks:
+      - interna
+      - dokploy-network
+
+volumes:
+  agenda-mysql-data:
+  agenda-arquivos:
+
+networks:
+  interna:
+  dokploy-network:
+    external: true

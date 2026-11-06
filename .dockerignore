@@ -1,0 +1,16 @@
+# Contexto do build da API (raiz). O SPA tem o próprio contexto e .dockerignore.
+.git/
+.vs/
+.idea/
+.vscode/
+docs/
+AgendaFotografo.WebSPA/
+**/bin/
+**/obj/
+**/node_modules/
+**/App_Data/
+**/*.user
+**/.DS_Store
+Dockerfile
+docker-compose*.yml
+.dockerignore
