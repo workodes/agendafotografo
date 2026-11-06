@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>Escalar membro</h2>
+<h2 mat-dialog-title>Escalar equipe</h2>
 
 <mat-dialog-content class="!pt-2">
     <div *ngIf="carregando" class="flex items-center justify-center py-8">
@@ -11,27 +11,51 @@
         <!-- Erro da API (ex.: @instagram ou telefone já cadastrado) no próprio formulário -->
         <div *ngIf="erroApi" role="alert" class="mb-3 p-3 rounded-lg border border-red-200 bg-red-50 text-red-800 text-sm">{{ erroApi }}</div>
 
-        <!-- Escolher um membro já cadastrado -->
-        <form *ngIf="!novoMembro" id="form-escalar" class="flex flex-col gap-1" [formGroup]="formExistente" (ngSubmit)="escalar()" novalidate>
-            <custom-search-select formControlName="membroId" label="Membro" emptyOptionLabel="Escolha quem vai fotografar"
-                [options]="membrosOpcoes" [dense]="true" [floatLabelAlways]="true"></custom-search-select>
+        <!-- Marcar vários membros já cadastrados -->
+        <form *ngIf="!novoMembro" id="form-escalar" class="flex flex-col gap-2" (ngSubmit)="escalar()" novalidate>
+            <ng-container *ngIf="opcoes.length > 0">
+                <mat-form-field appearance="fill" class="fuse-mat-rounded fuse-mat-dense w-full" subscriptSizing="dynamic">
+                    <mat-icon matPrefix class="icon-size-5" svgIcon="heroicons_outline:magnifying-glass"></mat-icon>
+                    <input matInput name="busca" [(ngModel)]="busca" placeholder="Buscar pelo nome ou @instagram" autocomplete="off">
+                </mat-form-field>
 
-            <!-- Conflito: avisa, mas não impede -->
-            <div *ngIf="selecionada?.OutrosEventos?.length" role="alert"
-                class="flex items-start gap-2 mb-2 p-3 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 text-sm">
-                <mat-icon class="icon-size-5 shrink-0 text-amber-600" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
-                <div class="min-w-0">
-                    <div>{{ textoOutrosEventos(selecionada!.OutrosEventos) }}</div>
-                    <div class="text-xs mt-1">Você pode escalar mesmo assim.
-                        <a class="underline" [routerLink]="['/assinante/visao-do-dia']" [queryParams]="{ data: data.dataEvento }" target="_blank">Ver o dia</a>
+                <div class="flex items-center justify-between gap-2 text-sm px-1">
+                    <span class="text-secondary">{{ marcados.size ? marcados.size + ' marcado(s)' : 'Marque quem vai trabalhar' }}</span>
+                    <button *ngIf="filtradas.length > 1" mat-button type="button" class="!min-h-8 !h-8" (click)="alternarTodos()">
+                        {{ todosFiltradosMarcados ? 'Desmarcar todos' : 'Marcar todos' }}
+                    </button>
+                </div>
+
+                <div class="flex flex-col rounded-lg border divide-y max-h-[45vh] overflow-y-auto">
+                    <div *ngFor="let o of filtradas; trackBy: trackOpcao" role="checkbox" tabindex="0" [attr.aria-checked]="marcados.has(o.Id)"
+                        class="flex items-center gap-3 px-3 py-2 cursor-pointer select-none hover:bg-hover"
+                        [class.bg-primary-50]="marcados.has(o.Id)"
+                        (click)="alternar(o)" (keydown.enter)="alternar(o)" (keydown.space)="alternar(o); $event.preventDefault()">
+                        <mat-checkbox [checked]="marcados.has(o.Id)" [disabled]="salvando" (click)="$event.preventDefault()" tabindex="-1"></mat-checkbox>
+                        <div class="min-w-0 flex-auto">
+                            <div class="font-medium truncate">{{ o.MEM_NOME }}<span *ngIf="o.MEM_INSTAGRAM" class="text-secondary font-normal"> &#64;{{ o.MEM_INSTAGRAM }}</span></div>
+                            <div class="text-xs text-secondary">{{ funcaoRotulo[o.MEM_FUNCAO] }}</div>
+                        </div>
+                        <span *ngIf="o.OutrosEventos?.length" class="shrink-0 rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-xs font-semibold"
+                            [attr.title]="textoOutrosEventos(o.OutrosEventos)">Já escalado no dia</span>
+                    </div>
+                    <div *ngIf="filtradas.length === 0" class="px-3 py-4 text-sm text-secondary text-center">Ninguém encontrado.</div>
+                </div>
+
+                <!-- Conflito: avisa, mas não impede -->
+                <div *ngIf="comConflitoMarcados.length" role="alert"
+                    class="flex items-start gap-2 p-3 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 text-sm">
+                    <mat-icon class="icon-size-5 shrink-0 text-amber-600" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
+                    <div class="min-w-0 flex flex-col gap-1">
+                        <div *ngFor="let o of comConflitoMarcados">{{ textoOutrosEventos(o.OutrosEventos) }}</div>
+                        <div class="text-xs">Você pode escalar mesmo assim.
+                            <a class="underline" [routerLink]="['/assinante/visao-do-dia']" [queryParams]="{ data: data.dataEvento }" target="_blank">Ver o dia</a>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
-                <mat-label>Posição (opcional)</mat-label>
-                <input matInput formControlName="posicao" maxlength="150" autocomplete="off" placeholder="Ex.: largada, chegada, percurso">
-            </mat-form-field>
+                <div class="text-xs text-secondary px-1">A posição (largada, chegada...) você ajusta depois, na lista da equipe.</div>
+            </ng-container>
 
             <div *ngIf="opcoes.length === 0" class="text-sm text-secondary">Todos os membros ativos já estão escalados neste evento.</div>
         </form>
@@ -85,8 +109,8 @@
     <span class="flex-1"></span>
     <button mat-button type="button" [disabled]="salvando" (click)="cancelar()">Cancelar</button>
     <button *ngIf="!carregando && !falhaCarga" mat-flat-button color="primary" type="submit" form="form-escalar"
-        [disabled]="salvando || (!novoMembro && opcoes.length === 0)">
+        [disabled]="salvando || (!novoMembro && marcados.size === 0)">
         <mat-progress-spinner *ngIf="salvando" diameter="20" mode="indeterminate"></mat-progress-spinner>
-        <span *ngIf="!salvando">Escalar</span>
+        <span *ngIf="!salvando">{{ !novoMembro && marcados.size > 1 ? 'Escalar ' + marcados.size : 'Escalar' }}</span>
     </button>
 </mat-dialog-actions>

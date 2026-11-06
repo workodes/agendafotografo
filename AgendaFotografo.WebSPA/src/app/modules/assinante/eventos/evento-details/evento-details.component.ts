@@ -482,13 +482,15 @@ export class EventoDetailsComponent implements OnInit, AfterViewInit, OnDestroy 
         }
         const data: EscalarMembroDialogData = { eventoId: this.evento.Id, dataEvento: this.evento.EVE_DATA };
         this._dialog.open(EscalarMembroDialogComponent, { data, width: '560px', maxWidth: '95vw', autoFocus: 'first-tabbable' })
-            .afterClosed().pipe(filter((r): r is EventoMembroItem => !!r)).subscribe(item => {
-                this.equipe = [...this.equipe, item];
+            .afterClosed().pipe(filter((r): r is EventoMembroItem[] => !!r?.length)).subscribe(itens => {
+                this.equipe = [...this.equipe, ...itens];
                 this._service.NotificarAlteracao();
-                if (item.OutrosEventos?.length) {
-                    this._snackBar.open(`Atenção: ${item.MEM_NOME} já está escalado em outro evento no mesmo dia.`, 'X', { duration: 8000 });
+                const conflito = itens.filter(i => i.OutrosEventos?.length).map(i => i.MEM_NOME);
+                const nomes = itens.length === 1 ? itens[0].MEM_NOME : `${itens.length} membros`;
+                if (conflito.length) {
+                    this._snackBar.open(`${nomes} escalado(s). Atenção: ${conflito.join(', ')} já está(ão) em outro evento no mesmo dia.`, 'X', { duration: 8000 });
                 } else {
-                    this._snackBar.open(`${item.MEM_NOME} escalado.`, 'X', { duration: 3000 });
+                    this._snackBar.open(`${nomes} escalado(s).`, 'X', { duration: 3000 });
                 }
             });
     }

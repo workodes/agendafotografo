@@ -9,7 +9,12 @@ import { environment } from 'environments/environment';
 export class LocalService {
     constructor(private _httpClient: HttpClient) { }
 
-    Buscar(texto: string): Observable<LocalSugestao[]> {
-        return this._httpClient.get<LocalSugestao[]>(environment.Local.buscar, { params: new HttpParams().set('texto', texto) });
+    /** `somenteCidades`: só cidades (campo Cidade). */
+    Buscar(texto: string, somenteCidades = false): Observable<LocalSugestao[]> {
+        let params = new HttpParams().set('texto', texto);
+        if (somenteCidades) {
+            params = params.set('tipo', 'cidade');
+        }
+        return this._httpClient.get<LocalSugestao[]>(environment.Local.buscar, { params });
     }
 }

@@ -100,3 +100,68 @@ export function linkMaps(local: string | null | undefined, link: string | null |
     const consulta = [local?.trim(), cidade?.trim()].filter(x => !!x).join(', ');
     return local?.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(consulta)}` : null;
 }
+
+const EMBED_MAPS = 'https://www.google.com/maps';
+
+/** Endereço do iframe do Google Maps (sem chave de API) para um ponto: usa o link cadastrado quando dá para entender
+ *  (My Maps, busca, coordenadas @lat,lon, lugar, rota "dir") e, senão, busca pelo local + cidade. Sem nada, null.
+ *  O resultado sempre começa com https://www.google.com/maps e só leva parâmetros codificados. */
+export function embedMaps(local: string | null | undefined, link: string | null | undefined, cidade: string | null | undefined): string | null {
+    const doLink = embedDoLink(link);
+    if (doLink) {
+        return doLink;
+    }
+    const consulta = [local?.trim(), cidade?.trim()].filter(x => !!x).join(', ');
+    return local?.trim() ? embedBusca(consulta) : null;
+}
+
+/** Só o link (rota no Maps/My Maps); null quando o link não é do Google Maps ou não dá para incorporar (ex.: maps.app.goo.gl). */
+export function embedDoLink(link: string | null | undefined): string | null {
+    const seguro = urlSegura(link);
+    if (!seguro) {
+        return null;
+    }
+    let u: URL;
+    try { u = new URL(seguro); } catch { return null; }
+    if (!/(^|\.)google\.[a-z.]+$/i.test(u.hostname) || !u.pathname.startsWith('/maps')) {
+        return null;
+    }
+
+    // My Maps (/maps/d/viewer|edit|embed?mid=...)
+    const mid = u.searchParams.get('mid');
+    if (u.pathname.startsWith('/maps/d/') && mid && /^[\w-]+$/.test(mid)) {
+        return `${EMBED_MAPS}/d/embed?mid=${encodeURIComponent(mid)}`;
+    }
+
+    // Rota: /maps/dir/A/B[/...] ou ?api=1&origin&destination
+    const partes = u.pathname.split('/').filter(p => !!p).map(p => decodeURIComponent(p.replace(/\+/g, ' ')));
+    if (partes[1] === 'dir') {
+        const paradas = partes.slice(2).filter(p => !p.startsWith('@') && !p.startsWith('data='));
+        const origem = u.searchParams.get('origin') ?? paradas[0];
+        const destino = u.searchParams.get('destination') ?? paradas[paradas.length - 1];
+        if (origem && destino && origem !== destino) {
+            return `${EMBED_MAPS}?saddr=${encodeURIComponent(origem)}&daddr=${encodeURIComponent(destino)}&output=embed`;
+        }
+        if (destino) {
+            return embedBusca(destino);
+        }
+    }
+
+    const q = u.searchParams.get('query') ?? u.searchParams.get('q');
+    if (q) {
+        return embedBusca(q);
+    }
+    // /maps/place/<nome>/@lat,lon,... ou /maps/search/<texto>
+    if ((partes[1] === 'place' || partes[1] === 'search') && partes[2] && !partes[2].startsWith('@')) {
+        return embedBusca(partes[2]);
+    }
+    const coords = /@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/.exec(u.pathname);
+    if (coords) {
+        return embedBusca(`${coords[1]},${coords[2]}`);
+    }
+    return null;
+}
+
+function embedBusca(consulta: string): string {
+    return `${EMBED_MAPS}?q=${encodeURIComponent(consulta)}&z=15&output=embed`;
+}

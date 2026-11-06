@@ -144,11 +144,8 @@
                             <mat-checkbox class="mt-2 shrink-0" formControlName="EVE_HORA_A_CONFIRMAR">A confirmar</mat-checkbox>
                         </div>
 
-                        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
-                            <mat-label>Cidade</mat-label>
-                            <input matInput formControlName="EVE_CIDADE" maxlength="100" autocomplete="off">
-                            <mat-error>{{ erro('EVE_CIDADE') }}</mat-error>
-                        </mat-form-field>
+                        <app-campo-local [controle]="ctrl('EVE_CIDADE')" rotulo="Cidade" modo="cidade" placeholder="Ex.: Curitiba"
+                            [maxlength]="100" [erro]="erro('EVE_CIDADE')"></app-campo-local>
 
                         <app-campo-local [controle]="ctrl('EVE_LOCAL')" rotulo="Local (opcional)" placeholder="Ex.: Parque Ibirapuera"
                             [maxlength]="200" [erro]="erro('EVE_LOCAL')" (escolhido)="aoEscolherLocal($event)"></app-campo-local>

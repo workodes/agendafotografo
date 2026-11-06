@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, ElementRef, Input, OnDestroy, ViewChild, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, Input, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -20,8 +20,10 @@ const MENSAGEM_INVALIDO = 'Não foi possível ler o trajeto deste GPX.';
     encapsulation: ViewEncapsulation.None,
     imports: [CommonModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
 })
-export class MapaGpxComponent implements OnDestroy {
+export class MapaGpxComponent implements OnInit, OnDestroy {
     @Input() gpx?: Blob | string | null;
+    /** true: carrega e desenha o trajeto ao abrir a tela, sem o botão "Ver trajeto no mapa". */
+    @Input() automatico = false;
     @Input() carregar?: () => Observable<Blob>;
     @ViewChild('mapa', { static: true }) mapaEl!: ElementRef<HTMLDivElement>;
 
@@ -33,6 +35,12 @@ export class MapaGpxComponent implements OnDestroy {
     private _sub?: Subscription;
 
     constructor(private _cdr: ChangeDetectorRef) { }
+
+    ngOnInit(): void {
+        if (this.automatico) {
+            this.abrir();
+        }
+    }
 
     abrir(): void {
         this._sub?.unsubscribe();

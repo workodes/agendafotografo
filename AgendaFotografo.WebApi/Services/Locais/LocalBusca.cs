@@ -15,7 +15,8 @@ public class LocalBusca(HttpClient http, IConfiguration configuration, IMemoryCa
     public const int TamanhoMinimo = 3;
     private const int Limite = 6;
 
-    public async Task<List<LocalSugestao>> BuscarAsync(string? texto, CancellationToken cancellationToken)
+    /// <param name="somenteCidades">true: só cidades (campo Cidade do evento).</param>
+    public async Task<List<LocalSugestao>> BuscarAsync(string? texto, bool somenteCidades, CancellationToken cancellationToken)
     {
         texto = (texto ?? string.Empty).Trim();
         if (texto.Length < TamanhoMinimo)
@@ -34,7 +35,7 @@ public class LocalBusca(HttpClient http, IConfiguration configuration, IMemoryCa
             return [];
         }
 
-        var chaveCache = "local-busca:" + texto.ToLowerInvariant();
+        var chaveCache = (somenteCidades ? "local-busca:cidade:" : "local-busca:") + texto.ToLowerInvariant();
         if (cache.TryGetValue(chaveCache, out List<LocalSugestao>? emCache) && emCache is not null)
         {
             return emCache;
@@ -43,6 +44,7 @@ public class LocalBusca(HttpClient http, IConfiguration configuration, IMemoryCa
         var url = "https://api.geoapify.com/v1/geocode/autocomplete"
             + "?text=" + Uri.EscapeDataString(texto)
             + "&filter=countrycode:br&lang=pt&format=json&limit=" + Limite
+            + (somenteCidades ? "&type=city" : string.Empty)
             + "&apiKey=" + Uri.EscapeDataString(chave);
 
         try

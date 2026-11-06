@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -9,9 +10,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { RouterModule } from '@angular/router';
+import { concatMap, from, toArray, catchError, of, map } from 'rxjs';
 import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
-import { CustomSearchSelectComponent } from 'app/modules/shared/components/custom-select/custom-select.component';
-import { OpcoesSelect } from 'app/utils/opcoes-select';
 import { EventoMembroItem, OpcaoEscalaItem } from 'app/models/DTOs/responses/EventoMembroItem';
 import { Membro } from 'app/models/entities/Membro';
 import { FUNCAO_MEMBRO, FUNCAO_MEMBRO_ROTULO, FuncaoMembro } from 'app/models/enums/FuncaoMembro';
@@ -27,21 +27,23 @@ export interface EscalarMembroDialogData {
     dataEvento: string;
 }
 
-// Modal "Escalar membro": escolhe um membro ativo ainda fora da escala (com alerta de conflito, que não bloqueia) ou cadastra
-// um fotógrafo novo na hora ("+ Novo fotógrafo": api/Membro/Criar e depois AdicionarMembro). Fecha devolvendo o EventoMembroItem escalado.
+// Modal "Escalar equipe": marca VÁRIOS membros ativos ainda fora da escala (busca por nome, alerta de conflito que não bloqueia) e
+// escala todos de uma vez (um AdicionarMembro por membro, em sequência); a posição se ajusta depois, na lista da equipe da ficha.
+// Ou cadastra um fotógrafo novo na hora ("+ Novo fotógrafo": api/Membro/Criar e depois AdicionarMembro).
+// Fecha devolvendo a lista de EventoMembroItem escalados (também ao Cancelar, se parte já tinha sido escalada antes de uma falha).
 @Component({
     standalone: true,
     selector: 'app-escalar-membro-dialog',
     templateUrl: './escalar-membro-dialog.component.html',
     providers: [provideNgxMask()],
     imports: [
-        CommonModule, RouterModule, ReactiveFormsModule, NgxMaskDirective,
-        MatButtonModule, MatDialogModule, MatFormFieldModule, MatIconModule, MatInputModule, MatProgressSpinnerModule, MatSelectModule, CustomSearchSelectComponent,
+        CommonModule, RouterModule, FormsModule, ReactiveFormsModule, NgxMaskDirective,
+        MatButtonModule, MatCheckboxModule, MatDialogModule, MatFormFieldModule, MatIconModule, MatInputModule, MatProgressSpinnerModule, MatSelectModule,
     ],
 })
 export class EscalarMembroDialogComponent implements OnInit {
     private _fb = inject(FormBuilder);
-    private _dialogRef = inject(MatDialogRef<EscalarMembroDialogComponent, EventoMembroItem>);
+    private _dialogRef = inject(MatDialogRef<EscalarMembroDialogComponent, EventoMembroItem[]>);
     private _eventoService = inject(EventoService);
     private _membroService = inject(MembroService);
     readonly data = inject<EscalarMembroDialogData>(MAT_DIALOG_DATA);
@@ -60,10 +62,11 @@ export class EscalarMembroDialogComponent implements OnInit {
     // Se o cadastro rápido deu certo mas o AdicionarMembro falhou, o retry só escala (não cadastra de novo).
     private _membroCriadoId: string | null = null;
 
-    formExistente = this._fb.group({
-        membroId: [null as string | null, [Validators.required]],
-        posicao: ['', [Validators.maxLength(150)]],
-    });
+    // Lista com marcação múltipla
+    busca = '';
+    marcados = new Set<string>();
+    // Já escalados nesta abertura (sobrevivem a uma falha no meio do lote).
+    private _escalados: EventoMembroItem[] = [];
 
     formNovo = this._fb.group({
         MEM_NOME: ['', [Validators.required, Validators.maxLength(200)]],
@@ -78,13 +81,42 @@ export class EscalarMembroDialogComponent implements OnInit {
         return !!this._membroCriadoId;
     }
 
-    private _opcoesSel = new OpcoesSelect<OpcaoEscalaItem>(
-        o => o.Id,
-        o => `${o.MEM_NOME}${o.MEM_INSTAGRAM ? ' @' + o.MEM_INSTAGRAM : ''} · ${FUNCAO_MEMBRO_ROTULO[o.MEM_FUNCAO]}${o.OutrosEventos?.length ? ' · já escalado no dia' : ''}`);
-    get membrosOpcoes() { return this._opcoesSel.de(this.opcoes); }
+    trackOpcao = (_: number, o: OpcaoEscalaItem) => o.Id;
 
-    get selecionada(): OpcaoEscalaItem | undefined {
-        return this.opcoes.find(o => o.Id === this.formExistente.value.membroId);
+    get filtradas(): OpcaoEscalaItem[] {
+        const t = this.normalizar(this.busca);
+        return t ? this.opcoes.filter(o => this.normalizar(`${o.MEM_NOME} ${o.MEM_INSTAGRAM ?? ''}`).includes(t)) : this.opcoes;
+    }
+
+    get comConflitoMarcados(): OpcaoEscalaItem[] {
+        return this.opcoes.filter(o => this.marcados.has(o.Id) && o.OutrosEventos?.length);
+    }
+
+    alternar(o: OpcaoEscalaItem): void {
+        if (this.salvando) {
+            return;
+        }
+        if (this.marcados.has(o.Id)) {
+            this.marcados.delete(o.Id);
+        } else {
+            this.marcados.add(o.Id);
+        }
+    }
+
+    get todosFiltradosMarcados(): boolean {
+        const f = this.filtradas;
+        return f.length > 0 && f.every(o => this.marcados.has(o.Id));
+    }
+
+    alternarTodos(): void {
+        const marcar = !this.todosFiltradosMarcados;
+        for (const o of this.filtradas) {
+            if (marcar) { this.marcados.add(o.Id); } else { this.marcados.delete(o.Id); }
+        }
+    }
+
+    private normalizar(v: string): string {
+        return (v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
     }
 
     ngOnInit(): void {
@@ -116,19 +148,16 @@ export class EscalarMembroDialogComponent implements OnInit {
         if (this.salvando) {
             return;
         }
-        const form = this.novoMembro ? this.formNovo : this.formExistente;
-        if (form.invalid) {
-            form.markAllAsTouched();
+        if (!this.novoMembro) {
+            this.escalarMarcados();
+            return;
+        }
+        if (this.formNovo.invalid) {
+            this.formNovo.markAllAsTouched();
             return;
         }
         this.erroApi = '';
         this.salvando = true;
-
-        if (!this.novoMembro) {
-            const v = this.formExistente.getRawValue();
-            this.adicionar(v.membroId!, v.posicao);
-            return;
-        }
 
         if (this._membroCriadoId) {
             this.adicionar(this._membroCriadoId, this.formNovo.getRawValue().posicao);
@@ -159,7 +188,37 @@ export class EscalarMembroDialogComponent implements OnInit {
     }
 
     cancelar(): void {
-        this._dialogRef.close();
+        this._dialogRef.close(this._escalados.length ? this._escalados : undefined);
+    }
+
+    // Escala os marcados um a um (na ordem da lista). Se um falhar, para ali: os que já foram ficam escalados (saem da lista)
+    // e o erro aparece no formulário; "Escalar" de novo tenta os que sobraram.
+    private escalarMarcados(): void {
+        const ids = this.opcoes.filter(o => this.marcados.has(o.Id)).map(o => o.Id);
+        if (ids.length === 0) {
+            this.erroApi = 'Marque pelo menos um membro.';
+            return;
+        }
+        this.erroApi = '';
+        this.salvando = true;
+        let falha: { id: string; msg: string } | null = null;
+        from(ids).pipe(
+            concatMap(id => falha ? of(null) : this._eventoService.AdicionarMembro({ EVM_EVENTO_ID: this.data.eventoId, EVM_MEMBRO_ID: id, EVM_POSICAO: null }).pipe(
+                catchError(error => { falha = { id, msg: mensagemErro(error, 'Não foi possível escalar o membro.') }; return of(null); }),
+            )),
+            map(item => { if (item) { this._escalados.push(item); this.marcados.delete(item.EVM_MEMBRO_ID); } return item; }),
+            toArray(),
+        ).subscribe(() => {
+            this.salvando = false;
+            const okIds = new Set(this._escalados.map(e => e.EVM_MEMBRO_ID));
+            this.opcoes = this.opcoes.filter(o => !okIds.has(o.Id));
+            if (!falha) {
+                this._dialogRef.close(this._escalados);
+                return;
+            }
+            const nome = this.opcoes.find(o => o.Id === falha!.id)?.MEM_NOME ?? 'um membro';
+            this.erroApi = `Não foi possível escalar ${nome}: ${falha.msg}` + (this._escalados.length ? ` (${this._escalados.length} já escalado(s)).` : '');
+        });
     }
 
     erroNovo(nome: string): string {
@@ -180,7 +239,7 @@ export class EscalarMembroDialogComponent implements OnInit {
         }).subscribe({
             next: item => {
                 this.salvando = false;
-                this._dialogRef.close(item);
+                this._dialogRef.close([...this._escalados, item]);
             },
             error: error => {
                 this.salvando = false;

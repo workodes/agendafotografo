@@ -124,7 +124,11 @@ export class EventoLinkPublicoComponent implements OnChanges {
 
     private abrirModal(): void {
         if (this.link) {
-            this._compartilhar.abrirModal({ id: this.eventoId!, nome: this.nome, data: this.data }, this.link, atualizado => { this.link = atualizado; });
+            // O modal apaga o código da cópia dele ao fechar; a ficha mantém o código que já tinha (carregado por Evento/Link),
+            // senão "Copiar link" e WhatsApp ficam sem texto e param de funcionar até recarregar a tela.
+            const codigo = this.link.Codigo;
+            this._compartilhar.abrirModal({ id: this.eventoId!, nome: this.nome, data: this.data }, this.link,
+                atualizado => { this.link = { ...atualizado, Codigo: atualizado.Codigo ?? codigo }; });
         }
     }
 

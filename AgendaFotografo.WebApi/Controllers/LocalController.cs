@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AgendaFotografo.WebApi.Controllers;
 
 /// <summary>
-/// Autocomplete de locais (campos Local, Largada e Chegada do evento). Só repassa a busca à Geoapify por <see cref="LocalBusca"/>;
+/// Autocomplete de locais (campos Cidade, Local, Largada e Chegada do evento). Só repassa a busca à Geoapify por <see cref="LocalBusca"/>;
 /// não lê nem grava dados do assinante, por isso não usa <c>AssinanteEscopo</c>. A chave da Geoapify nunca sai da API.
 /// </summary>
 [Authorize(Roles = RoleNames.Assinante)]
@@ -16,13 +16,14 @@ public class LocalController(LocalBusca localBusca, ILogger<LocalController> log
     private readonly LocalBusca _localBusca = localBusca;
     private readonly ILogger<LocalController> _logger = logger;
 
-    /// <summary>Até 6 sugestões para o texto digitado (mínimo 3 caracteres; menos que isso devolve lista vazia).</summary>
+    /// <summary>Até 6 sugestões para o texto digitado (mínimo 3 caracteres; menos que isso devolve lista vazia).
+    /// <c>tipo=cidade</c> devolve só cidades.</summary>
     [HttpGet]
-    public async Task<IActionResult> Buscar(string? texto, CancellationToken cancellationToken)
+    public async Task<IActionResult> Buscar(string? texto, string? tipo, CancellationToken cancellationToken)
     {
         try
         {
-            return Ok(await _localBusca.BuscarAsync(texto, cancellationToken));
+            return Ok(await _localBusca.BuscarAsync(texto, string.Equals(tipo, "cidade", StringComparison.OrdinalIgnoreCase), cancellationToken));
         }
         catch (Exception ex)
         {

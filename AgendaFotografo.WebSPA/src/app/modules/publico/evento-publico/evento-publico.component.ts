@@ -3,7 +3,8 @@ import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@an
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { Meta, Title } from '@angular/platform-browser';
+import { DomSanitizer, Meta, SafeResourceUrl, Title } from '@angular/platform-browser';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { ActivatedRoute } from '@angular/router';
 import { EventoPublico } from 'app/models/DTOs/responses/EventoPublico';
 import { FUNCAO_MEMBRO_ROTULO } from 'app/models/enums/FuncaoMembro';
@@ -13,11 +14,20 @@ import { extrairMensagemErroBlob } from 'app/utils/blob-error.util';
 import { MapaGpxComponent } from 'app/modules/shared/components/mapa-gpx/mapa-gpx.component';
 import { Observable, EMPTY } from 'rxjs';
 import { diaSemana, formatarData, formatarHora, parseDataIso } from 'app/utils/data-evento';
-import { AcessoGuardado, apagarAcesso, guardarAcesso, lerAcesso, linkMaps, obterAparelho, urlSegura } from 'app/utils/link-publico';
+import { AcessoGuardado, apagarAcesso, embedDoLink, embedMaps, guardarAcesso, lerAcesso, linkMaps, obterAparelho, urlSegura } from 'app/utils/link-publico';
 import { localCidade } from 'app/utils/local-evento';
 import { mensagemErro } from 'app/utils/mensagem-erro';
 
 type Estado = 'carregando' | 'codigo' | 'evento' | 'indisponivel' | 'erro';
+
+/** Ponto do mapa incorporado (Local, Largada, Chegada). `embed` é montado uma vez por evento: recriar o SafeResourceUrl recarregaria o iframe. */
+interface PontoMapa {
+    id: string;
+    rotulo: string;
+    texto: string;
+    abrir: string | null;
+    embed: SafeResourceUrl;
+}
 
 const TOKEN_VALIDO = /^[0-9a-f]{32}$/;
 
@@ -27,13 +37,14 @@ const TOKEN_VALIDO = /^[0-9a-f]{32}$/;
     standalone: true,
     selector: 'app-evento-publico',
     templateUrl: './evento-publico.component.html',
-    imports: [CommonModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MapaGpxComponent],
+    imports: [CommonModule, MatButtonModule, MatButtonToggleModule, MatIconModule, MatProgressSpinnerModule, MapaGpxComponent],
 })
 export class EventoPublicoComponent implements OnInit, OnDestroy {
     private _route = inject(ActivatedRoute);
     private _service = inject(LinkPublicoService);
     private _meta = inject(Meta);
     private _title = inject(Title);
+    private _sanitizer = inject(DomSanitizer);
 
     @ViewChild('campoCodigo') campoCodigo?: ElementRef<HTMLInputElement>;
 
@@ -62,6 +73,11 @@ export class EventoPublicoComponent implements OnInit, OnDestroy {
     mensagemGpx = '';
 
     funcaoRotulo = FUNCAO_MEMBRO_ROTULO;
+
+    // Mapas incorporados do Google Maps (sem chave). Só URLs montadas por embedMaps/embedDoLink (sempre https://www.google.com/maps...).
+    pontos: PontoMapa[] = [];
+    pontoAtual: PontoMapa | null = null;
+    rotaEmbed: SafeResourceUrl | null = null;
 
     ngOnInit(): void {
         this._title.setTitle('Evento');
@@ -141,6 +157,45 @@ export class EventoPublicoComponent implements OnInit, OnDestroy {
         return urlSegura(this.evento?.EVE_ROTA_LINK_STRAVA);
     }
 
+    get linkComoChegar(): string | null {
+        return this.pontos[0]?.abrir ?? null;
+    }
+
+    iniciais(nome: string): string {
+        const p = (nome ?? '').trim().split(/\s+/).filter(x => !!x);
+        return ((p[0]?.[0] ?? '') + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase();
+    }
+
+    irPara(id: string): void {
+        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    selecionarPonto(id: string): void {
+        this.pontoAtual = this.pontos.find(p => p.id === id) ?? this.pontoAtual;
+    }
+
+    private montarMapas(): void {
+        const e = this.evento;
+        const seguro = (url: string | null) => url ? this._sanitizer.bypassSecurityTrustResourceUrl(url) : null;
+        const candidatos = [
+            { id: 'local', rotulo: 'Local', local: e?.EVE_LOCAL, link: null as string | null | undefined },
+            { id: 'largada', rotulo: 'Largada', local: e?.EVE_LARGADA_LOCAL, link: e?.EVE_LARGADA_LINK },
+            { id: 'chegada', rotulo: 'Chegada', local: e?.EVE_CHEGADA_LOCAL, link: e?.EVE_CHEGADA_LINK },
+        ];
+        this.pontos = [];
+        for (const c of candidatos) {
+            const embed = seguro(embedMaps(c.local, c.link, e?.EVE_CIDADE));
+            if (embed) {
+                this.pontos.push({
+                    id: c.id, rotulo: c.rotulo, texto: (c.local ?? '').trim(),
+                    abrir: linkMaps(c.local, c.link, e?.EVE_CIDADE), embed,
+                });
+            }
+        }
+        this.pontoAtual = this.pontos[0] ?? null;
+        this.rotaEmbed = seguro(embedDoLink(e?.EVE_ROTA_LINK_MAPS));
+    }
+
     // ---- Fluxo ----
 
     tentarDeNovo(): void {
@@ -168,6 +223,7 @@ export class EventoPublicoComponent implements OnInit, OnDestroy {
         this._service.Evento(this.token, this.acesso.Acesso).subscribe({
             next: evento => {
                 this.evento = evento;
+                this.montarMapas();
                 this.estado = 'evento';
                 this._title.setTitle(evento.EVE_NOME);
                 this.carregarImagens();

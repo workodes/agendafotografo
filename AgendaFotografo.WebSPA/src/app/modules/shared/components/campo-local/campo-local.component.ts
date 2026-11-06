@@ -26,7 +26,7 @@ import { Subject, catchError, debounceTime, distinctUntilChanged, of, switchMap,
             <input matInput [formControl]="controle" [attr.maxlength]="maxlength" autocomplete="off" [placeholder]="placeholder"
                 [matAutocomplete]="auto" (input)="digitou($event)">
             <mat-progress-spinner *ngIf="buscando" matSuffix diameter="18" mode="indeterminate" class="mr-2"></mat-progress-spinner>
-            <mat-icon *ngIf="!buscando" matSuffix class="icon-size-5 text-hint" svgIcon="heroicons_outline:map-pin"></mat-icon>
+            <mat-icon *ngIf="!buscando" matSuffix class="icon-size-5 text-hint" [svgIcon]="icone"></mat-icon>
             <mat-autocomplete #auto="matAutocomplete" class="campo-local-painel">
                 <mat-option *ngFor="let s of sugestoes" [value]="valorDe(s)" (onSelectionChange)="$event.isUserInput && escolher(s)">
                     <div class="flex flex-col leading-tight py-1 min-w-0">
@@ -46,9 +46,14 @@ export class CampoLocalComponent implements OnInit, OnDestroy {
     @Input() placeholder = '';
     @Input() maxlength = 200;
     @Input() erro: string | null = null;
-    /** "nome": grava só o nome do lugar (ex.: Parque Barigui); "endereco": grava o endereço completo. */
-    @Input() modo: 'nome' | 'endereco' = 'nome';
+    /** "nome": grava só o nome do lugar (ex.: Parque Barigui); "endereco": grava o endereço completo;
+     *  "cidade": sugere só cidades e grava o nome da cidade. */
+    @Input() modo: 'nome' | 'endereco' | 'cidade' = 'nome';
     @Output() escolhido = new EventEmitter<LocalSugestao>();
+
+    get icone(): string {
+        return this.modo === 'cidade' ? 'heroicons_outline:building-office-2' : 'heroicons_outline:map-pin';
+    }
 
     sugestoes: LocalSugestao[] = [];
     buscando = false;
@@ -68,7 +73,7 @@ export class CampoLocalComponent implements OnInit, OnDestroy {
                     return of(null);
                 }
                 this.buscando = true;
-                return this._localService.Buscar(t).pipe(catchError(() => of([] as LocalSugestao[])));
+                return this._localService.Buscar(t, this.modo === 'cidade').pipe(catchError(() => of([] as LocalSugestao[])));
             }),
             takeUntil(this._destroy),
         ).subscribe(r => {
@@ -89,7 +94,7 @@ export class CampoLocalComponent implements OnInit, OnDestroy {
     }
 
     valorDe(s: LocalSugestao): string {
-        const v = this.modo === 'endereco' ? s.Endereco : s.Nome;
+        const v = this.modo === 'endereco' ? s.Endereco : this.modo === 'cidade' ? (s.Cidade || s.Nome) : s.Nome;
         return v.length > this.maxlength ? v.slice(0, this.maxlength) : v;
     }
 
