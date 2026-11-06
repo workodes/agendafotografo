@@ -12,6 +12,7 @@ import { UsuarioService } from 'app/core/services/usuario.service';
 import { NavigationService } from 'app/core/navigation/navigation.service';
 import { Navigation } from 'app/core/navigation/navigation.types';
 import { AlterarSenhaDialogComponent } from 'app/layout/common/user/alterar-senha-dialog/alterar-senha-dialog.component';
+import { InstalarAppComponent } from 'app/layout/common/instalar-app/instalar-app.component';
 import { UserComponent } from 'app/layout/common/user/user.component';
 import { AvisosComponent } from 'app/layout/common/avisos/avisos.component';
 import { BuscaGlobalComponent } from 'app/layout/common/busca-global/busca-global.component';
@@ -24,7 +25,7 @@ import { Subject, takeUntil } from 'rxjs';
     styleUrls    : ['./modern-component.scss'],
     encapsulation: ViewEncapsulation.None,
     standalone   : true,
-    imports      : [FuseLoadingBarComponent, RouterModule, NgIf, FuseVerticalNavigationComponent, FuseHorizontalNavigationComponent, MatButtonModule, MatIconModule, UserComponent, AvisosComponent, BuscaGlobalComponent, RouterOutlet],
+    imports      : [FuseLoadingBarComponent, RouterModule, NgIf, FuseVerticalNavigationComponent, FuseHorizontalNavigationComponent, MatButtonModule, MatIconModule, UserComponent, AvisosComponent, BuscaGlobalComponent, InstalarAppComponent, RouterOutlet],
 })
 export class ModernLayoutComponent implements OnInit, OnDestroy
 {

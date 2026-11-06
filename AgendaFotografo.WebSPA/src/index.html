@@ -9,6 +9,13 @@
     <base href="/">
     <meta name="theme-color" content="#F97316">
 
+    <!-- App instalável (PWA) -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="assets/images/pwa/apple-touch-icon.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Agenda">
+
 
     <!-- Favicon -->
     <link rel="icon" type="image/ico" href="./assets/images/favicon/favicon.ico">
@@ -43,6 +50,14 @@
     <!-- App root -->
     <app-root></app-root>
 
+    <script>
+        // Guarda o convite de instalação (Chrome/Edge/Android) para o botão "Instalar agora" usar depois do login
+        window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); window.__pwaPrompt = e; });
+        // Registra o service worker (necessário para instalar como app). Só em https ou localhost.
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { }));
+        }
+    </script>
 </body>
 
 </html>

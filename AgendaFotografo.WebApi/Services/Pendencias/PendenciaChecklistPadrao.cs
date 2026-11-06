@@ -6,10 +6,9 @@ using Microsoft.EntityFrameworkCore;
 namespace AgendaFotografo.WebApi.Services.Pendencias;
 
 /// <summary>
-/// Checklist padrão de pendências do assinante. <see cref="GarantirModelosAsync"/> semeia a lista inicial e
+/// Checklist padrão de pendências do assinante. A lista nasce VAZIA (sem semente): o assinante cadastra os próprios modelos.
 /// <see cref="AplicarAsync"/> cria as pendências de um evento a partir dos modelos ativos.
-/// Os dois só INCLUEM no contexto (<c>*TransactionAsync</c>): nunca salvam nem fazem commit, quem chama fecha a transação.
-/// Como as duas leituras vão ao banco, quem chama precisa salvar entre elas (a semente antes de aplicar).
+/// Só INCLUI no contexto (<c>*TransactionAsync</c>): nunca salva nem faz commit, quem chama fecha a transação.
 /// Reaproveitado pela recorrência (módulo 11): cada ocorrência gerada chama <see cref="AplicarAsync"/> com a data da ocorrência.
 /// </summary>
 public class PendenciaChecklistPadrao(IBaseRepository<PendenciaModelo> repModelo, IBaseRepository<EventoPendencia> repPendencia)
@@ -18,42 +17,6 @@ public class PendenciaChecklistPadrao(IBaseRepository<PendenciaModelo> repModelo
     private readonly IBaseRepository<EventoPendencia> _repPendencia = repPendencia;
 
     private static readonly DateOnly PrazoMaximo = new(2100, 12, 31);
-
-    /// <summary>Lista inicial (todos os tipos). <c>DiasAntes</c> negativo = depois do evento.</summary>
-    public static readonly IReadOnlyList<(string Titulo, CategoriaPendencia Categoria, PrioridadePendencia Prioridade, int DiasAntes)> ModelosIniciais =
-    [
-        ("Confirmar a prova com o organizador", CategoriaPendencia.Organizador, PrioridadePendencia.Alta, 14),
-        ("Definir a equipe (escala)", CategoriaPendencia.EscalaEquipe, PrioridadePendencia.Alta, 7),
-        ("Informar largada, chegada e rota", CategoriaPendencia.RotaInformacoes, PrioridadePendencia.Media, 5),
-        ("Liberar vagas na plataforma de fotos", CategoriaPendencia.PlataformaFotos, PrioridadePendencia.Media, 3),
-        ("Enviar o link e o código para a equipe", CategoriaPendencia.EscalaEquipe, PrioridadePendencia.Media, 2),
-        ("Conferir equipamento (baterias e cartões)", CategoriaPendencia.Equipamento, PrioridadePendencia.Baixa, 1),
-        ("Entregar as fotos", CategoriaPendencia.EntregaFotos, PrioridadePendencia.Media, -3)
-    ];
-
-    /// <summary>
-    /// Cria a lista inicial quando o assinante tem ZERO modelos (ativos ou não; modelos nunca são apagados, então zero = nunca inicializado).
-    /// Devolve true se incluiu modelos no contexto (quem chama deve salvar).
-    /// </summary>
-    public async Task<bool> GarantirModelosAsync(Guid assinanteId, CancellationToken cancellationToken)
-    {
-        var existe = await _repModelo.AnyAsync(x => x.PEM_ASSINANTE_ID == assinanteId, cancellationToken);
-        if (existe) return false;
-
-        var modelos = ModelosIniciais.Select(m => new PendenciaModelo
-        {
-            PEM_ASSINANTE_ID = assinanteId,
-            PEM_TITULO = m.Titulo,
-            PEM_CATEGORIA = m.Categoria,
-            PEM_PRIORIDADE = m.Prioridade,
-            PEM_DIAS_ANTES = m.DiasAntes,
-            PEM_TIPO_EVENTO_ID = null,
-            PEM_ATIVO = true
-        }).ToList();
-
-        await _repModelo.InsertRangeTransactionAsync(modelos, cancellationToken);
-        return true;
-    }
 
     /// <summary>
     /// Inclui no contexto uma pendência (A fazer, sem responsável) para cada modelo ativo do tipo do evento ou de "todos os tipos".

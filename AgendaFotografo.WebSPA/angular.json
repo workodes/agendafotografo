@@ -39,6 +39,8 @@
                             "src/favicon-16x16.png",
                             "src/favicon-32x32.png",
                             "src/assets",
+                            { "glob": "manifest.webmanifest", "input": "src", "output": "/" },
+                            { "glob": "sw.js", "input": "src", "output": "/" },
                             {
                                 "glob": "_redirects",
                                 "input": "src",
@@ -132,7 +134,9 @@
                         "assets": [
                             "src/favicon-16x16.png",
                             "src/favicon-32x32.png",
-                            "src/assets"
+                            "src/assets",
+                            { "glob": "manifest.webmanifest", "input": "src", "output": "/" },
+                            { "glob": "sw.js", "input": "src", "output": "/" }
                         ],
                         "styles": [
                             "src/styles/styles.scss"

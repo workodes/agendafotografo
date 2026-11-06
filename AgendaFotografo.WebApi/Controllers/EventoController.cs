@@ -380,7 +380,6 @@ public class EventoController(
             await _repEvento.InsertTransactionAsync(evento, cancellationToken);
 
             // Checklist padrão na mesma transação (falha aqui desfaz o evento). Salva antes de aplicar porque os modelos são lidos do banco
-            await _checklistPadrao.GarantirModelosAsync(assinanteId, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await _checklistPadrao.AplicarAsync(assinanteId, evento, Hoje(), false, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -1370,9 +1369,6 @@ public class EventoController(
                 return NotFound(MsgNaoEncontrado);
             }
 
-            // Assinante existente sem modelos: cria a lista inicial e salva antes de aplicar (os modelos são lidos do banco)
-            await _checklistPadrao.GarantirModelosAsync(assinanteId, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
             var adicionadas = await _checklistPadrao.AplicarAsync(assinanteId, evento, Hoje(), true, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await _unitOfWork.CommitAsync(cancellationToken);

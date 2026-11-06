@@ -50,7 +50,6 @@ public class PendenciaModeloController(
     public async Task<IActionResult> Listar(CancellationToken cancellationToken, int page = 1, int pageSize = 25,
         string? busca = null, string? situacao = "ativos", Guid? tipoEventoId = null)
     {
-        var transacaoAberta = false;
         try
         {
             var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
@@ -64,16 +63,6 @@ public class PendenciaModeloController(
             else if (termoSituacao.Equals("inativos", StringComparison.OrdinalIgnoreCase)) somenteAtivo = false;
             else if (termoSituacao.Equals("todos", StringComparison.OrdinalIgnoreCase)) somenteAtivo = null;
             else throw new Exception("Filtro de situação inválido");
-
-            // Assinante existente que abre a tela pela primeira vez: cria a lista inicial (só quando tem zero modelos)
-            if (await _checklistPadrao.GarantirModelosAsync(assinanteId, cancellationToken))
-            {
-                await _unitOfWork.BeginTransactionAsync(cancellationToken);
-                transacaoAberta = true;
-                await _unitOfWork.SaveChangesAsync(cancellationToken);
-                await _unitOfWork.CommitAsync(cancellationToken);
-                transacaoAberta = false;
-            }
 
             var query = _repModelo.SelectContext().AsNoTracking().Where(x => x.PEM_ASSINANTE_ID == assinanteId);
             if (somenteAtivo is not null) query = query.Where(x => x.PEM_ATIVO == somenteAtivo);
@@ -117,7 +106,6 @@ public class PendenciaModeloController(
         catch (AssinanteSemVinculoException) { return SemVinculo(); }
         catch (Exception ex)
         {
-            if (transacaoAberta) await _unitOfWork.RollbackAsync(cancellationToken);
             return BadRequest(ErrorHelper.Seguro(ex, _logger));
         }
     }

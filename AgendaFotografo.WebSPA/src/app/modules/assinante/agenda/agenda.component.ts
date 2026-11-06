@@ -454,6 +454,15 @@ export class AgendaComponent implements OnInit, OnDestroy {
             return;
         }
         this._rolar = false;
-        setTimeout(() => document.getElementById('dia-' + alvo.data)?.scrollIntoView({ block: 'start' }));
+        // Rola só a área da lista: scrollIntoView rolaria também os contêineres de fora (mesmo com overflow-hidden)
+        // e o cabeçalho da Agenda (Lista/Calendário, Novo evento) sumiria da tela.
+        setTimeout(() => {
+            const area = this._rolagem?.nativeElement;
+            const secao = document.getElementById('dia-' + alvo.data);
+            if (!area || !secao) {
+                return;
+            }
+            area.scrollTop += secao.getBoundingClientRect().top - area.getBoundingClientRect().top;
+        });
     }
 }
