@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDatepickerModule } from '@angular/material/datepicker';
@@ -38,6 +38,8 @@ import { mensagemErro } from 'app/utils/mensagem-erro';
 import { contarPendencias, formatarPrazo } from 'app/utils/pendencia';
 import { EventoLinkItem } from 'app/models/DTOs/responses/EventoLinkItem';
 import { ProgressoPendenciasComponent } from 'app/modules/shared/components/progresso-pendencias/progresso-pendencias.component';
+import { CampoLocalComponent } from 'app/modules/shared/components/campo-local/campo-local.component';
+import { LocalSugestao } from 'app/models/DTOs/responses/LocalSugestao';
 import { normalizarUrl, urlHttp } from 'app/utils/url-evento';
 import { EscalarMembroDialogComponent, EscalarMembroDialogData } from '../escalar-membro-dialog/escalar-membro-dialog.component';
 import { EventoArquivoComponent } from '../evento-arquivo/evento-arquivo.component';
@@ -86,6 +88,7 @@ const SECOES_FICHA: SecaoFicha[] = [
         MatButtonModule, MatCheckboxModule, MatDatepickerModule, MatFormFieldModule, MatIconModule, MatInputModule,
         MatProgressSpinnerModule, MatSelectModule, CustomSearchSelectComponent,
         EventoArquivoComponent, EventoLinkPublicoComponent, PendenciaStatusChipComponent, ProgressoPendenciasComponent,
+        CampoLocalComponent,
     ],
 })
 export class EventoDetailsComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -646,6 +649,26 @@ export class EventoDetailsComponent implements OnInit, AfterViewInit, OnDestroy 
     }
 
     trackPendencia = (_: number, p: EventoPendenciaItem) => p.Id;
+
+    ctrl(nome: string): FormControl {
+        return this.form.get(nome) as FormControl;
+    }
+
+    // Sugestão escolhida no campo Local: a cidade acompanha o lugar.
+    aoEscolherLocal(s: LocalSugestao): void {
+        if (s.Cidade) {
+            const cidade = this.ctrl('EVE_CIDADE');
+            cidade.setValue(s.Cidade.slice(0, 100));
+            cidade.markAsDirty();
+        }
+    }
+
+    // Sugestão escolhida na largada/chegada: preenche o link do Maps com as coordenadas do lugar.
+    aoEscolherPonto(campoLink: string, s: LocalSugestao): void {
+        const link = this.ctrl(campoLink);
+        link.setValue(s.LinkMaps);
+        link.markAsDirty();
+    }
 
     // Uma mensagem por campo.
     erro(nome: string): string {

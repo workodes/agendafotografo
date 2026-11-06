@@ -12,6 +12,7 @@ using AgendaFotografo.WebApi.Services.Assinantes;
 using AgendaFotografo.WebApi.Services.Avisos;
 using AgendaFotografo.WebApi.Services.Eventos;
 using AgendaFotografo.WebApi.Services.LinkPublico;
+using AgendaFotografo.WebApi.Services.Locais;
 using AgendaFotografo.WebApi.Services.Pendencias;
 using AgendaFotografo.WebApi.Services.TiposEvento;
 using AgendaFotografo.WebApi.Services.CurrentUser;
@@ -199,6 +200,9 @@ public static class Setup
         services.AddScoped<PendenciaConsultas>();
         services.AddScoped<AvisoConsultas>();
         services.AddScoped<PendenciaChecklistPadrao>();
+
+        // Autocomplete de locais (Geoapify): chave em Geoapify:ApiKey, nunca no SPA
+        services.AddHttpClient<LocalBusca>(c => c.Timeout = TimeSpan.FromSeconds(5));
 
         services.Configure<MailSettings>(configuration.GetSection("MailSettings"));
         services.AddSingleton<IEmailService, EmailService>();

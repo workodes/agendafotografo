@@ -100,4 +100,7 @@ export const environment = {
     Aviso: {
         listar: `${baseUrl}/Aviso/Listar`,
     },
+    Local: {
+        buscar: `${baseUrl}/Local/Buscar`,
+    },
 };

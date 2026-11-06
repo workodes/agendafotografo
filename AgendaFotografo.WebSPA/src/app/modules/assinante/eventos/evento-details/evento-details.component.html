@@ -150,11 +150,8 @@
                             <mat-error>{{ erro('EVE_CIDADE') }}</mat-error>
                         </mat-form-field>
 
-                        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
-                            <mat-label>Local (opcional)</mat-label>
-                            <input matInput formControlName="EVE_LOCAL" maxlength="200" autocomplete="off" placeholder="Ex.: Parque Ibirapuera">
-                            <mat-error>{{ erro('EVE_LOCAL') }}</mat-error>
-                        </mat-form-field>
+                        <app-campo-local [controle]="ctrl('EVE_LOCAL')" rotulo="Local (opcional)" placeholder="Ex.: Parque Ibirapuera"
+                            [maxlength]="200" [erro]="erro('EVE_LOCAL')" (escolhido)="aoEscolherLocal($event)"></app-campo-local>
 
                         <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
                             <mat-label>Status</mat-label>
@@ -186,11 +183,8 @@
                     <h2 class="text-xl font-bold text-accent">Local e rota</h2>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                         <ng-container *ngFor="let p of pontos">
-                            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
-                                <mat-label>{{ p.rotulo }} (local)</mat-label>
-                                <input matInput [formControlName]="p.local" maxlength="300" autocomplete="off">
-                                <mat-error>{{ erro(p.local) }}</mat-error>
-                            </mat-form-field>
+                            <app-campo-local [controle]="ctrl(p.local)" [rotulo]="p.rotulo + ' (local)'" modo="endereco"
+                                [maxlength]="300" [erro]="erro(p.local)" (escolhido)="aoEscolherPonto(p.link, $event)"></app-campo-local>
                             <ng-container *ngTemplateOutlet="campoLink; context: { campo: p.link, rotulo: p.rotulo + ' (link do Maps)' }"></ng-container>
                         </ng-container>
 

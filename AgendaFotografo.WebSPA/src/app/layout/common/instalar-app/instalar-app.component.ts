@@ -18,7 +18,7 @@ type Plataforma = 'prompt' | 'ios-safari' | 'ios-outro' | 'generico';
     <div *ngIf="visivel" class="print:hidden flex items-start gap-3 px-3 sm:px-6 py-3 bg-primary-50 border-b border-primary-200 text-primary-900" role="region" aria-label="Instalar o aplicativo">
         <mat-icon class="mt-0.5 shrink-0 text-primary-700" [svgIcon]="'heroicons_outline:device-phone-mobile'"></mat-icon>
         <div class="flex-auto min-w-0 text-sm">
-            <div class="font-semibold">Use o AgendaFotografo como aplicativo</div>
+            <div class="font-semibold">Use o FOKOPP como aplicativo</div>
             <ng-container>
                 <div *ngIf="plataforma === 'prompt'">Fica na tela inicial do celular e abre em tela cheia, sem a barra do navegador.</div>
                 <ol *ngIf="plataforma === 'ios-safari'" class="mt-1 list-decimal pl-5 space-y-0.5">
@@ -35,10 +35,10 @@ type Plataforma = 'prompt' | 'ios-safari' | 'ios-outro' | 'generico';
             </ng-container>
             <div class="mt-2 flex flex-wrap gap-2">
                 <button *ngIf="plataforma === 'prompt'" mat-flat-button color="primary" type="button" (click)="instalar()">Instalar agora</button>
-                <button mat-button type="button" (click)="visivel = false">Agora não</button>
+                <button mat-button type="button" (click)="dispensar()">Agora não</button>
             </div>
         </div>
-        <button mat-icon-button type="button" class="shrink-0 -mt-1 -mr-1" aria-label="Fechar aviso" (click)="visivel = false">
+        <button mat-icon-button type="button" class="shrink-0 -mt-1 -mr-1" aria-label="Fechar aviso" (click)="dispensar()">
             <mat-icon [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
         </button>
     </div>`,
@@ -48,11 +48,36 @@ export class InstalarAppComponent implements OnInit {
     plataforma: Plataforma = 'generico';
     private _evento: any = null;
 
+    // Discreto: aparece no máximo uma vez por sessão do navegador (F5 não repete) e, depois de "Agora não"/X, some por 7 dias.
+    private static readonly CHAVE_DISPENSA = 'instalarApp.dispensadoEm';
+    private static readonly CHAVE_SESSAO = 'instalarApp.mostradoNaSessao';
+    private static readonly DIAS_DISPENSA = 7;
+
     ngOnInit(): void {
-        if (this.rodandoComoApp()) return;
         this._evento = (window as any).__pwaPrompt ?? null;
-        this.plataforma = this.detectar();
+        this.plataforma = this._evento ? 'prompt' : this.detectar();
+        this.mostrarSePuder();
+    }
+
+    dispensar(): void {
+        this.visivel = false;
+        try { localStorage.setItem(InstalarAppComponent.CHAVE_DISPENSA, String(Date.now())); } catch { }
+    }
+
+    private mostrarSePuder(): void {
+        if (this.visivel || this.rodandoComoApp() || this.dispensadoRecente()) return;
+        try {
+            if (sessionStorage.getItem(InstalarAppComponent.CHAVE_SESSAO)) return;
+            sessionStorage.setItem(InstalarAppComponent.CHAVE_SESSAO, '1');
+        } catch { }
         this.visivel = true;
+    }
+
+    private dispensadoRecente(): boolean {
+        try {
+            const em = Number(localStorage.getItem(InstalarAppComponent.CHAVE_DISPENSA));
+            return !!em && Date.now() - em < InstalarAppComponent.DIAS_DISPENSA * 24 * 60 * 60 * 1000;
+        } catch { return false; }
     }
 
     @HostListener('window:beforeinstallprompt', ['$event'])
@@ -60,7 +85,8 @@ export class InstalarAppComponent implements OnInit {
         e.preventDefault();
         this._evento = e;
         (window as any).__pwaPrompt = e;
-        if (!this.rodandoComoApp()) { this.plataforma = 'prompt'; this.visivel = true; }
+        this.plataforma = 'prompt';
+        this.mostrarSePuder();
     }
 
     @HostListener('window:appinstalled')
