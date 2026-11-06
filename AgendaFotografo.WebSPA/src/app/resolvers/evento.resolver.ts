@@ -7,29 +7,6 @@ import { TipoEventoService } from 'app/services/tipo-evento.service';
 import { AuthorizationErrorHandlerService } from 'app/services/utils/authorization-error-handler.service';
 import { hojeIso, parseDataIso } from 'app/utils/data-evento';
 
-// Carga inicial da listagem: página 1, a partir de hoje, mais próximos primeiro (o mesmo padrão do filtro da tela).
-// Os filtros que vierem na query string (?organizadorId=, ?status=, ?tipoEventoId=) já entram na primeira carga.
-export const eventoListResolver: ResolveFn<any> = (route: ActivatedRouteSnapshot) => {
-    const service = inject(EventoService);
-    const errorHandler = inject(AuthorizationErrorHandlerService);
-    const q = route.queryParamMap;
-    const status = Number(q.get('status'));
-
-    return forkJoin({
-        lista: service.GetAllPaginated(1, 25, {
-            // Sem ?dataDe= vale hoje; ?dataDe= vazio = sem limite inferior. Datas inválidas são ignoradas.
-            dataDe: q.get('dataDe') === null ? hojeIso() : (parseDataIso(q.get('dataDe')) ? q.get('dataDe') : null),
-            dataAte: parseDataIso(q.get('dataAte')) ? q.get('dataAte') : null,
-            status: status >= 1 && status <= 4 ? status : null,
-            tipoEventoId: q.get('tipoEventoId'),
-            organizadorId: q.get('organizadorId'),
-            ordem: 'asc',
-        }),
-        tipos: inject(TipoEventoService).Opcoes(false),
-        organizadores: inject(OrganizadorService).Opcoes(false),
-    }).pipe(catchError(error => errorHandler.handle(error)));
-};
-
 // Ficha do evento (página inteira). Em `novo` (sem :id) devolve só as opções de tipo e organizador;
 // na edição traz também o evento e a escala. Tipo e organizador inativos já gravados no evento entram no combo (incluirId).
 export const eventoFichaResolver: ResolveFn<any> = (route: ActivatedRouteSnapshot) => {

@@ -1,0 +1,192 @@
+<!-- Item de evento (Lista e painel do dia): hora e status na primeira linha, depois nome, tipo/cidade e equipe -->
+<ng-template #itemEvento let-e>
+    <div role="link" tabindex="0"
+        class="flex flex-col gap-1 p-3 rounded-lg border bg-white cursor-pointer hover:shadow-md transition-shadow min-w-0"
+        [class.opacity-60]="e.EVE_STATUS === cancelado"
+        (click)="abrirEvento(e, $event)" (auxclick)="abrirEvento(e, $event)" (keydown.enter)="abrirEvento(e)">
+        <div class="flex items-center justify-between gap-2">
+            <span class="font-bold whitespace-nowrap" [class.text-secondary]="!e.EVE_HORA" [class.line-through]="e.EVE_STATUS === cancelado">{{ formatarHora(e.EVE_HORA) }}</span>
+            <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center shrink-0"
+                [ngClass]="statusCor[e.EVE_STATUS]">{{ rotuloStatus(e.EVE_STATUS) }}</span>
+        </div>
+        <div class="font-semibold break-words" [class.line-through]="e.EVE_STATUS === cancelado">{{ e.EVE_NOME }}</div>
+        <div class="text-sm text-secondary break-words">{{ e.TipoEventoNome }}<span *ngIf="e.EVE_CIDADE"> · {{ e.EVE_CIDADE }}</span></div>
+        <div *ngIf="e.Equipe?.length" class="truncate text-xs text-secondary" [attr.title]="equipe(e)">{{ equipe(e) }}</div>
+    </div>
+</ng-template>
+
+<div class="absolute inset-0 flex flex-col min-w-0 overflow-hidden bg-white" appFecharComEsc (esc)="aoEsc()">
+    <!-- Cabeçalho: título e mês, navegação, visão, filtros e novo evento. Abaixo de sm empilha. -->
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 px-4 sm:px-6 md:px-8 py-3 sm:py-4 border-b shrink-0">
+        <div class="flex flex-col min-w-0">
+            <div class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">Agenda</div>
+            <div class="text-lg text-secondary leading-tight">{{ nomeMes }}</div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+            <div class="flex items-center gap-1">
+                <button mat-icon-button type="button" aria-label="Mês anterior" title="Mês anterior" (click)="mesAnterior()">
+                    <mat-icon svgIcon="heroicons_outline:chevron-left"></mat-icon>
+                </button>
+                <button mat-stroked-button type="button" [disabled]="ehMesAtual" (click)="irParaHoje()">Hoje</button>
+                <button mat-icon-button type="button" aria-label="Próximo mês" title="Próximo mês" (click)="mesSeguinte()">
+                    <mat-icon svgIcon="heroicons_outline:chevron-right"></mat-icon>
+                </button>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between sm:justify-start gap-2">
+                <mat-button-toggle-group class="shrink-0" [value]="visao" (change)="mudarVisao($event.value)" aria-label="Visão da agenda" hideSingleSelectionIndicator>
+                    <mat-button-toggle value="lista">Lista</mat-button-toggle>
+                    <mat-button-toggle value="calendario">Calendário</mat-button-toggle>
+                </mat-button-toggle-group>
+
+                <div class="flex items-center gap-2">
+                    <app-filtro-botao [ativo]="filtrosAtivos" (clicado)="abrirFiltros()"></app-filtro-botao>
+                    <!-- Abaixo de sm só o ícone, para a linha caber em 360 px -->
+                    <button mat-flat-button color="primary" type="button" class="max-sm:!min-w-0 max-sm:!px-3" aria-label="Novo evento" title="Novo evento" (click)="novoEvento()">
+                        <mat-icon class="max-sm:!mr-0" svgIcon="heroicons_outline:plus"></mat-icon>
+                        <span class="ml-2 hidden sm:inline">Novo evento</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div #rolagem class="flex-auto min-h-0 overflow-y-auto overflow-x-hidden" [attr.aria-busy]="loading">
+        <div *ngIf="loading" class="flex items-center justify-center py-2">
+            <mat-progress-spinner diameter="24" mode="indeterminate"></mat-progress-spinner>
+        </div>
+
+        <!-- Falha ao carregar: no lugar do estado vazio -->
+        <div *ngIf="erroCarga && !loading" role="alert" class="flex flex-col items-center gap-3 px-4 py-8 text-center">
+            <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
+            <div class="text-lg text-secondary">Não foi possível carregar a agenda.</div>
+            <button mat-stroked-button type="button" (click)="tentarDeNovo()">Tentar de novo</button>
+        </div>
+
+        <!-- ===== Lista: dias do mês com eventos ===== -->
+        <div *ngIf="visao === 'lista' && !erroCarga" class="flex flex-col gap-5 w-full px-4 sm:px-6 md:px-8 py-4 transition-opacity" [class.opacity-60]="loading">
+            <div *ngIf="!loading && grupos.length === 0" class="flex flex-col items-center gap-3 py-8 text-center">
+                <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:calendar"></mat-icon>
+                <div class="text-lg text-secondary">{{ mensagemVazia }}</div>
+                <button mat-flat-button color="primary" type="button" (click)="novoEvento()">
+                    <mat-icon svgIcon="heroicons_outline:plus"></mat-icon>
+                    <span class="ml-2">Novo evento</span>
+                </button>
+            </div>
+
+            <section *ngFor="let g of grupos; trackBy: trackGrupo" [id]="'dia-' + g.data" class="flex flex-col gap-2 min-w-0">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <h2 class="text-lg font-bold">{{ g.titulo }}</h2>
+                        <span *ngIf="g.data === hoje" class="leading-none rounded-full px-2 py-1 text-xs font-semibold bg-primary-100 text-primary-800">Hoje</span>
+                    </div>
+                    <a class="text-sm underline text-primary-500" [routerLink]="['/assinante/visao-do-dia']" [queryParams]="{ data: g.data }">Visão do dia</a>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    <ng-container *ngFor="let e of g.eventos; trackBy: trackEvento">
+                        <ng-container *ngTemplateOutlet="itemEvento; context: { $implicit: e }"></ng-container>
+                    </ng-container>
+                </div>
+            </section>
+        </div>
+
+        <!-- ===== Calendário: grade de 6 semanas e painel do dia ===== -->
+        <div *ngIf="visao === 'calendario' && !erroCarga" class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-4 w-full px-2 sm:px-6 md:px-8 py-4">
+            <div class="min-w-0 transition-opacity" [class.opacity-60]="loading">
+                <div class="grid grid-cols-7 text-center text-xs font-semibold uppercase tracking-wide text-secondary pb-1">
+                    <div *ngFor="let d of cabecalho">{{ d }}</div>
+                </div>
+
+                <div class="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200 rounded-lg overflow-hidden">
+                    <div *ngFor="let c of celulas; trackBy: trackCelula" role="button" tabindex="0"
+                        class="flex flex-col items-center md:items-stretch gap-1 min-w-0 overflow-hidden cursor-pointer p-1 md:p-1.5 min-h-[56px] md:min-h-[104px] hover:bg-gray-100 focus-visible:outline focus-visible:outline-2"
+                        [ngClass]="c.dia.data === dia ? 'bg-primary-100' : (c.dia.fimDeSemana ? 'bg-gray-50' : 'bg-white')"
+                        [class.opacity-50]="c.dia.foraDoMes"
+                        [attr.aria-label]="c.rotulo" [attr.aria-pressed]="c.dia.data === dia"
+                        (click)="selecionarDia(c)" (keydown.enter)="selecionarDia(c)" (keydown.space)="selecionarDia(c); $event.preventDefault()">
+                        <span class="inline-flex items-center justify-center h-6 min-w-[24px] px-1 rounded-full text-sm font-medium"
+                            [class.ring-2]="c.dia.data === hoje" [class.ring-primary]="c.dia.data === hoje" [class.font-bold]="c.dia.data === hoje">{{ c.dia.numero }}</span>
+
+                        <!-- Celular: até 3 marcadores na cor do status e "+" quando há mais -->
+                        <div *ngIf="c.eventos.length" class="flex md:hidden flex-wrap items-center justify-center gap-0.5">
+                            <span *ngFor="let e of c.eventos.slice(0, 3)" class="h-2 w-2 rounded-full" [ngClass]="statusPonto[e.EVE_STATUS]"></span>
+                            <span *ngIf="c.eventos.length > 3" class="text-[10px] leading-none font-bold text-secondary">+</span>
+                        </div>
+
+                        <!-- md+: até 3 eventos (hora e nome) e "+N" -->
+                        <div *ngIf="c.eventos.length" class="hidden md:flex flex-col gap-0.5 min-w-0">
+                            <div *ngFor="let e of c.eventos.slice(0, 3)" role="link" tabindex="0"
+                                class="truncate rounded px-1 text-[11px] leading-5 hover:brightness-95"
+                                [ngClass]="statusCor[e.EVE_STATUS]" [class.line-through]="e.EVE_STATUS === cancelado"
+                                [attr.title]="e.EVE_NOME"
+                                (click)="abrirEvento(e, $event)" (auxclick)="abrirEvento(e, $event)"
+                                (keydown.enter)="abrirEvento(e); $event.stopPropagation()">
+                                <span class="font-semibold">{{ e.EVE_HORA ? formatarHora(e.EVE_HORA) : '--:--' }}</span> {{ e.EVE_NOME }}
+                            </div>
+                            <div *ngIf="c.eventos.length > 3" class="text-[11px] font-semibold text-secondary px-1">+{{ c.eventos.length - 3 }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Painel do dia: ao lado a partir de lg, abaixo da grade nas outras larguras -->
+            <aside class="flex flex-col gap-3 min-w-0 px-2 sm:px-0">
+                <ng-container *ngIf="dia; else semDia">
+                    <h2 class="text-lg font-bold">{{ tituloDia }}</h2>
+                    <div class="flex flex-wrap gap-2">
+                        <a mat-stroked-button [routerLink]="['/assinante/visao-do-dia']" [queryParams]="{ data: dia }">
+                            <mat-icon svgIcon="heroicons_outline:sun"></mat-icon>
+                            <span class="ml-2">Visão do dia</span>
+                        </a>
+                        <button mat-stroked-button type="button" (click)="novoEvento()">
+                            <mat-icon svgIcon="heroicons_outline:plus"></mat-icon>
+                            <span class="ml-2">Novo evento</span>
+                        </button>
+                    </div>
+                    <div *ngIf="eventosDoDiaSelecionado.length === 0" class="text-sm text-secondary">Nada marcado neste dia</div>
+                    <ng-container *ngFor="let e of eventosDoDiaSelecionado; trackBy: trackEvento">
+                        <ng-container *ngTemplateOutlet="itemEvento; context: { $implicit: e }"></ng-container>
+                    </ng-container>
+                </ng-container>
+                <ng-template #semDia>
+                    <div class="text-sm text-secondary">Toque num dia para ver os eventos</div>
+                </ng-template>
+            </aside>
+        </div>
+    </div>
+
+    <app-filtro-painel [aberto]="filtroAberto" (aplicar)="aplicarFiltros()" (limpar)="limparFiltros()" (fechar)="fecharFiltros()">
+        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense">
+            <mat-label>Status</mat-label>
+            <mat-select [formControl]="fStatus">
+                <mat-option [value]="null">Todos</mat-option>
+                <mat-option *ngFor="let s of statusLista" [value]="s.valor">{{ s.rotulo }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense">
+            <mat-label>Tipo de evento</mat-label>
+            <mat-select [formControl]="fTipo">
+                <mat-option [value]="null">Todos</mat-option>
+                <mat-option *ngFor="let t of tipos" [value]="t.Id">{{ t.Nome }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense">
+            <mat-label>Cidade</mat-label>
+            <mat-select [formControl]="fCidade">
+                <mat-option [value]="null">Todas</mat-option>
+                <mat-option *ngFor="let c of cidadesCombo" [value]="c">{{ c }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense">
+            <mat-label>Membro</mat-label>
+            <mat-select [formControl]="fMembro">
+                <mat-option [value]="null">Todos</mat-option>
+                <mat-option *ngFor="let m of membros" [value]="m.Id">{{ m.Nome }}</mat-option>
+            </mat-select>
+        </mat-form-field>
+    </app-filtro-painel>
+</div>

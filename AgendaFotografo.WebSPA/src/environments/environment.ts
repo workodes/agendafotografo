@@ -62,6 +62,8 @@ export const environment = {
         atualizarMembro: `${baseUrl}/Evento/AtualizarMembro`,
         removerMembro: `${baseUrl}/Evento/RemoverMembro`,
         dia: `${baseUrl}/Evento/Dia`,
+        agenda: `${baseUrl}/Evento/Agenda`,
+        cidades: `${baseUrl}/Evento/Cidades`,
         enviarArquivo: `${baseUrl}/Evento/EnviarArquivo`,
         baixarArquivo: `${baseUrl}/Evento/BaixarArquivo`,
         excluirArquivo: `${baseUrl}/Evento/ExcluirArquivo`,

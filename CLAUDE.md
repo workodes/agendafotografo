@@ -77,7 +77,7 @@ Passo a passo e pontos de atenção em `docs/deploy.md`. Endpoint ou arquivo nov
 1. Equipe + Organizadores + Tipos de evento: **pronto** (`docs/planos/02 - Equipe, Organizadores e Tipos de evento.md`; `MembroController`, `OrganizadorController`, `TipoEventoController`)
 2. Eventos (cadastro completo, rota, arquivos): **pronto** (`docs/planos/03 - Eventos e Escala da equipe.md`; `EventoController` e tela Eventos no SPA)
 3. Escala da equipe + Visão do dia + conflitos/livres: **pronto** (mesmo plano 03; actions do `EventoController` e tela Visão do dia no SPA)
-4. Agenda (lista + calendário)
+4. Agenda (lista + calendário): **pronto** (`docs/planos/04 - Agenda.md`; actions `Agenda` e `Cidades` do `EventoController` e tela Agenda no SPA, que substituiu a lista "Eventos")
 5. Link público
 6. Pendências
 7. Recorrência
@@ -91,4 +91,4 @@ Nomes de tabela/entidade/controller sugeridos: ver `AgendaFotografo.WebApi/CLAUD
 
 ## Subagents
 `fartec:backend` (API), `fartec:frontend` (SPA), `fartec:engenheiro` (planos), `fartec:revisor`, `fartec:testador`.
-Somente o colaborador faz commit/branch/worktree. A base da API e a do SPA (ambas alinhadas ao Portal, com o contrato de Auth novo) estão prontas, assim como os planos 01 (Assinantes), 02 (módulo 1) e 03 (módulos 2 e 3); o próximo é o módulo 4, Agenda (`fartec:engenheiro`).
+Somente o colaborador faz commit/branch/worktree. A base da API e a do SPA (ambas alinhadas ao Portal, com o contrato de Auth novo) estão prontas, assim como os planos 01 (Assinantes), 02 (módulo 1), 03 (módulos 2 e 3) e 04 (módulo 4, Agenda); o próximo é o módulo 5, Link público (`fartec:engenheiro`).

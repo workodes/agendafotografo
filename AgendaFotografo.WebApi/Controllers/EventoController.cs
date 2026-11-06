@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq.Expressions;
 using AgendaFotografo.CrossCutting.Services.Arquivos;
 using AgendaFotografo.Domain.Constants;
 using AgendaFotografo.Domain.Entities;
@@ -48,6 +49,7 @@ public class EventoController(
     private readonly ILogger<EventoController> _logger = logger;
 
     private const int PageSizeMaximo = 100;
+    private const int DiasMaximosAgenda = 62;
 
     private const string MsgIdObrigatorio = "Id é obrigatório";
     private const string MsgNaoEncontrado = "Evento não encontrado";
@@ -56,7 +58,60 @@ public class EventoController(
     private const string MsgMembroRepetido = "Este membro já está escalado neste evento.";
     private const string FormatoData = "yyyy-MM-dd";
 
-    private IActionResult SemVinculo() => StatusCode(StatusCodes.Status403Forbidden, AssinanteEscopo.MensagemSemVinculo);
+    private static DateOnly ParseData(string texto, string mensagemErro)
+    {
+        if (!DateOnly.TryParseExact((texto ?? string.Empty).Trim(), FormatoData, CultureInfo.InvariantCulture, DateTimeStyles.None, out var data))
+            throw new Exception(mensagemErro);
+        return data;
+    }
+
+    private static StatusEvento ValidarStatus(int status)
+    {
+        if (!Enum.IsDefined((StatusEvento)status)) throw new Exception("Filtro de status inválido");
+        return (StatusEvento)status;
+    }
+
+    /// <summary>Projeção comum de Evento para EventoListItem (sem a equipe, preenchida por <see cref="CarregarEquipeAsync"/>).</summary>
+    private static readonly Expression<Func<Evento, EventoListItem>> ProjecaoListItem = x => new EventoListItem
+    {
+        Id = x.Id,
+        EVE_NOME = x.EVE_NOME,
+        EVE_TIPO_EVENTO_ID = x.EVE_TIPO_EVENTO_ID,
+        TipoEventoNome = x.TipoEvento!.TPE_NOME,
+        EVE_DATA = x.EVE_DATA,
+        EVE_HORA = x.EVE_HORA,
+        EVE_CIDADE = x.EVE_CIDADE,
+        EVE_STATUS = x.EVE_STATUS,
+        EVE_ORGANIZADOR_ID = x.EVE_ORGANIZADOR_ID,
+        OrganizadorNome = x.Organizador != null ? x.Organizador.ORG_NOME : null
+    };
+
+    /// <summary>Preenche a Equipe dos itens com uma consulta em EVENTOXMEMBRO (do assinante), ordenada pelo nome do membro.</summary>
+    private async Task CarregarEquipeAsync(List<EventoListItem> dados, Guid assinanteId, CancellationToken cancellationToken)
+    {
+        if (dados.Count == 0) return;
+
+        var ids = dados.Select(x => x.Id).ToList();
+        var escala = await _repEventoMembro.SelectContext().AsNoTracking()
+            .Where(x => x.EVM_ASSINANTE_ID == assinanteId && ids.Contains(x.EVM_EVENTO_ID))
+            .OrderBy(x => x.Membro!.MEM_NOME).ThenBy(x => x.EVM_MEMBRO_ID)
+            .Select(x => new
+            {
+                x.EVM_EVENTO_ID,
+                Membro = new EventoEquipeItem
+                {
+                    Id = x.EVM_MEMBRO_ID,
+                    MEM_NOME = x.Membro!.MEM_NOME,
+                    MEM_INSTAGRAM = x.Membro.MEM_INSTAGRAM
+                }
+            })
+            .ToListAsync(cancellationToken);
+
+        var porEvento = escala.ToLookup(x => x.EVM_EVENTO_ID, x => x.Membro);
+        foreach (var item in dados) item.Equipe = porEvento[item.Id].ToList();
+    }
+
+    private IActionResult SemVinculo() =>StatusCode(StatusCodes.Status403Forbidden, AssinanteEscopo.MensagemSemVinculo);
 
     /// <summary>
     /// Lista paginada. Filtros: busca (nome ou cidade), dataDe/dataAte ("yyyy-MM-dd", inclusivos), status (1 a 4), tipoEventoId,
@@ -81,15 +136,13 @@ public class EventoController(
 
             if (!string.IsNullOrWhiteSpace(dataDe))
             {
-                if (!DateOnly.TryParseExact(dataDe.Trim(), FormatoData, CultureInfo.InvariantCulture, DateTimeStyles.None, out var de))
-                    throw new Exception("Data inicial inválida");
+                var de = ParseData(dataDe, "Data inicial inválida");
                 query = query.Where(x => x.EVE_DATA >= de);
             }
 
             if (!string.IsNullOrWhiteSpace(dataAte))
             {
-                if (!DateOnly.TryParseExact(dataAte.Trim(), FormatoData, CultureInfo.InvariantCulture, DateTimeStyles.None, out var ate))
-                    throw new Exception("Data final inválida");
+                var ate = ParseData(dataAte, "Data final inválida");
                 query = query.Where(x => x.EVE_DATA <= ate);
             }
 
@@ -100,8 +153,7 @@ public class EventoController(
 
             if (status is not null)
             {
-                if (!Enum.IsDefined((StatusEvento)status.Value)) throw new Exception("Filtro de status inválido");
-                var st = (StatusEvento)status.Value;
+                var st = ValidarStatus(status.Value);
                 query = query.Where(x => x.EVE_STATUS == st);
             }
 
@@ -138,42 +190,10 @@ public class EventoController(
                 .ThenBy(x => x.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new EventoListItem
-                {
-                    Id = x.Id,
-                    EVE_NOME = x.EVE_NOME,
-                    EVE_TIPO_EVENTO_ID = x.EVE_TIPO_EVENTO_ID,
-                    TipoEventoNome = x.TipoEvento!.TPE_NOME,
-                    EVE_DATA = x.EVE_DATA,
-                    EVE_HORA = x.EVE_HORA,
-                    EVE_CIDADE = x.EVE_CIDADE,
-                    EVE_STATUS = x.EVE_STATUS,
-                    EVE_ORGANIZADOR_ID = x.EVE_ORGANIZADOR_ID,
-                    OrganizadorNome = x.Organizador != null ? x.Organizador.ORG_NOME : null
-                })
+                .Select(ProjecaoListItem)
                 .ToListAsync(cancellationToken);
 
-            if (dados.Count > 0)
-            {
-                var ids = dados.Select(x => x.Id).ToList();
-                var escala = await _repEventoMembro.SelectContext().AsNoTracking()
-                    .Where(x => x.EVM_ASSINANTE_ID == assinanteId && ids.Contains(x.EVM_EVENTO_ID))
-                    .OrderBy(x => x.Membro!.MEM_NOME).ThenBy(x => x.EVM_MEMBRO_ID)
-                    .Select(x => new
-                    {
-                        x.EVM_EVENTO_ID,
-                        Membro = new EventoEquipeItem
-                        {
-                            Id = x.EVM_MEMBRO_ID,
-                            MEM_NOME = x.Membro!.MEM_NOME,
-                            MEM_INSTAGRAM = x.Membro.MEM_INSTAGRAM
-                        }
-                    })
-                    .ToListAsync(cancellationToken);
-
-                var porEvento = escala.ToLookup(x => x.EVM_EVENTO_ID, x => x.Membro);
-                foreach (var item in dados) item.Equipe = porEvento[item.Id].ToList();
-            }
+            await CarregarEquipeAsync(dados, assinanteId, cancellationToken);
 
             return Ok(new PaginatedResponse<EventoListItem>
             {
@@ -182,6 +202,104 @@ public class EventoController(
                 PageSize = pageSize,
                 Data = dados
             });
+        }
+        catch (AssinanteSemVinculoException) { return SemVinculo(); }
+        catch (Exception ex)
+        {
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>
+    /// Agenda (calendário/lista por período): eventos do assinante entre dataDe e dataAte ("yyyy-MM-dd", obrigatórias, inclusivas,
+    /// no máximo 62 dias contando os dois extremos), sem paginação e com a equipe. Filtros opcionais: status (1 a 4), tipoEventoId,
+    /// cidade (igualdade) e membroId (eventos em que o membro está na escala). Inclui cancelados, salvo filtro de status.
+    /// Ordem: data, hora (os "a confirmar" por último), nome e Id.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Agenda(CancellationToken cancellationToken, string? dataDe = null, string? dataAte = null,
+        int? status = null, Guid? tipoEventoId = null, string? cidade = null, Guid? membroId = null)
+    {
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            if (!ModelState.IsValid) throw new Exception("Filtro inválido");
+
+            if (string.IsNullOrWhiteSpace(dataDe) || string.IsNullOrWhiteSpace(dataAte))
+                throw new Exception("Informe o período");
+
+            var de = ParseData(dataDe, "Data inicial inválida");
+            var ate = ParseData(dataAte, "Data final inválida");
+            if (de > ate) throw new Exception("A data inicial não pode ser maior que a data final");
+            if (ate.DayNumber - de.DayNumber + 1 > DiasMaximosAgenda) throw new Exception("O período não pode passar de 62 dias");
+
+            var query = _repEvento.SelectContext().AsNoTracking()
+                .Where(x => x.EVE_ASSINANTE_ID == assinanteId && x.EVE_DATA >= de && x.EVE_DATA <= ate);
+
+            if (status is not null)
+            {
+                var st = ValidarStatus(status.Value);
+                query = query.Where(x => x.EVE_STATUS == st);
+            }
+
+            if (tipoEventoId is not null && tipoEventoId != Guid.Empty)
+                query = query.Where(x => x.EVE_TIPO_EVENTO_ID == tipoEventoId);
+
+            var cidadeFiltro = (cidade ?? string.Empty).Trim();
+            if (cidadeFiltro.Length > 0)
+                query = query.Where(x => x.EVE_CIDADE == cidadeFiltro);
+
+            if (membroId is not null && membroId != Guid.Empty)
+            {
+                var membro = membroId.Value;
+                var escala = _repEventoMembro.SelectContext().AsNoTracking()
+                    .Where(m => m.EVM_ASSINANTE_ID == assinanteId && m.EVM_MEMBRO_ID == membro);
+                query = query.Where(x => escala.Any(m => m.EVM_EVENTO_ID == x.Id));
+            }
+
+            var dados = await query
+                .OrderBy(x => x.EVE_DATA)
+                .ThenBy(x => x.EVE_HORA == null)
+                .ThenBy(x => x.EVE_HORA)
+                .ThenBy(x => x.EVE_NOME)
+                .ThenBy(x => x.Id)
+                .Select(ProjecaoListItem)
+                .ToListAsync(cancellationToken);
+
+            await CarregarEquipeAsync(dados, assinanteId, cancellationToken);
+
+            return Ok(dados);
+        }
+        catch (AssinanteSemVinculoException) { return SemVinculo(); }
+        catch (Exception ex)
+        {
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>Cidades distintas (aparadas, sem vazias, em ordem alfabética) de todos os eventos do assinante, de qualquer status e data.</summary>
+    [HttpGet]
+    public async Task<IActionResult> Cidades(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            var brutas = await _repEvento.SelectContext().AsNoTracking()
+                .Where(x => x.EVE_ASSINANTE_ID == assinanteId)
+                .Select(x => x.EVE_CIDADE)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            var cidades = brutas
+                .Select(c => (c ?? string.Empty).Trim())
+                .Where(c => c.Length > 0)
+                .Distinct(StringComparer.Ordinal)
+                .OrderBy(c => c, StringComparer.Create(CultureInfo.GetCultureInfo("pt-BR"), ignoreCase: true))
+                .ToArray();
+
+            return Ok(cidades);
         }
         catch (AssinanteSemVinculoException) { return SemVinculo(); }
         catch (Exception ex)

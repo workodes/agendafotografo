@@ -62,8 +62,8 @@ Não há testes automatizados no padrão. Para logar é preciso a API no ar (`do
 
 ## Menu
 `NavigationService.get()` escolhe o menu pelo role do token (`MenuData.porRole[role]`): o usuário só vê os itens do próprio perfil. Sem mecanismo de itens ocultos:
-só aparece o que existe. Hoje o Admin tem **Início** e **Assinantes**; o Assinante tem **Início**, **Eventos**, **Visão do dia** (plano 03) e o grupo `collapsable` **Cadastros** (Equipe, Organizadores, Tipos de evento; plano 02).
-Os demais módulos entram com seus planos (Assinante: Agenda, Pendências...): criar a rota e o item de menu juntos (`MenuData.montarMenu(prefixo, extras)`). `Navigation` tem só `horizontal` (usado também na gaveta do celular).
+só aparece o que existe. Hoje o Admin tem **Início** e **Assinantes**; o Assinante tem **Início**, **Agenda** (plano 04; no lugar de "Eventos"), **Visão do dia** (plano 03) e o grupo `collapsable` **Cadastros** (Equipe, Organizadores, Tipos de evento; plano 02).
+Os demais módulos entram com seus planos (Assinante: Pendências...): criar a rota e o item de menu juntos (`MenuData.montarMenu(prefixo, extras)`). `Navigation` tem só `horizontal` (usado também na gaveta do celular).
 
 ## Estrutura (`src/app/`)
 `core/{auth,constants,icons,navigation,services}`, `layout/` (Fuse: layout horizontal "modern" + `empty`; `layout/common/user` com o menu do usuário e o modal de senha),
@@ -136,24 +136,22 @@ A ficha ganhou a seção **Histórico** (plano 03, Etapa 9): ver a seção Event
 
 ## Eventos, escala e Visão do dia (assinante, plano 03)
 Rotas em `rotasAssinante`: `/assinante/eventos` (`modules/assinante/eventos/eventos.routes.ts`) e `/assinante/visao-do-dia` (`modules/assinante/visao-do-dia/`). Só o Assinante.
-- **Rotas de eventos**: o index (`''`) e a ficha (`novo`, `:id`) são rotas **irmãs**, não filhas: a ficha é página inteira (cabeçalho fixo), não drawer. O index usa
-  `runGuardsAndResolvers: 'paramsOrQueryParamsChange'` e o componente relê `route.data` a cada mudança de query. Query aceita no index: `?organizadorId=`, `?status=` (1 a 4), `?tipoEventoId=`,
-  `?dataDe=` e `?dataAte=` (sem `dataDe` vale hoje; `?dataDe=` vazio = sem limite inferior). `novo?data=yyyy-MM-dd` pré-preenche a data (usado pela Visão do dia).
-- **Environments**: chave `Evento` nos dois arquivos, com `listar`, `obter`, `criar`, `atualizar`, `excluir`, `membros`, `opcoesEscala`, `adicionarMembro`, `atualizarMembro`, `removerMembro`, `dia`,
+- **Rotas de eventos**: `/assinante/eventos` (`''`) só **redireciona para `/assinante/agenda`** (`pathMatch: 'full'`); a antiga lista paginada `evento-index` e o `eventoListResolver` foram removidos (plano 04).
+  A ficha (`novo`, `:id`) é página inteira (cabeçalho fixo), não drawer. `novo?data=yyyy-MM-dd` pré-preenche a data (usado pela Visão do dia e pela Agenda).
+- **Environments**: chave `Evento` nos dois arquivos, com `listar`, `obter`, `criar`, `atualizar`, `excluir`, `membros`, `opcoesEscala`, `adicionarMembro`, `atualizarMembro`, `removerMembro`, `dia`, `agenda`, `cidades`,
   `enviarArquivo`, `baixarArquivo` e `excluirArquivo` (`api/Evento/<Action>`; `id` sempre na query; `AtualizarMembro`/`RemoverMembro` recebem o Id da **linha da escala**, não o do membro).
 - **Enums** (`models/enums/`, espelham o C#): `StatusEvento` (1 Pendente, 2 Confirmado, 3 Realizado, 4 Cancelado; com `STATUS_EVENTO_ROTULO`, `STATUS_EVENTO_COR` em classes Tailwind e a lista `STATUS_EVENTO`) e
   `TipoArquivoEvento` (1 Flyer, 2 ImagemRota, 3 Gpx; com rótulos e `TIPO_ARQUIVO_EVENTO_REGRAS`: imagens .jpg/.jpeg/.png/.webp até 5 MB, GPX .gpx até 10 MB, validados no front antes de enviar).
 - **Models**: `entities/Evento.ts`, `DTOs/responses/` (`EventoListItem`, `EventoResumo`, `EventoMembroItem` com `OpcaoEscalaItem`, `EventoArquivoItem`, `DiaResponse`), `DTOs/requests/EventoMembroModel.ts`,
-  `DTOs/filters/EventoFiltro.ts`. `EVE_DATA` trafega "yyyy-MM-dd" e `EVE_HORA` "HH:mm:ss" (sempre com segundos) ou null ("a confirmar").
+  `DTOs/filters/EventoFiltro.ts` (histórico do organizador) e `AgendaFiltro.ts`. `EVE_DATA` trafega "yyyy-MM-dd" e `EVE_HORA` "HH:mm:ss" (sempre com segundos) ou null ("a confirmar").
 - **Utils novos**: `utils/data-evento.ts` (datas "yyyy-MM-dd" **sem fuso**: nunca usar `new Date(iso)`; `parseDataIso`, `formatarDataIso`, `hojeIso`, `somarDiasIso`, `diaSemana`, `formatarHora` com "A confirmar",
   `horaParaApi`/`horaDaApi`), `utils/instagram.ts` (`limparInstagram`, `instagramValido`, `somenteDigitos`, compartilhados com Equipe), `utils/url-evento.ts` (`normalizarUrl` completa o `https://`; validador `urlHttp`:
   só http/https, até 500) e `utils/escala.ts` (`textoOutrosEventos`: "Também em: X às HH:mm (cidade)").
 - **`EventoService`** (`api/Evento/*`, `alterado$`/`NotificarAlteracao`): `GetAllPaginated(page, pageSize, filtro)`, `Get`, `Add`, `Update`, `Delete`, `Membros`, `OpcoesEscala`, `AdicionarMembro`, `AtualizarMembro`, `RemoverMembro`,
-  `Dia`, `EnviarArquivo` (multipart, campo `Arquivo`), `BaixarArquivo` (blob) e `ExcluirArquivo`. Resolvers em `resolvers/evento.resolver.ts`: `eventoListResolver`, `eventoFichaResolver` (Obter e depois Membros +
+  `Dia`, `Agenda`, `Cidades`, `EnviarArquivo` (multipart, campo `Arquivo`), `BaixarArquivo` (blob) e `ExcluirArquivo`. Resolvers em `resolvers/evento.resolver.ts`: `eventoFichaResolver` (Obter e depois Membros +
   Opcoes de tipo e organizador com `incluirId`, para tipo/organizador inativo já gravado continuar no combo; em `novo` só as opções ativas) e `eventoDiaResolver` (`?data=`, padrão hoje).
-- **Lista** (`evento-index`): busca "Nome ou cidade" (debounce 600 ms), `app-filtro-painel` com Data de (padrão hoje), Data até, Status, Tipo e Organizador, tabela paginada no servidor (25), Ctrl/Cmd+clique abre a ficha em
-  nova guia, `alterado$` recarrega. Abaixo de `md` só Data, Nome (cidade e hora embaixo) e Status.
-- **Ficha** (`evento-details`): seções Dados, Local e rota, Equipe e Observações; Salvar/Fechar/Excluir no cabeçalho (Excluir com confirmação Fuse que orienta usar Cancelado). Em `novo`, Equipe e uploads ficam desabilitados
+- **Lista de eventos**: não existe mais tela de tabela paginada; a navegação por eventos é a **Agenda** (seção abaixo). `EventoService.GetAllPaginated` e `EventoFiltro` continuam, usados pelo histórico do organizador.
+- **Ficha** (`evento-details`): seções Dados, Local e rota, Equipe e Observações; Salvar/Fechar/Excluir no cabeçalho (Excluir com confirmação Fuse que orienta usar Cancelado). **Fechar e o pós-Excluir voltam à Agenda** no mês e dia da data gravada (`/assinante/agenda?mes=&dia=`; em `novo`, o `?data=` ou o mês atual); o pós-Criar vai para `/assinante/eventos/:id` (`ROTA_EVENTOS`/`ROTA_AGENDA`). Em `novo`, Equipe e uploads ficam desabilitados
   até o primeiro salvamento (depois navega para `:id`). Links completam o `https://` ao sair do campo. Equipe fica fora do `<form>` (Enter na posição não salva o evento).
 - **Conflito de escala** (mesmo membro em 2+ eventos não cancelados na mesma data) é calculado só pela API (`OutrosEventos`, `EmConflito`, `Conflitos`) e **nunca bloqueia**: o SPA mostra o alerta âmbar e um snackbar ao escalar.
 - **Escala**: modal `escalar-membro-dialog` (membros ativos fora da escala, via `OpcoesEscala`) com o **cadastro rápido** "+ Novo fotógrafo": nome (obrigatório), @instagram e telefone (opcionais), função (padrão Fotógrafo) e posição;
@@ -162,8 +160,23 @@ Rotas em `rotasAssinante`: `/assinante/eventos` (`modules/assinante/eventos/even
   o GPX baixa por blob + `<a download>`; erros de blob passam por `extrairMensagemErroBlob`; o 413 do servidor (acima de 11 MB) vira mensagem amigável. Nunca usar a URL da API direto em `<img>` (precisa do Bearer).
 - **Visão do dia** (`visao-do-dia`): cabeçalho "Dia da semana, dd/MM/aaaa", ◀ Hoje ▶ e datepicker (só trocam `?data=`; o resolver recarrega); alerta âmbar de conflitos (um bloco por membro, eventos lado a lado); cards em 1/2/3 colunas
   com a equipe (membros em conflito destacados, cancelados esmaecidos; clique abre a ficha); membros livres em chips por função; dia vazio com "Novo evento" (`/assinante/eventos/novo?data=`).
-- **Histórico do organizador** (`organizador-details`, só na edição): seção "Histórico" com `EventoService.GetAllPaginated(1, 25, { organizadorId, ordem: 'desc' })` (sem `dataDe`, ou seja, sem limite de data): data, nome, status e equipe;
-  clique abre a ficha do evento; link "Ver todos na lista de eventos" para `/assinante/eventos?organizadorId=<id>&dataDe=`.
+- **Histórico do organizador** (`organizador-details`, só na edição): seção "Histórico" com `EventoService.GetAllPaginated(pagina, 25, { organizadorId, ordem: 'desc' })` (sem `dataDe`, ou seja, sem limite de data): data, nome, status e equipe;
+  clique abre a ficha do evento; o botão **"Carregar mais"** busca a próxima página e acrescenta (some quando tudo foi carregado, desabilitado durante a carga), com "Mostrando X de Y". O link para a lista de eventos saiu.
+
+## Agenda (assinante, plano 04)
+Rota `/assinante/agenda` (`modules/assinante/agenda/`: `agenda.routes.ts`, `agenda.component.ts/html`), item "Agenda" do menu; só o Assinante. Ocupa o lugar da antiga lista "Eventos".
+- **Estado na query string**, escrita pela própria tela (`router.navigate([], { queryParams, queryParamsHandling: 'merge' })`): `?mes=yyyy-MM&visao=lista|calendario&status=&tipoEventoId=&cidade=&membroId=&dia=yyyy-MM-dd`.
+  Trocar mês, visão ou filtros cria entrada no histórico; selecionar o dia usa `replaceUrl`. Valor inválido é ignorado (vale o padrão). F5 e link colado reproduzem o estado.
+  Padrões: mês atual; visão **Lista abaixo de `md` (960 px) e Calendário a partir de `md`** (`BreakpointObserver`, só sem `?visao=`); dia = hoje se estiver no mês, senão nenhum.
+- **Uma requisição por mês/filtros**: o componente chama `EventoService.Agenda(AgendaFiltro)` com o intervalo da grade de **42 dias** (`utils/calendario.ts`: `intervaloDaGrade`), cancela a anterior (`switchMap`) e só recarrega
+  quando a chave (mês + filtros) muda; trocar de visão ou de dia não chama a API. A Lista mostra só os dias do mês. `alterado$` recarrega eventos e cidades. A API aceita no máximo 62 dias.
+- **Semana começa na segunda** (`CABECALHO_SEMANA`, `gradeDoMes`: 6 semanas, `foraDoMes`, `fimDeSemana`). `utils/calendario.ts` também tem `mesValido`, `mesAtual`, `mesDaData`, `somarMeses`, `nomeDoMes` ("Novembro de 2026").
+- **Resolver** `agendaOpcoesResolver` (`resolvers/agenda.resolver.ts`, roda só ao entrar na rota): `TipoEvento/Opcoes(false)`, `Membro/Opcoes(false)` (inclui inativos, para filtrar o histórico) e `Evento/Cidades`. Os eventos não vêm do resolver.
+- **Environments**: `Evento.agenda` e `Evento.cidades` nos dois arquivos. A cidade da query que não está no combo continua filtrando e aparece nele.
+- **Cabeçalho**: ◀ Hoje ▶ (Hoje desabilitado no mês atual), `mat-button-toggle` Lista | Calendário, `app-filtro-botao` (Status, Tipo, Cidade, Membro; Limpar mantém mês e visão) e "Novo evento" (com `?data=` do dia selecionado).
+- **Lista**: grupos por dia ("Sábado, 14/11", selo "Hoje", link "Visão do dia"); item = hora e chip de status, nome, tipo · cidade, equipe (@instagram ou nome, truncada); cancelados esmaecidos e riscados; com `?dia=` (gravado pelo Fechar da ficha) rola até esse dia, senão rola até hoje (ou o próximo dia com eventos) ao abrir o mês atual; trocar de mês volta a rolagem ao topo. Se a `Agenda` falhar, a Lista e o Calendário dão lugar a "Não foi possível carregar a agenda." com "Tentar de novo" (o vazio "Nenhum evento em ..." não aparece).
+- **Calendário**: células `role="button"` (aria-label "14 de novembro, 3 eventos"): abaixo de `md` número e até 3 marcadores (`STATUS_EVENTO_PONTO`) com "+"; a partir de `md` até 3 eventos (hora e nome, clique abre a ficha) e "+N". Tocar em dia do mês vizinho muda o mês e seleciona o dia.
+  Painel do dia ao lado a partir de `lg`, abaixo da grade nas demais larguras: título, "Visão do dia", "Novo evento" e os eventos (mesmo item da Lista). Clique em evento abre a ficha com `abrirRota`.
 
 ## Convenções de lista e erros (ajustes pós-testes)
 - Tabelas das listas: abaixo de `sm` usam `max-sm:table-fixed`, células com `max-sm:!px-2`, larguras fixas só nas colunas curtas (Status/Função/Situação) e `div truncate` dentro da célula; nunca `max-w` no `td`.

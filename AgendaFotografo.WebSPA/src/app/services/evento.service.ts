@@ -1,6 +1,7 @@
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
+import { AgendaFiltro } from 'app/models/DTOs/filters/AgendaFiltro';
 import { EventoFiltro } from 'app/models/DTOs/filters/EventoFiltro';
 import { EventoMembroModel, EventoMembroPosicaoModel } from 'app/models/DTOs/requests/EventoMembroModel';
 import { DiaResponse } from 'app/models/DTOs/responses/DiaResponse';
@@ -47,6 +48,29 @@ export class EventoService {
             params = params.set('ordem', filtro.ordem);
         }
         return this._httpClient.get<PaginatedResponse<EventoListItem>>(environment.Evento.listar, { params });
+    }
+
+    // Eventos do intervalo (inclusivo, no máximo 62 dias), sem paginação e com a equipe. Filtros opcionais só vão na query quando preenchidos.
+    Agenda(filtro: AgendaFiltro): Observable<EventoListItem[]> {
+        let params = new HttpParams().set('dataDe', filtro.dataDe).set('dataAte', filtro.dataAte);
+        if (filtro.status != null) {
+            params = params.set('status', filtro.status);
+        }
+        if (filtro.tipoEventoId) {
+            params = params.set('tipoEventoId', filtro.tipoEventoId);
+        }
+        if (filtro.cidade) {
+            params = params.set('cidade', filtro.cidade);
+        }
+        if (filtro.membroId) {
+            params = params.set('membroId', filtro.membroId);
+        }
+        return this._httpClient.get<EventoListItem[]>(environment.Evento.agenda, { params });
+    }
+
+    // Cidades distintas dos eventos do assinante (combo da Agenda).
+    Cidades(): Observable<string[]> {
+        return this._httpClient.get<string[]>(environment.Evento.cidades);
     }
 
     Get(id: string): Observable<Evento> {

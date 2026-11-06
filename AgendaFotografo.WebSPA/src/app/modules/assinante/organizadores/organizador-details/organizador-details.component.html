@@ -67,7 +67,7 @@
         <section *ngIf="!ehNovo" class="flex flex-col gap-2 mt-6">
             <h2 class="text-xl font-bold text-accent">Histórico</h2>
 
-            <div *ngIf="carregandoHistorico" class="flex items-center justify-center py-4">
+            <div *ngIf="carregandoHistorico && historico.length === 0" class="flex items-center justify-center py-4">
                 <mat-progress-spinner diameter="24" mode="indeterminate"></mat-progress-spinner>
             </div>
             <div *ngIf="erroHistorico" class="text-sm text-warn">{{ erroHistorico }}</div>
@@ -89,7 +89,8 @@
 
             <div *ngIf="historico.length" class="flex flex-wrap items-center justify-between gap-2 text-sm">
                 <span class="text-secondary">{{ historico.length < historicoTotal ? 'Mostrando ' + historico.length + ' de ' + historicoTotal : historicoTotal + (historicoTotal === 1 ? ' evento' : ' eventos') }}</span>
-                <a class="underline text-primary" [routerLink]="['/assinante/eventos']" [queryParams]="{ organizadorId: organizador?.Id, dataDe: '' }">Ver todos na lista de eventos</a>
+                <button *ngIf="historico.length < historicoTotal" mat-stroked-button type="button"
+                    [disabled]="carregandoHistorico" (click)="carregarMaisHistorico()">Carregar mais</button>
             </div>
         </section>
     </div>

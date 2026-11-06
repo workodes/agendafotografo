@@ -59,7 +59,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseRequestLocalization();
-app.UseHttpsRedirection();
+// Em Development o SPA local chama http://localhost:5289; redirecionar para https quebraria o preflight do CORS
+// (o navegador não segue redirecionamento no OPTIONS) quando a API sobe com as duas URLs do launchSettings.
+if (!app.Environment.IsDevelopment())
+    app.UseHttpsRedirection();
 // SPA Angular publicada em wwwroot (mesma origem da API); rotas desconhecidas fora de /api caem no index.html.
 // Os arquivos estáticos vêm ANTES do UseRouting explícito: o roteamento implícito do WebApplication escolheria
 // o fallback primeiro e o UseStaticFiles ignoraria a requisição.

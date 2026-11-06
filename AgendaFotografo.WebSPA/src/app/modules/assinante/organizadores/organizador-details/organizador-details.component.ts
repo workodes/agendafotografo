@@ -56,6 +56,7 @@ export class OrganizadorDetailsComponent implements OnInit, OnDestroy {
     // Histórico de eventos do organizador (só na edição): os mais recentes primeiro, sem limite de data.
     historico: EventoListItem[] = [];
     historicoTotal = 0;
+    paginaHistorico = 1;
     carregandoHistorico = false;
     erroHistorico = '';
     statusRotulo = STATUS_EVENTO_ROTULO;
@@ -182,20 +183,25 @@ export class OrganizadorDetailsComponent implements OnInit, OnDestroy {
     }
 
     // dataDe vazio = sem limite de data; ordem desc (mais recentes primeiro). Usa Evento/Listar, sem action nova.
-    private carregarHistorico(organizadorId?: string): void {
+    // pagina > 1 ("Carregar mais"): acrescenta a próxima página à lista já carregada.
+    private carregarHistorico(organizadorId?: string, pagina = 1): void {
         this._requisicaoHistorico?.unsubscribe();
-        this.historico = [];
-        this.historicoTotal = 0;
         this.erroHistorico = '';
+        if (pagina === 1) {
+            this.historico = [];
+            this.historicoTotal = 0;
+            this.paginaHistorico = 1;
+        }
         if (!organizadorId) {
             this.carregandoHistorico = false;
             return;
         }
         this.carregandoHistorico = true;
-        this._requisicaoHistorico = this._eventoService.GetAllPaginated(1, 25, { organizadorId, ordem: 'desc' }).subscribe({
+        this._requisicaoHistorico = this._eventoService.GetAllPaginated(pagina, 25, { organizadorId, ordem: 'desc' }).subscribe({
             next: resp => {
-                this.historico = resp.Data ?? [];
+                this.historico = pagina === 1 ? (resp.Data ?? []) : [...this.historico, ...(resp.Data ?? [])];
                 this.historicoTotal = resp.TotalCount ?? 0;
+                this.paginaHistorico = pagina;
                 this.carregandoHistorico = false;
             },
             error: error => {
@@ -203,6 +209,13 @@ export class OrganizadorDetailsComponent implements OnInit, OnDestroy {
                 this.erroHistorico = mensagemErro(error, 'Não foi possível carregar o histórico.');
             },
         });
+    }
+
+    carregarMaisHistorico(): void {
+        if (this.carregandoHistorico || !this.organizador?.Id) {
+            return;
+        }
+        this.carregarHistorico(this.organizador.Id, this.paginaHistorico + 1);
     }
 
     // "@instagram" (ou o nome, sem Instagram) de cada escalado.

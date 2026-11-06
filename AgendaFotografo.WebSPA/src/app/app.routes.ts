@@ -21,9 +21,10 @@ const rotasAdmin: Route[] = [
     { path: 'assinantes', loadChildren: () => import('app/modules/admin/assinantes/assinantes.routes') },
 ];
 
-// Área do Assinante (coordenador): Equipe, Organizadores e Tipos de evento (plano 02); Eventos e Visão do dia (plano 03). Agenda etc. entram aqui, um plano por módulo.
+// Área do Assinante (coordenador): Equipe, Organizadores e Tipos de evento (plano 02); Eventos e Visão do dia (plano 03); Agenda (plano 04). Pendências etc. entram aqui, um plano por módulo.
 const rotasAssinante: Route[] = [
     ...rotasComuns,
+    { path: 'agenda', data: { titulo: 'Agenda' }, loadChildren: () => import('app/modules/assinante/agenda/agenda.routes') },
     { path: 'eventos', data: { titulo: 'Eventos' }, loadChildren: () => import('app/modules/assinante/eventos/eventos.routes') },
     { path: 'visao-do-dia', data: { titulo: 'Visão do dia' }, loadChildren: () => import('app/modules/assinante/visao-do-dia/visao-do-dia.routes') },
     { path: 'equipe', data: { titulo: 'Equipe' }, loadChildren: () => import('app/modules/assinante/equipe/equipe.routes') },

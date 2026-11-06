@@ -4,7 +4,7 @@ import { ROLE_NAMES } from '../constants/RoleNames';
 
 // Um menu por role: o usuário só vê os itens do próprio perfil. Os links levam o prefixo da role
 // (o mesmo path usado em app.routes.ts). Módulos novos entram aqui junto com a rota, no plano de cada um:
-// Assinante = Equipe, Organizadores, Tipos de evento, Eventos, Agenda etc.; Admin = Assinantes (plano 01).
+// Assinante = Equipe, Organizadores, Tipos de evento, Agenda (a ficha do evento abre pela Agenda) etc.; Admin = Assinantes (plano 01).
 @Injectable({ providedIn: 'root' })
 export class MenuData {
     private montarMenu(prefixo: string, extras: FuseNavigationItem[] = []): FuseNavigationItem[] {
@@ -32,11 +32,11 @@ export class MenuData {
         ]),
         [ROLE_NAMES.Assinante]: this.montarMenu(ROLE_NAMES.Assinante.toLowerCase(), [
             {
-                id: 'eventos',
-                title: 'Eventos',
+                id: 'agenda',
+                title: 'Agenda',
                 type: 'basic',
                 icon: 'heroicons_outline:calendar-days',
-                link: `/${ROLE_NAMES.Assinante.toLowerCase()}/eventos`,
+                link: `/${ROLE_NAMES.Assinante.toLowerCase()}/agenda`,
             },
             {
                 id: 'visao-do-dia',

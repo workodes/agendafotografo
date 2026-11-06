@@ -26,3 +26,11 @@ export const STATUS_EVENTO_COR: Record<number, string> = {
 export const STATUS_EVENTO: { valor: number; rotulo: string }[] = [
     StatusEvento.Pendente, StatusEvento.Confirmado, StatusEvento.Realizado, StatusEvento.Cancelado,
 ].map(valor => ({ valor, rotulo: STATUS_EVENTO_ROTULO[valor] }));
+
+// Cor sólida do marcador de status no calendário (celular). Escritas por extenso para o Tailwind enxergar.
+export const STATUS_EVENTO_PONTO: Record<number, string> = {
+    [StatusEvento.Pendente]: 'bg-amber-500',
+    [StatusEvento.Confirmado]: 'bg-green-500',
+    [StatusEvento.Realizado]: 'bg-blue-500',
+    [StatusEvento.Cancelado]: 'bg-gray-400',
+};

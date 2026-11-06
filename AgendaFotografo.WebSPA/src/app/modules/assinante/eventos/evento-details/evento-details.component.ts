@@ -30,7 +30,8 @@ import { normalizarUrl, urlHttp } from 'app/utils/url-evento';
 import { EscalarMembroDialogComponent, EscalarMembroDialogData } from '../escalar-membro-dialog/escalar-membro-dialog.component';
 import { EventoArquivoComponent } from '../evento-arquivo/evento-arquivo.component';
 
-const ROTA_LISTA = '/assinante/eventos';
+const ROTA_EVENTOS = '/assinante/eventos';
+const ROTA_AGENDA = '/assinante/agenda';
 
 // Campos de texto/link opcionais: o que estiver vazio vai como null.
 const CAMPOS_TEXTO = [
@@ -226,7 +227,7 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
                 this.salvando = false;
                 this._service.NotificarAlteracao();
                 this._snackBar.open('Evento criado. Agora você já pode escalar a equipe e enviar os arquivos.', 'X', { duration: 6000 });
-                this._router.navigate([ROTA_LISTA, criado.Id], { replaceUrl: true });
+                this._router.navigate([ROTA_EVENTOS, criado.Id], { replaceUrl: true });
             },
             error: error => this.falhaAoSalvar(error),
         });
@@ -261,8 +262,22 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
         });
     }
 
+    // Volta para a Agenda no mês (e dia) do evento: a data gravada; em `novo`, o ?data= ou o mês atual.
     voltar(): void {
-        this._router.navigate([ROTA_LISTA]);
+        const gravada = this.evento?.EVE_DATA;
+        let dia: string | null = null;
+        if (parseDataIso(gravada)) {
+            dia = gravada!.substring(0, 10);
+        } else if (!this.evento?.Id) {
+            const q = this._route.snapshot.queryParamMap.get('data');
+            dia = parseDataIso(q) ? q!.substring(0, 10) : null;
+        }
+        const queryParams: Record<string, string> = {};
+        if (dia) {
+            queryParams['mes'] = dia.substring(0, 7);
+            queryParams['dia'] = dia;
+        }
+        this._router.navigate([ROTA_AGENDA], { queryParams });
     }
 
     // ---- Links ----
