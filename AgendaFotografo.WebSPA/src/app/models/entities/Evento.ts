@@ -10,6 +10,7 @@ export class Evento {
     EVE_DATA: string;
     EVE_HORA?: string | null;
     EVE_CIDADE: string;
+    EVE_LOCAL?: string | null;
     EVE_STATUS: number;
     EVE_ORGANIZADOR_ID?: string | null;
     EVE_LARGADA_LOCAL?: string | null;

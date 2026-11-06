@@ -15,6 +15,7 @@ public class EventoListItem
     /// <summary>Trafega como "HH:mm:ss"; nulo = "a confirmar".</summary>
     public TimeOnly? EVE_HORA { get; set; }
     public string EVE_CIDADE { get; set; } = string.Empty;
+    public string? EVE_LOCAL { get; set; }
     public StatusEvento EVE_STATUS { get; set; }
     public Guid? EVE_ORGANIZADOR_ID { get; set; }
     public string? OrganizadorNome { get; set; }

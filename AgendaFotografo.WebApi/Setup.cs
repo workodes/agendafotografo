@@ -10,6 +10,7 @@ using AgendaFotografo.Infra.Data.Interceptors;
 using AgendaFotografo.Infra.Data.Repository;
 using AgendaFotografo.WebApi.Services.Assinantes;
 using AgendaFotografo.WebApi.Services.Eventos;
+using AgendaFotografo.WebApi.Services.LinkPublico;
 using AgendaFotografo.WebApi.Services.TiposEvento;
 using AgendaFotografo.WebApi.Services.CurrentUser;
 using AgendaFotografo.WebApi.Services.Security;
@@ -183,6 +184,8 @@ public static class Setup
         services.AddSingleton<AuditableEntitiesInterceptor>();
         services.AddMemoryCache();
         services.AddSingleton<SessaoUsuarioCache>();
+        services.AddSingleton<LinkPublicoSegredos>();
+        services.AddSingleton<LinkPublicoTentativas>();
         services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddHttpContextAccessor();

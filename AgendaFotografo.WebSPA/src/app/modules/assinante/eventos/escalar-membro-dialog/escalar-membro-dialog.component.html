@@ -13,17 +13,8 @@
 
         <!-- Escolher um membro já cadastrado -->
         <form *ngIf="!novoMembro" id="form-escalar" class="flex flex-col gap-1" [formGroup]="formExistente" (ngSubmit)="escalar()" novalidate>
-            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
-                <mat-label>Membro</mat-label>
-                <mat-select formControlName="membroId" placeholder="Escolha quem vai fotografar">
-                    <mat-option *ngFor="let o of opcoes" [value]="o.Id">
-                        {{ o.MEM_NOME }}<span *ngIf="o.MEM_INSTAGRAM" class="text-secondary"> &#64;{{ o.MEM_INSTAGRAM }}</span>
-                        <span class="text-secondary"> · {{ funcaoRotulo[o.MEM_FUNCAO] }}</span>
-                        <span *ngIf="o.OutrosEventos?.length" class="text-amber-700"> · já escalado no dia</span>
-                    </mat-option>
-                </mat-select>
-                <mat-error>Escolha um membro.</mat-error>
-            </mat-form-field>
+            <custom-search-select formControlName="membroId" label="Membro" emptyOptionLabel="Escolha quem vai fotografar"
+                [options]="membrosOpcoes" [dense]="true" [floatLabelAlways]="true"></custom-search-select>
 
             <!-- Conflito: avisa, mas não impede -->
             <div *ngIf="selecionada?.OutrosEventos?.length" role="alert"

@@ -19,6 +19,7 @@ export class DiaEventoItem {
     TipoEventoNome: string;
     EVE_HORA?: string | null;
     EVE_CIDADE: string;
+    EVE_LOCAL?: string | null;
     EVE_STATUS: number;
     EVE_ORGANIZADOR_ID?: string | null;
     OrganizadorNome?: string | null;

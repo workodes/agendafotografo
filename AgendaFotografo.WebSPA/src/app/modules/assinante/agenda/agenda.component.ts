@@ -19,13 +19,17 @@ import { STATUS_EVENTO, STATUS_EVENTO_COR, STATUS_EVENTO_PONTO, STATUS_EVENTO_RO
 import { FiltroBotaoComponent } from 'app/modules/shared/components/filtro-painel/filtro-botao.component';
 import { FiltroPainelComponent } from 'app/modules/shared/components/filtro-painel/filtro-painel.component';
 import { FecharComEscDirective } from 'app/modules/shared/directives/fechar-com-esc.directive';
+import { CustomSearchSelectComponent } from 'app/modules/shared/components/custom-select/custom-select.component';
+import { OpcoesSelect } from 'app/utils/opcoes-select';
 import { EventoService } from 'app/services/evento.service';
 import {
     CABECALHO_SEMANA, DiaDaGrade, gradeDoMes, intervaloDaGrade, mesAnterior, mesAtual, mesDaData, mesSeguinte, mesValido, nomeDoMes,
 } from 'app/utils/calendario';
+import { localCidade } from 'app/utils/local-evento';
 import { diaSemana, formatarData, formatarDiaMes, formatarHora, hojeIso, parseDataIso } from 'app/utils/data-evento';
 import { mensagemErro } from 'app/utils/mensagem-erro';
 import { abrirRota } from 'app/utils/navegar';
+import { LinkPublicoCompartilharService } from '../eventos/link-publico-compartilhar/link-publico-compartilhar.service';
 
 type Visao = 'lista' | 'calendario';
 
@@ -56,7 +60,7 @@ interface GrupoDia {
     imports: [
         CommonModule, RouterModule, ReactiveFormsModule,
         MatButtonModule, MatButtonToggleModule, MatFormFieldModule, MatIconModule, MatProgressSpinnerModule, MatSelectModule,
-        FiltroBotaoComponent, FiltroPainelComponent, FecharComEscDirective,
+        FiltroBotaoComponent, FiltroPainelComponent, FecharComEscDirective, CustomSearchSelectComponent,
     ],
 })
 export class AgendaComponent implements OnInit, OnDestroy {
@@ -80,6 +84,12 @@ export class AgendaComponent implements OnInit, OnDestroy {
     membros: Opcao[] = [];
     cidades: string[] = [];
     cidadesCombo: string[] = [];
+    private _tiposSel = new OpcoesSelect<Opcao>(t => t.Id, t => t.Nome);
+    private _membrosSel = new OpcoesSelect<Opcao>(m => m.Id, m => m.Nome);
+    private _cidadesSel = new OpcoesSelect<string>(c => c, c => c);
+    get tiposOpcoes() { return this._tiposSel.de(this.tipos); }
+    get membrosOpcoes() { return this._membrosSel.de(this.membros); }
+    get cidadesOpcoes() { return this._cidadesSel.de(this.cidadesCombo); }
     statusLista = STATUS_EVENTO;
 
     // Rascunho do painel de filtros (só vale depois de "Aplicar").
@@ -95,6 +105,7 @@ export class AgendaComponent implements OnInit, OnDestroy {
     cancelado = StatusEvento.Cancelado;
     cabecalho = CABECALHO_SEMANA;
     formatarHora = formatarHora;
+    localCidade = localCidade;
     hoje = hojeIso();
 
     private _visaoQuery: Visao | null = null;
@@ -115,6 +126,7 @@ export class AgendaComponent implements OnInit, OnDestroy {
         private _cdr: ChangeDetectorRef,
         private _title: Title,
         private _breakpoint: BreakpointObserver,
+        private _linkPublico: LinkPublicoCompartilharService,
     ) { }
 
     // ---- Derivados ----
@@ -273,6 +285,12 @@ export class AgendaComponent implements OnInit, OnDestroy {
     abrirEvento(e: EventoListItem, event?: MouseEvent): void {
         event?.stopPropagation();
         abrirRota(this._router, this._route, ['/assinante/eventos', e.Id], event);
+    }
+
+    // Botão de link do item: abre o fluxo do link público sem abrir a ficha.
+    copiarLink(e: EventoListItem, event: Event): void {
+        event.stopPropagation();
+        this._linkPublico.Abrir({ id: e.Id, nome: e.EVE_NOME, data: e.EVE_DATA });
     }
 
     novoEvento(): void {

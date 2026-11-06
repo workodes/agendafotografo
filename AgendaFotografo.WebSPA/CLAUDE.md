@@ -38,8 +38,8 @@ Não há testes automatizados no padrão. Para logar é preciso a API no ar (`do
 ## Perfis, rotas e guards
 - `core/constants/RoleNames.ts`: `Admin`, `Assinante`. Prefixo de rota = role em minúsculas.
 - `app.routes.ts` (ordem importa):
-  1. `/e/:token`: rota pública anônima (link público do evento), **fora** do layout autenticado, sem guards, layout `empty`. Hoje é só um placeholder
-     (`modules/publico/evento-publico/`); a tela real vem no plano "Link público" (código de 4 dígitos, mobile-first). Rotas públicas novas ficam nesse bloco.
+  1. `/e/:token`: rota pública anônima (link público do evento, plano 05), **fora** do layout autenticado, sem guards, layout `empty`
+     (`modules/publico/evento-publico/`; ver a seção "Link público"). Rotas públicas novas ficam nesse bloco.
   2. `/sign-in` com `NoAuthGuard` (já logado vai para a rota inicial da role).
   3. Bloco autenticado (`initialDataResolver` = só o menu): `/sign-out` (qualquer role) e um bloco por role com `AuthGuard` + `data.requiredRoles`:
      `/admin` (`rotasAdmin`) e `/assinante` (`rotasAssinante`). Ambos partem de `rotasComuns` (hoje só `inicio`).
@@ -177,6 +177,22 @@ Rota `/assinante/agenda` (`modules/assinante/agenda/`: `agenda.routes.ts`, `agen
 - **Lista**: grupos por dia ("Sábado, 14/11", selo "Hoje", link "Visão do dia"); item = hora e chip de status, nome, tipo · cidade, equipe (@instagram ou nome, truncada); cancelados esmaecidos e riscados; com `?dia=` (gravado pelo Fechar da ficha) rola até esse dia, senão rola até hoje (ou o próximo dia com eventos) ao abrir o mês atual; trocar de mês volta a rolagem ao topo. Se a `Agenda` falhar, a Lista e o Calendário dão lugar a "Não foi possível carregar a agenda." com "Tentar de novo" (o vazio "Nenhum evento em ..." não aparece).
 - **Calendário**: células `role="button"` (aria-label "14 de novembro, 3 eventos"): abaixo de `md` número e até 3 marcadores (`STATUS_EVENTO_PONTO`) com "+"; a partir de `md` até 3 eventos (hora e nome, clique abre a ficha) e "+N". Tocar em dia do mês vizinho muda o mês e seleciona o dia.
   Painel do dia ao lado a partir de `lg`, abaixo da grade nas demais larguras: título, "Visão do dia", "Novo evento" e os eventos (mesmo item da Lista). Clique em evento abre a ficha com `abrirRota`.
+
+## Link público (plano 05)
+Cada evento tem um link `/e/<token>` com código de 4 números. O coordenador compartilha pela ficha, Agenda e Visão do dia; a equipe abre sem login.
+- **Environments** (`Evento.link`, `atualizarLink`, `regerarCodigoLink`, `regerarLink` e a chave `LinkPublico` com `acessar`, `evento`, `arquivo`, nos dois arquivos). `EventoService`: `Link`, `AtualizarLink`, `RegerarCodigoLink`, `RegerarLink`
+  (todas devolvem `EventoLinkItem { Configurado, EVL_ATIVO, EVL_MOSTRAR_EQUIPE, EVL_TOKEN, Codigo }`). `services/link-publico.service.ts` (`Acessar` com `X-Aparelho`; `Evento` e `Arquivo` (blob) com `X-Acesso-Link`).
+- **Utils**: `utils/link-publico.ts` (`urlPublica` = `document.baseURI` + `e/<token>`, `textoWhatsApp` em 3 linhas, `urlWhatsApp` = `wa.me/?text=`, `obterAparelho` (`agf_aparelho`), `lerAcesso`/`guardarAcesso`/`apagarAcesso` (`agf_link_<token>` = `{ Acesso, ExpiraEm }`, apaga o vencido),
+  `urlSegura` (só http/https), `linkMaps`) e `utils/copiar-texto.ts` (clipboard com fallback; chamar direto no clique por causa do Safari do iPhone).
+- **Coordenador**: `modules/assinante/eventos/link-publico-compartilhar/` (`LinkPublicoCompartilharService.Abrir({id, nome, data})` + `link-copiado-dialog`): sem link oferece criar; desativado oferece "Ativar link"; ativo mostra o código em destaque
+  e o texto com Copiar texto / Enviar pelo WhatsApp. `evento-link-publico/` é a seção da ficha (depois de Observações, fora do `<form>`; desabilitada em `novo`; toggles, URL sem código, copiar, WhatsApp, abrir página, gerar novo código/link com confirmação).
+  Agenda (cards, painel do dia e tabela da Lista) e cards da Visão do dia têm o ícone `heroicons_outline:link` ("Copiar link do evento") com `stopPropagation`. As pílulas do Calendário não têm botão (pequenas demais).
+  **O código só existe em memória** (propriedade do componente/modal, apagado ao fechar); nunca em storage, console, rota ou URL.
+- **Página pública** (`modules/publico/evento-publico/`): estados carregando, código, evento, indisponível (404 ou token fora do formato) e erro (rede, com "Tentar de novo"). Sem acesso guardado vai direto ao código sem chamar a API; 403 apaga o acesso e pede o código.
+  400 limpa o campo e mostra o texto; 429 desabilita o campo. Mostra só o que a API devolve (flyer e imagem do percurso por blob/`createObjectURL`, GPX por blob, Maps com busca quando só há texto, Strava, "Ver fotos", equipe se `Equipe` não é nula, observações, rodapé com a validade).
+  Segurança: só interpolação (nunca `innerHTML`), links externos só http/https com `rel="noopener noreferrer"`, `meta` robots `noindex, nofollow` e referrer `no-referrer` enquanto aberta (removidos no `ngOnDestroy`), blobs revogados ao sair.
+  O interceptor ignora 401 sem token e a API nunca devolve 401 nessas rotas, então um coordenador logado que erra o código continua logado.
+- Nginx (`nginx.conf`) tem `location /e/` própria com `try_files`, `no-store` e `X-Robots-Tag`.
 
 ## Convenções de lista e erros (ajustes pós-testes)
 - Tabelas das listas: abaixo de `sm` usam `max-sm:table-fixed`, células com `max-sm:!px-2`, larguras fixas só nas colunas curtas (Status/Função/Situação) e `div truncate` dentro da célula; nunca `max-w` no `td`.

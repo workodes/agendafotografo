@@ -41,3 +41,24 @@ Por que a rede `interna`: na `dokploy-network` todos os projetos da VM se enxerg
 - Build do Angular consome memória; se a VM tiver pouca RAM e o build falhar por *heap out of memory*, aumentar a swap da VM.
 - Logs: aba *Logs* de cada serviço no Dokploy. A API loga servidor/banco/ambiente ao subir (nunca a senha).
 - Rodar local (com Docker): `docker network create dokploy-network` uma vez e `docker compose up --build`; abrir http://localhost só se publicar a porta do `agenda-web` (ex.: `ports: ["8080:80"]` num override local).
+
+## Link público (`/e/<token>`)
+
+- **Rota**: `/e/<token>` é rota do SPA, anônima. O `nginx.conf` tem um `location /e/` próprio (`try_files` para o `index.html`, então F5 não dá 404),
+  com `Cache-Control: no-store`, `Referrer-Policy: no-referrer` e `X-Robots-Tag: noindex, nofollow`. As chamadas `api/LinkPublico/*` passam pelo
+  mesmo proxy de `/api/`. Nenhuma porta, volume ou tamanho de upload muda.
+- **IP real (PENDENTE: confirmar a faixa de rede)**: o limite de tentativas por IP e o rate limit (60 req/min por IP) dependem de a API enxergar o IP
+  do visitante. Cadeia: Traefik -> Nginx (`agenda-web`) -> API.
+  - Nginx: `set_real_ip_from` + `real_ip_header X-Forwarded-For` + `real_ip_recursive on` resolvem o IP real a partir do Traefik, e o `/api/` entrega
+    à API `X-Forwarded-For: $remote_addr` (um salto só).
+  - API: `ForwardedHeaders` aceita `X-Forwarded-For`/`X-Forwarded-Proto` só de proxies conhecidos (`ForwardedHeaders:KnownProxies` e
+    `ForwardedHeaders:KnownIPNetworks`, `ForwardLimit = 1`). No compose a faixa vem de `ForwardedHeaders__KnownIPNetworks__0`.
+  - **Valores provisórios**: no `nginx.conf` estão as três faixas privadas (10/8, 172.16/12, 192.168/16) em `set_real_ip_from`; no compose o padrão é
+    `172.16.0.0/12` (variável `AGENDA_REDE_CONFIAVEL`). Falta o colaborador rodar, no servidor, `docker network inspect dokploy-network` (faixa do
+    Traefik) e `docker network inspect <projeto>_interna` (faixa do `agenda-web` perante a API) e trocar pelos valores reais: no Nginx editar o
+    `set_real_ip_from`; na API definir `AGENDA_REDE_CONFIAVEL` no Dokploy (ex.: `172.18.0.0/16`). Valor mal formado derruba a subida da API com mensagem clara.
+  - Se a faixa estiver errada, nada quebra: a API ignora o cabeçalho e todos os visitantes parecem ter o IP do Nginx, então o limite por IP (10 erros e
+    60 req/min) vira "global" para o link. O limite por aparelho (5 erros, `X-Aparelho`) continua funcionando.
+- **Contadores em memória**: tentativas erradas e bloqueios ficam na memória da API (`LinkPublicoTentativas`) e somem a cada deploy/reinício.
+  **Não escalar `agenda-api` para mais de uma instância** sem antes trocar por cache distribuído, senão o limite multiplica por réplica.
+- **Segredos**: o acesso de 7 dias é um JWT com chave derivada do `Jwt:Key`. Trocar `Jwt__Key` derruba também esses acessos (a página volta a pedir o código).

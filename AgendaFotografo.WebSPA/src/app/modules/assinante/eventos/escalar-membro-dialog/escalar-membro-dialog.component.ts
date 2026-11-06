@@ -10,6 +10,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { RouterModule } from '@angular/router';
 import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
+import { CustomSearchSelectComponent } from 'app/modules/shared/components/custom-select/custom-select.component';
+import { OpcoesSelect } from 'app/utils/opcoes-select';
 import { EventoMembroItem, OpcaoEscalaItem } from 'app/models/DTOs/responses/EventoMembroItem';
 import { Membro } from 'app/models/entities/Membro';
 import { FUNCAO_MEMBRO, FUNCAO_MEMBRO_ROTULO, FuncaoMembro } from 'app/models/enums/FuncaoMembro';
@@ -34,7 +36,7 @@ export interface EscalarMembroDialogData {
     providers: [provideNgxMask()],
     imports: [
         CommonModule, RouterModule, ReactiveFormsModule, NgxMaskDirective,
-        MatButtonModule, MatDialogModule, MatFormFieldModule, MatIconModule, MatInputModule, MatProgressSpinnerModule, MatSelectModule,
+        MatButtonModule, MatDialogModule, MatFormFieldModule, MatIconModule, MatInputModule, MatProgressSpinnerModule, MatSelectModule, CustomSearchSelectComponent,
     ],
 })
 export class EscalarMembroDialogComponent implements OnInit {
@@ -75,6 +77,11 @@ export class EscalarMembroDialogComponent implements OnInit {
     get membroCriado(): boolean {
         return !!this._membroCriadoId;
     }
+
+    private _opcoesSel = new OpcoesSelect<OpcaoEscalaItem>(
+        o => o.Id,
+        o => `${o.MEM_NOME}${o.MEM_INSTAGRAM ? ' @' + o.MEM_INSTAGRAM : ''} · ${FUNCAO_MEMBRO_ROTULO[o.MEM_FUNCAO]}${o.OutrosEventos?.length ? ' · já escalado no dia' : ''}`);
+    get membrosOpcoes() { return this._opcoesSel.de(this.opcoes); }
 
     get selecionada(): OpcaoEscalaItem | undefined {
         return this.opcoes.find(o => o.Id === this.formExistente.value.membroId);

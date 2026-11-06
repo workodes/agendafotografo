@@ -18,6 +18,7 @@ public class EventoModel
     /// <summary>"HH:mm:ss" ou nulo ("a confirmar").</summary>
     public TimeOnly? EVE_HORA { get; set; }
     public string EVE_CIDADE { get; set; } = string.Empty;
+    public string? EVE_LOCAL { get; set; }
     public StatusEvento EVE_STATUS { get; set; }
 
     /// <summary>Opcional.</summary>

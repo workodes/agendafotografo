@@ -5,7 +5,9 @@ import { AgendaFiltro } from 'app/models/DTOs/filters/AgendaFiltro';
 import { EventoFiltro } from 'app/models/DTOs/filters/EventoFiltro';
 import { EventoMembroModel, EventoMembroPosicaoModel } from 'app/models/DTOs/requests/EventoMembroModel';
 import { DiaResponse } from 'app/models/DTOs/responses/DiaResponse';
+import { EventoLinkModel } from 'app/models/DTOs/requests/EventoLinkModel';
 import { EventoArquivoItem } from 'app/models/DTOs/responses/EventoArquivoItem';
+import { EventoLinkItem } from 'app/models/DTOs/responses/EventoLinkItem';
 import { EventoListItem } from 'app/models/DTOs/responses/EventoListItem';
 import { EventoMembroItem, OpcaoEscalaItem } from 'app/models/DTOs/responses/EventoMembroItem';
 import { Evento } from 'app/models/entities/Evento';
@@ -136,6 +138,25 @@ export class EventoService {
 
     ExcluirArquivo(arquivoId: string): Observable<ApiResponse> {
         return this._httpClient.delete<ApiResponse>(environment.Evento.excluirArquivo, { params: new HttpParams().set('id', arquivoId) });
+    }
+
+    // ---- Link público (coordenador). Respostas trazem o Codigo: mantê-lo só em memória ----
+
+    Link(eventoId: string): Observable<EventoLinkItem> {
+        return this._httpClient.get<EventoLinkItem>(environment.Evento.link, { params: new HttpParams().set('id', eventoId) });
+    }
+
+    // Cria o link (se ainda não existe) ou muda só EVL_ATIVO e EVL_MOSTRAR_EQUIPE.
+    AtualizarLink(eventoId: string, model: EventoLinkModel): Observable<EventoLinkItem> {
+        return this._httpClient.put<EventoLinkItem>(environment.Evento.atualizarLink, model, { headers: this._headers, params: new HttpParams().set('id', eventoId) });
+    }
+
+    RegerarCodigoLink(eventoId: string): Observable<EventoLinkItem> {
+        return this._httpClient.post<EventoLinkItem>(environment.Evento.regerarCodigoLink, null, { params: new HttpParams().set('id', eventoId) });
+    }
+
+    RegerarLink(eventoId: string): Observable<EventoLinkItem> {
+        return this._httpClient.post<EventoLinkItem>(environment.Evento.regerarLink, null, { params: new HttpParams().set('id', eventoId) });
     }
 
     NotificarAlteracao(): void {

@@ -1,0 +1,67 @@
+<section class="flex flex-col gap-3">
+    <h2 class="text-xl font-bold text-accent">Link público</h2>
+
+    <div *ngIf="!eventoId" class="text-sm text-secondary p-3 rounded-lg border bg-gray-50">
+        Salve o evento para criar o link público.
+    </div>
+
+    <ng-container *ngIf="eventoId">
+        <div *ngIf="carregando" class="flex items-center gap-2 text-sm text-secondary">
+            <mat-progress-spinner diameter="20" mode="indeterminate"></mat-progress-spinner>
+            <span>Carregando...</span>
+        </div>
+
+        <div *ngIf="erroCarga && !carregando" role="alert" class="flex flex-wrap items-center gap-3 text-sm text-secondary">
+            <span>Não foi possível carregar o link público.</span>
+            <button mat-stroked-button type="button" (click)="carregar()">Tentar de novo</button>
+        </div>
+
+        <!-- Sem link -->
+        <div *ngIf="link && !link.Configurado" class="flex flex-col items-start gap-2">
+            <p class="text-sm text-secondary m-0">Crie um link para a equipe ver os dados do evento, protegido por um código de 4 números.</p>
+            <button mat-flat-button color="primary" type="button" [disabled]="ocupado" (click)="criar()">
+                <mat-icon svgIcon="heroicons_outline:link"></mat-icon>
+                <span class="ml-2">Criar link público</span>
+            </button>
+        </div>
+
+        <!-- Com link -->
+        <div *ngIf="link?.Configurado" class="flex flex-col gap-4">
+            <div class="flex flex-col sm:flex-row gap-3 sm:gap-8">
+                <mat-slide-toggle [checked]="link!.EVL_ATIVO" [disabled]="ocupado" (change)="alternarAtivo($event.checked)">Link ativo</mat-slide-toggle>
+                <mat-slide-toggle [checked]="link!.EVL_MOSTRAR_EQUIPE" [disabled]="ocupado" (change)="alternarEquipe($event.checked)">Mostrar equipe no link</mat-slide-toggle>
+            </div>
+
+            <div *ngIf="!link!.EVL_ATIVO" class="flex items-start gap-2 rounded-md bg-amber-100 text-amber-900 p-3 text-sm">
+                <mat-icon class="icon-size-5 shrink-0" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
+                <span>O link está desativado: quem abrir verá "Link indisponível".</span>
+            </div>
+
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-semibold uppercase tracking-wide text-secondary" for="link-publico-url">Endereço (sem o código)</label>
+                <input id="link-publico-url" type="text" readonly class="w-full rounded-md border bg-gray-50 px-3 py-2 text-sm"
+                    [value]="url" (focus)="$any($event.target).select()">
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:flex-wrap gap-2">
+                <button mat-stroked-button type="button" [disabled]="ocupado || !link!.EVL_ATIVO" (click)="copiar()">
+                    <mat-icon svgIcon="heroicons_outline:clipboard-document"></mat-icon>
+                    <span class="ml-2">Copiar link</span>
+                </button>
+                <button mat-stroked-button type="button" [disabled]="ocupado || !link!.EVL_ATIVO" (click)="whatsapp()">
+                    <mat-icon svgIcon="heroicons_outline:chat-bubble-left-right"></mat-icon>
+                    <span class="ml-2">Enviar pelo WhatsApp</span>
+                </button>
+                <a mat-stroked-button [href]="url" target="_blank" rel="noopener noreferrer">
+                    <mat-icon svgIcon="heroicons_outline:arrow-top-right-on-square"></mat-icon>
+                    <span class="ml-2">Abrir página</span>
+                </a>
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:flex-wrap gap-2">
+                <button mat-button type="button" [disabled]="ocupado" (click)="novoCodigo()">Gerar novo código</button>
+                <button mat-button color="warn" type="button" [disabled]="ocupado" (click)="novoLink()">Gerar novo link</button>
+            </div>
+        </div>
+    </ng-container>
+</section>

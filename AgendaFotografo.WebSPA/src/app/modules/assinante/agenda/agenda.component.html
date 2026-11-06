@@ -6,11 +6,17 @@
         (click)="abrirEvento(e, $event)" (auxclick)="abrirEvento(e, $event)" (keydown.enter)="abrirEvento(e)">
         <div class="flex items-center justify-between gap-2">
             <span class="font-bold whitespace-nowrap" [class.text-secondary]="!e.EVE_HORA" [class.line-through]="e.EVE_STATUS === cancelado">{{ formatarHora(e.EVE_HORA) }}</span>
-            <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center shrink-0"
-                [ngClass]="statusCor[e.EVE_STATUS]">{{ rotuloStatus(e.EVE_STATUS) }}</span>
+            <span class="flex items-center gap-1 shrink-0">
+                <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center shrink-0"
+                    [ngClass]="statusCor[e.EVE_STATUS]">{{ rotuloStatus(e.EVE_STATUS) }}</span>
+                <button mat-icon-button type="button" class="!w-8 !h-8 !p-0 !leading-none shrink-0" aria-label="Copiar link do evento" title="Copiar link do evento"
+                (click)="copiarLink(e, $event)" (keydown.enter)="$event.stopPropagation()">
+                    <mat-icon class="icon-size-5" svgIcon="heroicons_outline:link"></mat-icon>
+                </button>
+            </span>
         </div>
         <div class="font-semibold break-words" [class.line-through]="e.EVE_STATUS === cancelado">{{ e.EVE_NOME }}</div>
-        <div class="text-sm text-secondary break-words">{{ e.TipoEventoNome }}<span *ngIf="e.EVE_CIDADE"> · {{ e.EVE_CIDADE }}</span></div>
+        <div class="text-sm text-secondary break-words">{{ e.TipoEventoNome }}<span *ngIf="localCidade(e)"> · {{ localCidade(e) }}</span></div>
         <div *ngIf="e.Equipe?.length" class="truncate text-xs text-secondary" [attr.title]="equipe(e)">{{ equipe(e) }}</div>
     </div>
 </ng-template>
@@ -83,10 +89,49 @@
                     </div>
                     <a class="text-sm underline text-primary-500" [routerLink]="['/assinante/visao-do-dia']" [queryParams]="{ data: g.data }">Visão do dia</a>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                <!-- Celular: cards -->
+                <div class="grid grid-cols-1 gap-3 md:hidden">
                     <ng-container *ngFor="let e of g.eventos; trackBy: trackEvento">
                         <ng-container *ngTemplateOutlet="itemEvento; context: { $implicit: e }"></ng-container>
                     </ng-container>
+                </div>
+                <!-- md+: tabela, uma linha por evento -->
+                <div class="hidden md:block rounded-lg border overflow-hidden">
+                    <table class="w-full table-fixed text-sm">
+                        <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-secondary">
+                            <tr>
+                                <th class="w-24 px-3 py-2">Hora</th>
+                                <th class="px-3 py-2">Evento</th>
+                                <th class="w-36 px-3 py-2">Tipo</th>
+                                <th class="px-3 py-2">Local · cidade</th>
+                                <th class="px-3 py-2">Equipe</th>
+                                <th class="w-32 px-3 py-2">Status</th>
+                                <th class="w-12 px-1 py-2"><span class="sr-only">Link</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let e of g.eventos; trackBy: trackEvento" role="link" tabindex="0"
+                                class="border-t cursor-pointer bg-white hover:bg-gray-100 focus-visible:outline focus-visible:outline-2"
+                                [class.opacity-60]="e.EVE_STATUS === cancelado"
+                                (click)="abrirEvento(e, $event)" (auxclick)="abrirEvento(e, $event)" (keydown.enter)="abrirEvento(e)">
+                                <td class="px-3 py-2 font-bold whitespace-nowrap" [class.text-secondary]="!e.EVE_HORA" [class.line-through]="e.EVE_STATUS === cancelado">{{ formatarHora(e.EVE_HORA) }}</td>
+                                <td class="px-3 py-2 font-semibold"><div class="truncate" [class.line-through]="e.EVE_STATUS === cancelado" [attr.title]="e.EVE_NOME">{{ e.EVE_NOME }}</div></td>
+                                <td class="px-3 py-2"><div class="truncate" [attr.title]="e.TipoEventoNome">{{ e.TipoEventoNome }}</div></td>
+                                <td class="px-3 py-2"><div class="truncate" [attr.title]="localCidade(e)">{{ localCidade(e) }}</div></td>
+                                <td class="px-3 py-2 text-xs text-secondary"><div class="truncate" [attr.title]="equipe(e)">{{ equipe(e) }}</div></td>
+                                <td class="px-3 py-2">
+                                    <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center"
+                                        [ngClass]="statusCor[e.EVE_STATUS]">{{ rotuloStatus(e.EVE_STATUS) }}</span>
+                                </td>
+                                <td class="px-1 py-2 text-center">
+                                    <button mat-icon-button type="button" class="!w-8 !h-8 !p-0 !leading-none shrink-0" aria-label="Copiar link do evento" title="Copiar link do evento"
+                                    (click)="copiarLink(e, $event)" (keydown.enter)="$event.stopPropagation()">
+                                        <mat-icon class="icon-size-5" svgIcon="heroicons_outline:link"></mat-icon>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </section>
         </div>
@@ -165,28 +210,13 @@
             </mat-select>
         </mat-form-field>
 
-        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense">
-            <mat-label>Tipo de evento</mat-label>
-            <mat-select [formControl]="fTipo">
-                <mat-option [value]="null">Todos</mat-option>
-                <mat-option *ngFor="let t of tipos" [value]="t.Id">{{ t.Nome }}</mat-option>
-            </mat-select>
-        </mat-form-field>
+        <custom-search-select [formControl]="fTipo" label="Tipo de evento" emptyOptionLabel="Todos"
+            [options]="tiposOpcoes" [dense]="true" [floatLabelAlways]="true"></custom-search-select>
 
-        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense">
-            <mat-label>Cidade</mat-label>
-            <mat-select [formControl]="fCidade">
-                <mat-option [value]="null">Todas</mat-option>
-                <mat-option *ngFor="let c of cidadesCombo" [value]="c">{{ c }}</mat-option>
-            </mat-select>
-        </mat-form-field>
+        <custom-search-select [formControl]="fCidade" label="Cidade" emptyOptionLabel="Todas"
+            [options]="cidadesOpcoes" [dense]="true" [floatLabelAlways]="true"></custom-search-select>
 
-        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense">
-            <mat-label>Membro</mat-label>
-            <mat-select [formControl]="fMembro">
-                <mat-option [value]="null">Todos</mat-option>
-                <mat-option *ngFor="let m of membros" [value]="m.Id">{{ m.Nome }}</mat-option>
-            </mat-select>
-        </mat-form-field>
+        <custom-search-select [formControl]="fMembro" label="Membro" emptyOptionLabel="Todos"
+            [options]="membrosOpcoes" [dense]="true" [floatLabelAlways]="true"></custom-search-select>
     </app-filtro-painel>
 </div>

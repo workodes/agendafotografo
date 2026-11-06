@@ -41,6 +41,10 @@ services:
       ConnectionStrings__DefaultConection: "Server=agenda-mysql;Port=3306;Database=agenda_fotografo;User Id=workode_user;Password=WorkodesDb@2026;"
       Arquivos__Pasta: "/app/dados/arquivos"
       Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command: "Warning"
+      # IP real do visitante (link público): faixa do container do Nginx (agenda-web) na rede "interna", de onde a API aceita X-Forwarded-For.
+      # PROVISÓRIO: o padrão 172.16.0.0/12 cobre as redes Docker comuns; confirmar a faixa real (docker network inspect) e definir
+      # AGENDA_REDE_CONFIAVEL no Dokploy. Ver docs/deploy.md. Faixa errada não derruba nada: o limite por IP só passa a valer para todos juntos.
+      ForwardedHeaders__KnownIPNetworks__0: "${AGENDA_REDE_CONFIAVEL:-172.16.0.0/12}"
     volumes:
       # Flyer, imagem de rota e GPX (Arquivos:Pasta = /app/dados/arquivos). Sem volume, somem a cada deploy.
       - agenda-arquivos:/app/dados

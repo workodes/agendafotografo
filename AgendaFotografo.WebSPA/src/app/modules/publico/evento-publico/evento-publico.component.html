@@ -1,0 +1,140 @@
+<div class="min-h-screen w-full bg-gray-100 flex flex-col items-center px-4 py-6 overflow-x-hidden">
+    <div class="w-full max-w-xl flex flex-col gap-4 min-w-0">
+
+        <!-- Carregando -->
+        <div *ngIf="estado === 'carregando'" class="flex flex-col items-center gap-4 py-16" aria-busy="true">
+            <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
+            <span class="text-secondary">Carregando...</span>
+        </div>
+
+        <!-- Indisponível -->
+        <div *ngIf="estado === 'indisponivel'" role="alert" class="flex flex-col items-center gap-3 py-12 text-center">
+            <img src="assets/images/logo/logo.png" class="w-40" alt="Agenda Fotógrafo">
+            <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:link-slash"></mat-icon>
+            <h1 class="text-xl font-bold m-0">Link indisponível</h1>
+            <p class="text-secondary m-0">Peça o link atualizado ao coordenador.</p>
+        </div>
+
+        <!-- Erro de rede ou limite -->
+        <div *ngIf="estado === 'erro'" role="alert" class="flex flex-col items-center gap-3 py-12 text-center">
+            <img src="assets/images/logo/logo.png" class="w-40" alt="Agenda Fotógrafo">
+            <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
+            <p class="text-secondary m-0">{{ mensagemErroPagina }}</p>
+            <button mat-flat-button color="primary" type="button" (click)="tentarDeNovo()">Tentar de novo</button>
+        </div>
+
+        <!-- Código -->
+        <form *ngIf="estado === 'codigo'" class="flex flex-col items-center gap-4 py-10 text-center" (ngSubmit)="entrar()" novalidate>
+            <img src="assets/images/logo/logo.png" class="w-40" alt="Agenda Fotógrafo">
+            <h1 class="text-2xl font-bold m-0">Digite o código do evento</h1>
+            <p class="text-secondary m-0">São 4 números, enviados junto com o link.</p>
+
+            <div *ngIf="aviso" role="status" class="w-full rounded-md bg-amber-100 text-amber-900 p-3 text-sm">{{ aviso }}</div>
+
+            <input #campoCodigo name="codigo" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="4" pattern="[0-9]*"
+                aria-label="Código do evento" placeholder="0000" autocapitalize="off" autocorrect="off" spellcheck="false"
+                class="w-48 rounded-lg border-2 bg-white px-3 py-3 text-center text-4xl font-bold tracking-[0.4em] disabled:opacity-50"
+                [disabled]="bloqueado || verificando" [value]="codigo" (input)="aoDigitar(campoCodigo)">
+
+            <div *ngIf="mensagemCodigo" role="alert" class="text-sm font-medium text-red-700">{{ mensagemCodigo }}</div>
+
+            <button mat-flat-button color="primary" type="submit" class="w-48" [disabled]="bloqueado || verificando || codigo.length !== 4">
+                {{ verificando ? 'Verificando...' : 'Entrar' }}
+            </button>
+        </form>
+
+        <!-- Evento -->
+        <ng-container *ngIf="estado === 'evento' && evento">
+            <!-- 1. Cabeçalho -->
+            <header class="rounded-xl bg-white shadow-sm overflow-hidden">
+                <div *ngIf="evento.Cancelado" role="alert" class="bg-red-600 text-white text-center font-bold py-2 px-3">Evento cancelado</div>
+                <div class="p-4 flex flex-col gap-1">
+                    <h1 class="text-2xl font-extrabold leading-tight m-0 break-words" [class.line-through]="evento.Cancelado">{{ evento.EVE_NOME }}</h1>
+                    <div class="text-base font-medium">{{ tituloData }}</div>
+                    <div *ngIf="localCidade" class="text-secondary break-words">{{ localCidade }}</div>
+                </div>
+            </header>
+
+            <!-- 2. Flyer -->
+            <section *ngIf="evento.TemFlyer && !flyerFalhou" class="rounded-xl bg-white shadow-sm p-3">
+                <div *ngIf="!flyerUrl" class="flex justify-center py-8"><mat-progress-spinner diameter="24" mode="indeterminate"></mat-progress-spinner></div>
+                <img *ngIf="flyerUrl" [src]="flyerUrl" alt="Flyer do evento" class="w-full h-auto rounded-lg">
+            </section>
+
+            <!-- 3. Largada e chegada -->
+            <section *ngIf="temLargada || temChegada" class="rounded-xl bg-white shadow-sm p-4 flex flex-col gap-4">
+                <div *ngIf="temLargada" class="flex flex-col gap-2 items-start">
+                    <h2 class="text-sm font-semibold uppercase tracking-wide text-secondary m-0">Largada</h2>
+                    <div *ngIf="evento.EVE_LARGADA_LOCAL" class="break-words">{{ evento.EVE_LARGADA_LOCAL }}</div>
+                    <a *ngIf="linkLargada" mat-stroked-button [href]="linkLargada" target="_blank" rel="noopener noreferrer">
+                        <mat-icon svgIcon="heroicons_outline:map-pin"></mat-icon><span class="ml-2">Abrir no Maps</span>
+                    </a>
+                </div>
+                <div *ngIf="temChegada" class="flex flex-col gap-2 items-start">
+                    <h2 class="text-sm font-semibold uppercase tracking-wide text-secondary m-0">Chegada</h2>
+                    <div *ngIf="evento.EVE_CHEGADA_LOCAL" class="break-words">{{ evento.EVE_CHEGADA_LOCAL }}</div>
+                    <a *ngIf="linkChegada" mat-stroked-button [href]="linkChegada" target="_blank" rel="noopener noreferrer">
+                        <mat-icon svgIcon="heroicons_outline:map-pin"></mat-icon><span class="ml-2">Abrir no Maps</span>
+                    </a>
+                </div>
+            </section>
+
+            <!-- 4. Informações da prova -->
+            <section *ngIf="evento.EVE_INFORMACOES" class="rounded-xl bg-white shadow-sm p-4 flex flex-col gap-2">
+                <h2 class="text-sm font-semibold uppercase tracking-wide text-secondary m-0">Informações da prova</h2>
+                <div class="whitespace-pre-line break-words">{{ evento.EVE_INFORMACOES }}</div>
+            </section>
+
+            <!-- 5. Rota -->
+            <section *ngIf="temRota" class="rounded-xl bg-white shadow-sm p-4 flex flex-col gap-3">
+                <h2 class="text-sm font-semibold uppercase tracking-wide text-secondary m-0">Rota</h2>
+                <ng-container *ngIf="evento.TemImagemRota && !rotaFalhou">
+                    <div *ngIf="!rotaUrl" class="flex justify-center py-8"><mat-progress-spinner diameter="24" mode="indeterminate"></mat-progress-spinner></div>
+                    <img *ngIf="rotaUrl" [src]="rotaUrl" alt="Imagem do percurso" class="w-full h-auto rounded-lg">
+                </ng-container>
+                <div class="flex flex-col sm:flex-row sm:flex-wrap gap-2">
+                    <a *ngIf="linkRotaMaps" mat-stroked-button [href]="linkRotaMaps" target="_blank" rel="noopener noreferrer">
+                        <mat-icon svgIcon="heroicons_outline:map"></mat-icon><span class="ml-2">Abrir rota no Maps</span>
+                    </a>
+                    <button *ngIf="evento.GpxNome" mat-stroked-button type="button" [disabled]="baixandoGpx" (click)="baixarGpx()">
+                        <mat-icon svgIcon="heroicons_outline:arrow-down-tray"></mat-icon><span class="ml-2">Baixar GPX</span>
+                    </button>
+                    <a *ngIf="linkStrava" mat-stroked-button [href]="linkStrava" target="_blank" rel="noopener noreferrer">
+                        <mat-icon svgIcon="heroicons_outline:arrow-top-right-on-square"></mat-icon><span class="ml-2">Abrir no Strava</span>
+                    </a>
+                </div>
+                <div *ngIf="mensagemGpx" role="alert" class="text-sm text-red-700">{{ mensagemGpx }}</div>
+            </section>
+
+            <!-- 6. Fotos -->
+            <section *ngIf="linkFotos" class="rounded-xl bg-white shadow-sm p-4 flex flex-col gap-2 items-start">
+                <h2 class="text-sm font-semibold uppercase tracking-wide text-secondary m-0">Fotos</h2>
+                <a mat-flat-button color="primary" [href]="linkFotos" target="_blank" rel="noopener noreferrer">
+                    <mat-icon svgIcon="heroicons_outline:photo"></mat-icon><span class="ml-2">Ver fotos</span>
+                </a>
+            </section>
+
+            <!-- 7. Equipe (só quando o coordenador liga) -->
+            <section *ngIf="evento.Equipe" class="rounded-xl bg-white shadow-sm p-4 flex flex-col gap-2">
+                <h2 class="text-sm font-semibold uppercase tracking-wide text-secondary m-0">Equipe</h2>
+                <div *ngIf="evento.Equipe.length === 0" class="text-secondary">Equipe ainda não definida.</div>
+                <ul *ngIf="evento.Equipe.length" class="list-none p-0 m-0 flex flex-col divide-y">
+                    <li *ngFor="let m of evento.Equipe" class="py-2 min-w-0">
+                        <span class="font-medium break-words">{{ m.MEM_NOME }}</span>
+                        <span *ngIf="m.MEM_INSTAGRAM" class="text-secondary"> &#64;{{ m.MEM_INSTAGRAM }}</span>
+                        <div class="text-sm text-secondary break-words">{{ funcaoRotulo[m.MEM_FUNCAO] }}<span *ngIf="m.EVM_POSICAO"> · {{ m.EVM_POSICAO }}</span></div>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- 8. Observações para a equipe -->
+            <section *ngIf="evento.EVE_OBSERVACOES_EQUIPE" class="rounded-xl bg-white shadow-sm p-4 flex flex-col gap-2">
+                <h2 class="text-sm font-semibold uppercase tracking-wide text-secondary m-0">Observações para a equipe</h2>
+                <div class="whitespace-pre-line break-words">{{ evento.EVE_OBSERVACOES_EQUIPE }}</div>
+            </section>
+
+            <!-- 9. Rodapé -->
+            <footer *ngIf="expiraEm" class="text-center text-xs text-secondary pb-4">Acesso liberado neste aparelho até {{ expiraEm }}</footer>
+        </ng-container>
+    </div>
+</div>

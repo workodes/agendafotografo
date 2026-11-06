@@ -19,21 +19,8 @@ import { OrganizadorService } from 'app/services/organizador.service';
 import { diaSemanaCurto, formatarData, formatarHora } from 'app/utils/data-evento';
 import { emailTolerante, normalizarEmail } from 'app/utils/email-validator';
 import { mensagemErro } from 'app/utils/mensagem-erro';
+import { instagramValido, limparInstagram, somenteDigitos } from 'app/utils/organizador-form';
 import { abrirRota } from 'app/utils/navegar';
-
-// Instagram: o usuário pode digitar ou colar com "@" e espaços; a API remove TODOS os espaços e o "@" do início, e só ponto,
-// sublinhado, letras e números valem. O front faz o mesmo antes de validar e de enviar.
-function limparInstagram(valor: string | null | undefined): string {
-    return (valor ?? '').replace(/\s+/g, '').replace(/^@+/, '');
-}
-
-function instagramValido(control: AbstractControl): ValidationErrors | null {
-    const v = limparInstagram(control.value);
-    if (v.length > 100) { return { maxlength: { requiredLength: 100, actualLength: v.length } }; }
-    return !v || /^[A-Za-z0-9._]+$/.test(v) ? null : { instagram: true };
-}
-
-const somenteDigitos = (v: string | null | undefined): string => (v ?? '').replace(/\D/g, '');
 
 @Component({
     standalone: true,

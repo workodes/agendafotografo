@@ -10,8 +10,10 @@ import { Subject, takeUntil } from 'rxjs';
 import { DiaEventoItem, DiaResponse } from 'app/models/DTOs/responses/DiaResponse';
 import { FUNCAO_MEMBRO, FUNCAO_MEMBRO_ROTULO } from 'app/models/enums/FuncaoMembro';
 import { STATUS_EVENTO_COR, STATUS_EVENTO_ROTULO, StatusEvento } from 'app/models/enums/StatusEvento';
+import { localCidade } from 'app/utils/local-evento';
 import { diaSemana, formatarData, formatarDataIso, formatarDiaMes, formatarHora, hojeIso, parseDataIso, somarDiasIso } from 'app/utils/data-evento';
 import { abrirRota } from 'app/utils/navegar';
+import { LinkPublicoCompartilharService } from '../eventos/link-publico-compartilhar/link-publico-compartilhar.service';
 
 // Visão do dia: eventos da data lado a lado, conflitos (membro em 2+ eventos) e membros livres. A data vem em ?data=yyyy-MM-dd
 // (o resolver relê a cada mudança da query); navegar só troca a query string.
@@ -30,12 +32,14 @@ export class VisaoDoDiaComponent implements OnInit, OnDestroy {
     statusCor = STATUS_EVENTO_COR;
     cancelado = StatusEvento.Cancelado;
     formatarHora = formatarHora;
+    localCidade = localCidade;
     private _destroy$ = new Subject<void>();
 
     constructor(
         private _route: ActivatedRoute,
         private _router: Router,
         private _title: Title,
+        private _linkPublico: LinkPublicoCompartilharService,
     ) { }
 
     // Data exibida (Date local) para o datepicker.
@@ -97,6 +101,12 @@ export class VisaoDoDiaComponent implements OnInit, OnDestroy {
 
     abrirEvento(e: DiaEventoItem, event?: MouseEvent): void {
         abrirRota(this._router, this._route, ['/assinante/eventos', e.Id], event);
+    }
+
+    // Botão de link do card: abre o fluxo do link público sem abrir a ficha.
+    copiarLink(e: DiaEventoItem, event: Event): void {
+        event.stopPropagation();
+        this._linkPublico.Abrir({ id: e.Id, nome: e.EVE_NOME, data: this.dia?.Data ?? '' });
     }
 
     livresDaFuncao(funcao: number) {

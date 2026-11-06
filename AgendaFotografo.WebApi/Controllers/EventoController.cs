@@ -10,6 +10,7 @@ using AgendaFotografo.WebApi.Models;
 using AgendaFotografo.WebApi.Models.Eventos;
 using AgendaFotografo.WebApi.Services.CurrentUser;
 using AgendaFotografo.WebApi.Services.Eventos;
+using AgendaFotografo.WebApi.Services.LinkPublico;
 using AgendaFotografo.WebApi.Validators.Evento;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -27,6 +28,7 @@ public class EventoController(
     IBaseRepository<Evento> repEvento,
     IBaseRepository<EventoMembro> repEventoMembro,
     IBaseRepository<EventoArquivo> repEventoArquivo,
+    IBaseRepository<EventoLink> repEventoLink,
     IBaseRepository<TipoEvento> repTipoEvento,
     IBaseRepository<Organizador> repOrganizador,
     IBaseRepository<Membro> repMembro,
@@ -42,6 +44,7 @@ public class EventoController(
     private readonly IBaseRepository<Evento> _repEvento = repEvento;
     private readonly IBaseRepository<EventoMembro> _repEventoMembro = repEventoMembro;
     private readonly IBaseRepository<EventoArquivo> _repEventoArquivo = repEventoArquivo;
+    private readonly IBaseRepository<EventoLink> _repEventoLink = repEventoLink;
     private readonly IBaseRepository<TipoEvento> _repTipoEvento = repTipoEvento;
     private readonly IBaseRepository<Organizador> _repOrganizador = repOrganizador;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
@@ -81,6 +84,7 @@ public class EventoController(
         EVE_DATA = x.EVE_DATA,
         EVE_HORA = x.EVE_HORA,
         EVE_CIDADE = x.EVE_CIDADE,
+        EVE_LOCAL = x.EVE_LOCAL,
         EVE_STATUS = x.EVE_STATUS,
         EVE_ORGANIZADOR_ID = x.EVE_ORGANIZADOR_ID,
         OrganizadorNome = x.Organizador != null ? x.Organizador.ORG_NOME : null
@@ -166,7 +170,7 @@ public class EventoController(
             if (!string.IsNullOrWhiteSpace(busca))
             {
                 var termo = busca.Trim();
-                query = query.Where(x => x.EVE_NOME.Contains(termo) || x.EVE_CIDADE.Contains(termo));
+                query = query.Where(x => x.EVE_NOME.Contains(termo) || x.EVE_CIDADE.Contains(termo) || (x.EVE_LOCAL != null && x.EVE_LOCAL.Contains(termo)));
             }
 
             bool decrescente;
@@ -413,7 +417,7 @@ public class EventoController(
     }
 
     /// <summary>
-    /// Exclui o evento, a escala e os registros de arquivo numa transação. Quem não vai realizar a prova deve usar o status
+    /// Exclui o evento, a escala, o link público e os registros de arquivo numa transação. Quem não vai realizar a prova deve usar o status
     /// Cancelado (a exclusão apaga o histórico).
     /// </summary>
     [HttpDelete]
@@ -442,8 +446,13 @@ public class EventoController(
                 .Where(x => x.EVA_EVENTO_ID == id && x.EVA_ASSINANTE_ID == assinanteId)
                 .Select(x => new { x.Id, x.EVA_CAMINHO }).ToListAsync(cancellationToken);
 
+            var linkIds = await _repEventoLink.SelectContext().AsNoTracking()
+                .Where(x => x.EVL_EVENTO_ID == id && x.EVL_ASSINANTE_ID == assinanteId)
+                .Select(x => x.Id).ToListAsync(cancellationToken);
+
             await _repEventoMembro.DeleteRangeTransactionAsync(escalaIds, cancellationToken);
             await _repEventoArquivo.DeleteRangeTransactionAsync(arquivos.Select(x => x.Id), cancellationToken);
+            await _repEventoLink.DeleteRangeTransactionAsync(linkIds, cancellationToken);
             await _repEvento.DeleteTransactionAsync(id, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await _unitOfWork.CommitAsync(cancellationToken);
@@ -943,6 +952,7 @@ public class EventoController(
     {
         m.EVE_NOME = (m.EVE_NOME ?? string.Empty).Trim();
         m.EVE_CIDADE = (m.EVE_CIDADE ?? string.Empty).Trim();
+        m.EVE_LOCAL = Texto(m.EVE_LOCAL);
         if (m.EVE_ORGANIZADOR_ID == Guid.Empty) m.EVE_ORGANIZADOR_ID = null;
 
         m.EVE_LARGADA_LOCAL = Texto(m.EVE_LARGADA_LOCAL);
@@ -972,6 +982,7 @@ public class EventoController(
         e.EVE_DATA = m.EVE_DATA;
         e.EVE_HORA = m.EVE_HORA;
         e.EVE_CIDADE = m.EVE_CIDADE;
+        e.EVE_LOCAL = m.EVE_LOCAL;
         e.EVE_STATUS = m.EVE_STATUS;
         e.EVE_ORGANIZADOR_ID = m.EVE_ORGANIZADOR_ID;
         e.EVE_LARGADA_LOCAL = m.EVE_LARGADA_LOCAL;
@@ -995,6 +1006,7 @@ public class EventoController(
         EVE_DATA = e.EVE_DATA,
         EVE_HORA = e.EVE_HORA,
         EVE_CIDADE = e.EVE_CIDADE,
+        EVE_LOCAL = e.EVE_LOCAL,
         EVE_STATUS = e.EVE_STATUS,
         EVE_ORGANIZADOR_ID = e.EVE_ORGANIZADOR_ID,
         EVE_LARGADA_LOCAL = e.EVE_LARGADA_LOCAL,
@@ -1009,4 +1021,165 @@ public class EventoController(
         EVE_OBSERVACOES_EQUIPE = e.EVE_OBSERVACOES_EQUIPE,
         EVE_NOTAS_INTERNAS = e.EVE_NOTAS_INTERNAS
     };
+
+    // ===== Link público (tabela filha EVENTOLINKS) =====
+
+    private static EventoLinkItem ParaLinkItem(EventoLink? link) => link is null
+        ? new EventoLinkItem()
+        : new EventoLinkItem
+        {
+            Configurado = true,
+            EVL_ATIVO = link.EVL_ATIVO,
+            EVL_MOSTRAR_EQUIPE = link.EVL_MOSTRAR_EQUIPE,
+            EVL_TOKEN = link.EVL_TOKEN,
+            Codigo = link.EVL_CODIGO
+        };
+
+    /// <summary>Link do evento (do assinante) rastreado, ou nulo.</summary>
+    private Task<EventoLink?> ObterLinkDoEventoAsync(Guid eventoId, Guid assinanteId, CancellationToken cancellationToken) =>
+        _repEventoLink.SelectContext()
+            .FirstOrDefaultAsync(x => x.EVL_EVENTO_ID == eventoId && x.EVL_ASSINANTE_ID == assinanteId, cancellationToken);
+
+    /// <summary>Situação do link público do evento. Sem link: 200 com <c>Configurado = false</c>. Resposta com o código: no-store.</summary>
+    [HttpGet]
+    public async Task<IActionResult> Link(Guid id, CancellationToken cancellationToken)
+    {
+        if (id == Guid.Empty) return BadRequest(MsgIdObrigatorio);
+
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+            var existe = await _repEvento.SelectContext().AsNoTracking()
+                .AnyAsync(x => x.Id == id && x.EVE_ASSINANTE_ID == assinanteId, cancellationToken);
+            if (!existe) return NotFound(MsgNaoEncontrado);
+
+            var link = await _repEventoLink.SelectContext().AsNoTracking()
+                .FirstOrDefaultAsync(x => x.EVL_EVENTO_ID == id && x.EVL_ASSINANTE_ID == assinanteId, cancellationToken);
+
+            Response.Headers.CacheControl = "no-store";
+            return Ok(ParaLinkItem(link));
+        }
+        catch (AssinanteSemVinculoException) { return SemVinculo(); }
+        catch (Exception ex)
+        {
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>
+    /// Sem link, cria (token, código e carimbo novos) com as duas chaves do body; com link, muda só <c>EVL_ATIVO</c> e
+    /// <c>EVL_MOSTRAR_EQUIPE</c> (token, código e carimbo ficam). Desativar pausa; reativar devolve o acesso dentro dos 7 dias.
+    /// </summary>
+    [HttpPut]
+    public async Task<IActionResult> AtualizarLink(Guid id, [FromBody] EventoLinkModel? model, CancellationToken cancellationToken)
+    {
+        if (id == Guid.Empty) return BadRequest(MsgIdObrigatorio);
+        if (model is null) return BadRequest("Informe os dados do link público.");
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+            var existe = await _repEvento.SelectContext().AsNoTracking()
+                .AnyAsync(x => x.Id == id && x.EVE_ASSINANTE_ID == assinanteId, cancellationToken);
+            if (!existe)
+            {
+                await _unitOfWork.RollbackAsync(cancellationToken);
+                return NotFound(MsgNaoEncontrado);
+            }
+
+            var link = await ObterLinkDoEventoAsync(id, assinanteId, cancellationToken);
+            if (link is null)
+            {
+                link = new EventoLink
+                {
+                    EVL_ASSINANTE_ID = assinanteId,
+                    EVL_EVENTO_ID = id,
+                    EVL_TOKEN = LinkPublicoSegredos.GerarToken(),
+                    EVL_CODIGO = LinkPublicoSegredos.GerarCodigo(),
+                    EVL_CARIMBO = LinkPublicoSegredos.GerarCarimbo(),
+                    EVL_ATIVO = model.EVL_ATIVO,
+                    EVL_MOSTRAR_EQUIPE = model.EVL_MOSTRAR_EQUIPE
+                };
+                await _repEventoLink.InsertTransactionAsync(link, cancellationToken);
+                _logger.LogInformation("Link público criado. EventoId {EventoId}, AssinanteId {AssinanteId}.", id, assinanteId);
+            }
+            else
+            {
+                link.EVL_ATIVO = model.EVL_ATIVO;
+                link.EVL_MOSTRAR_EQUIPE = model.EVL_MOSTRAR_EQUIPE;
+            }
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
+
+            Response.Headers.CacheControl = "no-store";
+            return Ok(ParaLinkItem(link));
+        }
+        catch (AssinanteSemVinculoException)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return SemVinculo();
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>Novo código e novo carimbo (derruba os acessos liberados); o token fica. Sem link = 400.</summary>
+    [HttpPost]
+    public Task<IActionResult> RegerarCodigoLink(Guid id, CancellationToken cancellationToken) =>
+        RegerarAsync(id, trocarToken: false, cancellationToken);
+
+    /// <summary>Novo token, código e carimbo (o link antigo deixa de existir). Sem link = 400.</summary>
+    [HttpPost]
+    public Task<IActionResult> RegerarLink(Guid id, CancellationToken cancellationToken) =>
+        RegerarAsync(id, trocarToken: true, cancellationToken);
+
+    private async Task<IActionResult> RegerarAsync(Guid id, bool trocarToken, CancellationToken cancellationToken)
+    {
+        if (id == Guid.Empty) return BadRequest(MsgIdObrigatorio);
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+            var existe = await _repEvento.SelectContext().AsNoTracking()
+                .AnyAsync(x => x.Id == id && x.EVE_ASSINANTE_ID == assinanteId, cancellationToken);
+            if (!existe)
+            {
+                await _unitOfWork.RollbackAsync(cancellationToken);
+                return NotFound(MsgNaoEncontrado);
+            }
+
+            var link = await ObterLinkDoEventoAsync(id, assinanteId, cancellationToken)
+                ?? throw new Exception("Crie o link público primeiro.");
+
+            if (trocarToken) link.EVL_TOKEN = LinkPublicoSegredos.GerarToken();
+            link.EVL_CODIGO = LinkPublicoSegredos.GerarCodigo(link.EVL_CODIGO);
+            link.EVL_CARIMBO = LinkPublicoSegredos.GerarCarimbo();
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
+
+            // Nunca registra token nem código
+            _logger.LogInformation("Link público {Tipo}. EventoId {EventoId}, AssinanteId {AssinanteId}.",
+                trocarToken ? "regerado" : "com novo código", id, assinanteId);
+
+            Response.Headers.CacheControl = "no-store";
+            return Ok(ParaLinkItem(link));
+        }
+        catch (AssinanteSemVinculoException)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return SemVinculo();
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
 }

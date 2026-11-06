@@ -6,5 +6,6 @@ export class EventoResumo {
     EVE_DATA: string;
     EVE_HORA?: string | null;
     EVE_CIDADE: string;
+    EVE_LOCAL?: string | null;
     EVE_STATUS: number;
 }

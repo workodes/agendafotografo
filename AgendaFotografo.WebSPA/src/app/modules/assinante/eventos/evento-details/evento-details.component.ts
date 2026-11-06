@@ -18,10 +18,15 @@ import { Subject, filter, takeUntil } from 'rxjs';
 import { EventoArquivoItem } from 'app/models/DTOs/responses/EventoArquivoItem';
 import { EventoMembroItem } from 'app/models/DTOs/responses/EventoMembroItem';
 import { Opcao } from 'app/models/DTOs/responses/Opcao';
+import { Organizador } from 'app/models/entities/Organizador';
 import { Evento } from 'app/models/entities/Evento';
 import { FUNCAO_MEMBRO_ROTULO } from 'app/models/enums/FuncaoMembro';
 import { STATUS_EVENTO, STATUS_EVENTO_COR, STATUS_EVENTO_ROTULO, StatusEvento } from 'app/models/enums/StatusEvento';
 import { TipoArquivoEvento } from 'app/models/enums/TipoArquivoEvento';
+import { OrganizadorService } from 'app/services/organizador.service';
+import { CustomSearchSelectComponent } from 'app/modules/shared/components/custom-select/custom-select.component';
+import { OpcoesSelect } from 'app/utils/opcoes-select';
+import { OrganizadorDialogComponent } from '../../organizadores/organizador-dialog/organizador-dialog.component';
 import { EventoService } from 'app/services/evento.service';
 import { diaSemana, formatarDataIso, horaDaApi, horaParaApi, parseDataIso } from 'app/utils/data-evento';
 import { textoOutrosEventos } from 'app/utils/escala';
@@ -29,6 +34,7 @@ import { mensagemErro } from 'app/utils/mensagem-erro';
 import { normalizarUrl, urlHttp } from 'app/utils/url-evento';
 import { EscalarMembroDialogComponent, EscalarMembroDialogData } from '../escalar-membro-dialog/escalar-membro-dialog.component';
 import { EventoArquivoComponent } from '../evento-arquivo/evento-arquivo.component';
+import { EventoLinkPublicoComponent } from '../evento-link-publico/evento-link-publico.component';
 
 const ROTA_EVENTOS = '/assinante/eventos';
 const ROTA_AGENDA = '/assinante/agenda';
@@ -51,8 +57,8 @@ const CAMPOS_LINK = [
     imports: [
         CommonModule, RouterModule, ReactiveFormsModule,
         MatButtonModule, MatCheckboxModule, MatDatepickerModule, MatFormFieldModule, MatIconModule, MatInputModule,
-        MatProgressSpinnerModule, MatSelectModule,
-        EventoArquivoComponent,
+        MatProgressSpinnerModule, MatSelectModule, CustomSearchSelectComponent,
+        EventoArquivoComponent, EventoLinkPublicoComponent,
     ],
 })
 export class EventoDetailsComponent implements OnInit, OnDestroy {
@@ -63,6 +69,11 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
     arquivos: EventoArquivoItem[] = [];
     tipos: Opcao[] = [];
     organizadores: Opcao[] = [];
+
+    private _tiposSel = new OpcoesSelect<Opcao>(t => t.Id, t => t.Nome);
+    private _orgsSel = new OpcoesSelect<Opcao>(o => o.Id, o => o.Nome);
+    get tiposOpcoes() { return this._tiposSel.de(this.tipos); }
+    get organizadoresOpcoes() { return this._orgsSel.de(this.organizadores); }
 
     statusLista = STATUS_EVENTO;
     statusRotulo = STATUS_EVENTO_ROTULO;
@@ -100,6 +111,7 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
         private _confirmacao: FuseConfirmationService,
         private _snackBar: MatSnackBar,
         private _dialog: MatDialog,
+        private _organizadorService: OrganizadorService,
         private _title: Title,
     ) { }
 
@@ -133,6 +145,7 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
             EVE_HORA: [''],
             EVE_HORA_A_CONFIRMAR: [true],
             EVE_CIDADE: ['', [Validators.required, Validators.maxLength(100)]],
+            EVE_LOCAL: ['', [Validators.maxLength(200)]],
             EVE_STATUS: [StatusEvento.Pendente as number, [Validators.required]],
             EVE_ORGANIZADOR_ID: [null as string | null],
             EVE_LARGADA_LOCAL: ['', [Validators.maxLength(300)]],
@@ -169,6 +182,24 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
         this._destroy$.complete();
     }
 
+    // Cadastra um organizador num diálogo, sem sair (nem perder o que foi digitado) do evento.
+    novoOrganizador(): void {
+        this._dialog.open(OrganizadorDialogComponent, { width: '640px', maxWidth: '95vw', autoFocus: 'first-tabbable' })
+            .afterClosed().pipe(filter((o): o is Organizador => !!o?.Id)).subscribe(novo => {
+                this._organizadorService.Opcoes(true, novo.Id).subscribe({
+                    next: opcoes => {
+                        this.organizadores = opcoes;
+                        this.form.get('EVE_ORGANIZADOR_ID')!.setValue(novo.Id!);
+                    },
+                    error: () => {
+                        // Falhou o recarregamento: ao menos deixa o novo na lista.
+                        this.organizadores = [...this.organizadores, { Id: novo.Id!, Nome: novo.ORG_NOME } as Opcao];
+                        this.form.get('EVE_ORGANIZADOR_ID')!.setValue(novo.Id!);
+                    },
+                });
+            });
+    }
+
     // ---- Evento ----
 
     salvar(): void {
@@ -190,6 +221,7 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
             // Sempre com segundos ("HH:mm:ss"); "a confirmar" vai como null.
             EVE_HORA: v.EVE_HORA_A_CONFIRMAR ? null : horaParaApi(v.EVE_HORA),
             EVE_CIDADE: (v.EVE_CIDADE ?? '').trim(),
+            EVE_LOCAL: (v.EVE_LOCAL ?? '').trim() || null,
             EVE_STATUS: v.EVE_STATUS,
             EVE_ORGANIZADOR_ID: v.EVE_ORGANIZADOR_ID || null,
             EVE_LARGADA_LOCAL: null, EVE_LARGADA_LINK: null, EVE_CHEGADA_LOCAL: null, EVE_CHEGADA_LINK: null,
@@ -409,6 +441,7 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
             EVE_HORA: horaDaApi(e?.EVE_HORA),
             EVE_HORA_A_CONFIRMAR: !e?.EVE_HORA,
             EVE_CIDADE: e?.EVE_CIDADE ?? '',
+            EVE_LOCAL: e?.EVE_LOCAL ?? '',
             EVE_STATUS: e?.EVE_STATUS ?? StatusEvento.Pendente,
             EVE_ORGANIZADOR_ID: e?.EVE_ORGANIZADOR_ID ?? null,
             EVE_LARGADA_LOCAL: e?.EVE_LARGADA_LOCAL ?? '',

@@ -1,0 +1,48 @@
+<h2 mat-dialog-title class="text-accent font-bold">Novo organizador</h2>
+<mat-dialog-content>
+    <form id="form-organizador-dialog" class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 pt-2" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
+            <mat-label>Nome</mat-label>
+            <input matInput formControlName="ORG_NOME" maxlength="200" autocomplete="off">
+            <mat-error>{{ erro('ORG_NOME') }}</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+            <mat-label>Contato (pessoa)</mat-label>
+            <input matInput formControlName="ORG_CONTATO" maxlength="150" autocomplete="off">
+            <mat-error>{{ erro('ORG_CONTATO') }}</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+            <mat-label>Telefone</mat-label>
+            <input matInput formControlName="ORG_TELEFONE" mask="(00) 0000-0000||(00) 00000-0000" inputmode="tel" autocomplete="off">
+            <mat-error>{{ erro('ORG_TELEFONE') }}</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+            <mat-label>E-mail</mat-label>
+            <input matInput formControlName="ORG_EMAIL" type="email" maxlength="200" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false">
+            <mat-error>{{ erro('ORG_EMAIL') }}</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+            <mat-label>Instagram</mat-label>
+            <span matTextPrefix class="text-secondary">&#64;</span>
+            <input matInput formControlName="ORG_INSTAGRAM" autocomplete="off" autocapitalize="none" spellcheck="false">
+            <mat-error>{{ erro('ORG_INSTAGRAM') }}</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
+            <mat-label>Notas</mat-label>
+            <textarea matInput formControlName="ORG_NOTAS" rows="3" maxlength="2000"></textarea>
+            <mat-error>{{ erro('ORG_NOTAS') }}</mat-error>
+        </mat-form-field>
+    </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+    <button mat-button type="button" [disabled]="salvando" (click)="fechar()">Cancelar</button>
+    <button mat-flat-button color="primary" type="submit" form="form-organizador-dialog" [disabled]="salvando">
+        <mat-progress-spinner *ngIf="salvando" diameter="20" mode="indeterminate"></mat-progress-spinner>
+        <span *ngIf="!salvando">Salvar</span>
+    </button>
+</mat-dialog-actions>

@@ -112,6 +112,10 @@ namespace AgendaFotografo.Infra.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)");
 
+                    b.Property<string>("EVE_LOCAL")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
                     b.Property<string>("EVE_NOME")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -205,6 +209,58 @@ namespace AgendaFotografo.Infra.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("EVENTOARQUIVOS", (string)null);
+                });
+
+            modelBuilder.Entity("AgendaFotografo.Domain.Entities.EventoLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("EVL_ASSINANTE_ID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("EVL_ATIVO")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("EVL_CARIMBO")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<string>("EVL_CODIGO")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("varchar(4)");
+
+                    b.Property<Guid>("EVL_EVENTO_ID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("EVL_MOSTRAR_EQUIPE")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("EVL_TOKEN")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EVL_ASSINANTE_ID");
+
+                    b.HasIndex("EVL_EVENTO_ID")
+                        .IsUnique();
+
+                    b.HasIndex("EVL_TOKEN")
+                        .IsUnique();
+
+                    b.ToTable("EVENTOLINKS", (string)null);
                 });
 
             modelBuilder.Entity("AgendaFotografo.Domain.Entities.EventoMembro", b =>
@@ -630,6 +686,25 @@ namespace AgendaFotografo.Infra.Data.Migrations
                     b.HasOne("AgendaFotografo.Domain.Entities.Evento", "Evento")
                         .WithMany()
                         .HasForeignKey("EVA_EVENTO_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Assinante");
+
+                    b.Navigation("Evento");
+                });
+
+            modelBuilder.Entity("AgendaFotografo.Domain.Entities.EventoLink", b =>
+                {
+                    b.HasOne("AgendaFotografo.Domain.Entities.Assinante", "Assinante")
+                        .WithMany()
+                        .HasForeignKey("EVL_ASSINANTE_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AgendaFotografo.Domain.Entities.Evento", "Evento")
+                        .WithMany()
+                        .HasForeignKey("EVL_EVENTO_ID")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 

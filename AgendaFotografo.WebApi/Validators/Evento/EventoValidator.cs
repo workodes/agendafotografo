@@ -27,6 +27,8 @@ public class EventoValidator : AbstractValidator<EventoModel>
         RuleFor(x => x.EVE_CIDADE).NotEmpty().WithMessage("Cidade é obrigatória")
             .MaximumLength(100).WithMessage("Cidade deve ter no máximo 100 caracteres");
 
+        RuleFor(x => x.EVE_LOCAL).MaximumLength(200).WithMessage("Local deve ter no máximo 200 caracteres");
+
         RuleFor(x => x.EVE_STATUS).Must(s => Enum.IsDefined(s)).WithMessage("Status é obrigatório");
 
         RuleFor(x => x.EVE_LARGADA_LOCAL!).MaximumLength(300).WithMessage("Local da largada deve ter no máximo 300 caracteres")

@@ -68,5 +68,15 @@ export const environment = {
         enviarArquivo: `${baseUrl}/Evento/EnviarArquivo`,
         baixarArquivo: `${baseUrl}/Evento/BaixarArquivo`,
         excluirArquivo: `${baseUrl}/Evento/ExcluirArquivo`,
+        link: `${baseUrl}/Evento/Link`,
+        atualizarLink: `${baseUrl}/Evento/AtualizarLink`,
+        regerarCodigoLink: `${baseUrl}/Evento/RegerarCodigoLink`,
+        regerarLink: `${baseUrl}/Evento/RegerarLink`,
+    },
+
+    LinkPublico: {
+        acessar: `${baseUrl}/LinkPublico/Acessar`,
+        evento: `${baseUrl}/LinkPublico/Evento`,
+        arquivo: `${baseUrl}/LinkPublico/Arquivo`,
     },
 };

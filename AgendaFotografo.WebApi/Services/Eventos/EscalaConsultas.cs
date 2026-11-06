@@ -47,6 +47,7 @@ public class EscalaConsultas(
                     EVE_DATA = x.Evento.EVE_DATA,
                     EVE_HORA = x.Evento.EVE_HORA,
                     EVE_CIDADE = x.Evento.EVE_CIDADE,
+                    EVE_LOCAL = x.Evento.EVE_LOCAL,
                     EVE_STATUS = x.Evento.EVE_STATUS
                 }
             })
@@ -137,6 +138,7 @@ public class EscalaConsultas(
                 TipoEventoNome = x.TipoEvento!.TPE_NOME,
                 EVE_HORA = x.EVE_HORA,
                 EVE_CIDADE = x.EVE_CIDADE,
+                EVE_LOCAL = x.EVE_LOCAL,
                 EVE_STATUS = x.EVE_STATUS,
                 EVE_ORGANIZADOR_ID = x.EVE_ORGANIZADOR_ID,
                 OrganizadorNome = x.Organizador != null ? x.Organizador.ORG_NOME : null
@@ -199,6 +201,7 @@ public class EscalaConsultas(
             EVE_DATA = data,
             EVE_HORA = e.EVE_HORA,
             EVE_CIDADE = e.EVE_CIDADE,
+            EVE_LOCAL = e.EVE_LOCAL,
             EVE_STATUS = e.EVE_STATUS
         });
         var ordemEvento = eventos.Select((e, i) => (e.Id, i)).ToDictionary(x => x.Id, x => x.i);

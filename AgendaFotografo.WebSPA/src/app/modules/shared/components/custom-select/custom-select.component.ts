@@ -15,6 +15,9 @@ import { MatOptionSelectionChange } from '@angular/material/core';
     template: `
         <mat-form-field
             class="w-full"
+            [class.fuse-mat-rounded]="dense()"
+            [class.fuse-mat-dense]="dense()"
+            [floatLabel]="floatLabelAlways() ? 'always' : 'auto'"
             [appearance]="outline() ? 'outline' : 'fill'"
         >
             @if(label()) {
@@ -27,7 +30,9 @@ import { MatOptionSelectionChange } from '@angular/material/core';
             </mat-hint>
             }
             
-            <mat-icon matPrefix>list</mat-icon>
+            @if(enableIcon()) {
+                <mat-icon matPrefix>list</mat-icon>
+            }
 
             <!-- NÃO adicione [formControl] aqui: o CVA já controla o valor via [value]="mappedValue"
                  (que traduz null pro emptySentinel abaixo). Um [formControl] direto no mat-select usa
@@ -101,6 +106,10 @@ export class CustomSearchSelectComponent implements ControlValueAccessor, DoChec
     readonly multiple = input(false);
     readonly enableIcon = input(false);
     readonly outline = input(false);
+    // Visual das telas do projeto: aplica fuse-mat-rounded + fuse-mat-dense no mat-form-field interno.
+    readonly dense = input(false);
+    // Rótulo sempre flutuando (floatLabel="always"), como nos demais campos das telas.
+    readonly floatLabelAlways = input(false);
     readonly onSelectOption = output<{
         event: MatOptionSelectionChange;
         value: string;

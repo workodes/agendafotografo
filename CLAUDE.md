@@ -64,7 +64,7 @@ Passo a passo e pontos de atenção em `docs/deploy.md`. Endpoint ou arquivo nov
 - **JSON**: `PropertyNamingPolicy = null` (nomes C# exatos no JSON), `ReferenceHandler.IgnoreCycles`. Renomear propriedade quebra o front.
 - **Enums**: valores numéricos fazem parte do contrato com o front; manter sincronia back↔front.
 - **Senha**: única regra é o mínimo de 8 caracteres (validator + Identity). `Usuario.ExigirTrocaSenha` força a troca no SPA.
-- **Endpoints anônimos** (previstos para o link público `/e/{token}`): `[AllowAnonymous]` na action, código de 4 dígitos, 5 erros bloqueiam 15 min por aparelho, acesso liberado por 7 dias. Quando o módulo entrar, acrescentar `ForwardedHeaders` (IP real atrás de proxy) no `Program.cs`. Nunca expor notas internas, pendências ou dados do organizador.
+- **Endpoints anônimos** (link público `/e/{token}`, `api/LinkPublico/*`, módulo 5 pronto): `[AllowAnonymous]` na action, código de 4 dígitos, 5 erros bloqueiam 15 min por aparelho, acesso liberado por 7 dias. `ForwardedHeaders` (IP real atrás de proxy) já está no `Program.cs`, configurado por `ForwardedHeaders:KnownProxies` e `ForwardedHeaders:KnownIPNetworks` (no compose: `ForwardedHeaders__KnownIPNetworks__0`, variável `AGENDA_REDE_CONFIAVEL`; confirmar a faixa real do Dokploy, ver `docs/deploy.md`). Contadores de tentativas ficam em memória: **uma só instância da API**. Nunca expor notas internas, pendências ou dados do organizador.
 - **Configuração** (`appsettings.json` da WebApi, convenção da equipe): `ConnectionStrings:DefaultConection` (grafia mantida; traz a senha), `Jwt` (`Key`, `ExpiraEmHoras`), `MailSettings` (`Mail`, `DisplayName`, `Password`, `Host`, `Port`), `Seed:AdminPassword` (opcional; vazio usa `Seed.SenhaPadraoAdmin`), `Cors:Origins`. Sobrescritas opcionais: `Db:Password`, `Jwt:Key`, `Seed:AdminPassword`, `Cors:Origins` por User Secrets (Development) ou variáveis de ambiente (`Db__Password` etc.).
 - **Arquivos** (flyer, imagem de rota, GPX): **disco**, atrás de `IArquivoStorage` (CrossCutting; o Blob pode entrar depois sem mexer nos controllers), numa pasta fora do `wwwroot` (`Arquivos:Pasta`; vazio = `<ContentRoot>/App_Data/arquivos`, ignorada pelo git e fora do publish). Imagens JPG/PNG/WEBP até 5 MB, GPX até 10 MB; detalhes no `CLAUDE.md` da WebApi.
 
@@ -78,7 +78,7 @@ Passo a passo e pontos de atenção em `docs/deploy.md`. Endpoint ou arquivo nov
 2. Eventos (cadastro completo, rota, arquivos): **pronto** (`docs/planos/03 - Eventos e Escala da equipe.md`; `EventoController` e tela Eventos no SPA)
 3. Escala da equipe + Visão do dia + conflitos/livres: **pronto** (mesmo plano 03; actions do `EventoController` e tela Visão do dia no SPA)
 4. Agenda (lista + calendário): **pronto** (`docs/planos/04 - Agenda.md`; actions `Agenda` e `Cidades` do `EventoController` e tela Agenda no SPA, que substituiu a lista "Eventos")
-5. Link público
+5. Link público: **pronto** (`docs/planos/05 - Link publico.md`; `EventoLink`/`EVENTOLINKS`, 4 actions no `EventoController`, `LinkPublicoController` anônimo e página `/e/:token` no SPA)
 6. Pendências
 7. Recorrência
 8. Painel + e-mail de lembretes
@@ -91,4 +91,4 @@ Nomes de tabela/entidade/controller sugeridos: ver `AgendaFotografo.WebApi/CLAUD
 
 ## Subagents
 `fartec:backend` (API), `fartec:frontend` (SPA), `fartec:engenheiro` (planos), `fartec:revisor`, `fartec:testador`.
-Somente o colaborador faz commit/branch/worktree. A base da API e a do SPA (ambas alinhadas ao Portal, com o contrato de Auth novo) estão prontas, assim como os planos 01 (Assinantes), 02 (módulo 1), 03 (módulos 2 e 3) e 04 (módulo 4, Agenda); o próximo é o módulo 5, Link público (`fartec:engenheiro`).
+Somente o colaborador faz commit/branch/worktree. A base da API e a do SPA (ambas alinhadas ao Portal, com o contrato de Auth novo) estão prontas, assim como os planos 01 (Assinantes), 02 (módulo 1), 03 (módulos 2 e 3) e 04 (módulo 4, Agenda); o plano 05 (Link público) está construído (aguarda revisão e testes); o próximo módulo é o 6, Pendências (`fartec:engenheiro`).

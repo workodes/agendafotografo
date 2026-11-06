@@ -16,6 +16,7 @@ public class EventoMap : BaseMap<Evento>
         builder.Property(x => x.EVE_DATA).IsRequired().HasColumnType("date");
         builder.Property(x => x.EVE_HORA).HasColumnType("time"); // nulo = "a confirmar"
         builder.Property(x => x.EVE_CIDADE).IsRequired().HasMaxLength(100);
+        builder.Property(x => x.EVE_LOCAL).HasMaxLength(200);
         builder.Property(x => x.EVE_STATUS).IsRequired().HasConversion<int>();
         builder.Property(x => x.EVE_ORGANIZADOR_ID);
         builder.Property(x => x.EVE_LARGADA_LOCAL).HasMaxLength(300);
