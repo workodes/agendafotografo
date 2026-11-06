@@ -33,6 +33,12 @@ public class DiaEventoItem
 
     /// <summary>Escala do evento, por nome do membro.</summary>
     public List<DiaEquipeItem> Equipe { get; set; } = [];
+
+    /// <summary>Pendências em A fazer ou Em andamento (0 se o evento é Cancelado).</summary>
+    public int PendenciasAbertas { get; set; }
+
+    /// <summary>Pendências que não estão Ignoradas, todas as categorias (0 se o evento é Cancelado). Feitas = Total - Abertas.</summary>
+    public int PendenciasTotal { get; set; }
 }
 
 public class DiaEquipeItem

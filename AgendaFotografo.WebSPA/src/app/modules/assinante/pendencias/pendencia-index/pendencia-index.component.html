@@ -1,118 +1,196 @@
 <!-- Prazo com selo (a regra de vencida/vencendo vem da API) -->
 <ng-template #prazoSelo let-p>
-    <span class="inline-flex flex-wrap items-center gap-1.5" [class.opacity-60]="p.EVP_STATUS === concluida">
+    <span class="inline-flex flex-wrap items-center gap-1.5" [class.opacity-60]="esmaecida(p)">
         <span class="whitespace-nowrap" [class.text-secondary]="!p.EVP_PRAZO">{{ formatarPrazo(p.EVP_PRAZO) }}</span>
         <span *ngIf="p.Vencida" class="leading-none rounded-full px-2 py-1 text-xs font-semibold bg-red-100 text-red-800">Vencida</span>
         <span *ngIf="p.Vencendo" class="leading-none rounded-full px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800">Vencendo</span>
     </span>
 </ng-template>
 
-<div class="absolute inset-0 flex flex-col min-w-0 overflow-hidden bg-white" appFecharComEsc (esc)="aoEsc()">
-    <!-- Cabeçalho: título e filtros -->
-    <div class="flex items-center justify-between gap-3 px-4 sm:px-6 md:px-8 py-3 sm:py-4 border-b shrink-0">
-        <div class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">Pendências</div>
-        <app-filtro-botao [ativo]="filtrosAtivos" (clicado)="abrirFiltros()"></app-filtro-botao>
+<!-- Barra da lista (desenho do cabeçalho da lista do mailbox): abrir a lateral (abaixo de lg), nome do filtro, faixa e carregamento -->
+<ng-template #barraLista>
+    <div class="shrink-0">
+        <div class="flex items-center gap-2 min-h-12 px-3 sm:px-4 bg-gray-50 border-b">
+            <button *ngIf="!ehLg" mat-icon-button type="button" aria-label="Abrir os filtros rápidos" (click)="alternarMenu()">
+                <mat-icon svgIcon="heroicons_outline:bars-3"></mat-icon>
+            </button>
+            <div class="flex-auto min-w-0 truncate text-sm font-semibold uppercase tracking-wide">{{ nomeFiltro }}</div>
+            <div class="shrink-0 text-xs text-secondary">{{ faixa }}</div>
+        </div>
+        <div class="h-1"><mat-progress-bar *ngIf="loading" mode="indeterminate"></mat-progress-bar></div>
     </div>
+</ng-template>
 
-    <div class="flex-auto min-h-0 overflow-y-auto overflow-x-hidden" [attr.aria-busy]="loading">
-        <div *ngIf="loading" class="flex items-center justify-center py-2">
-            <mat-progress-spinner diameter="24" mode="indeterminate"></mat-progress-spinner>
+<!-- Estado vazio (visual do mailbox: ícone grande e texto secundário) -->
+<ng-template #vazio>
+    <div class="flex flex-col items-center gap-3 py-12 px-4 text-center">
+        <mat-icon class="icon-size-14 text-hint" svgIcon="heroicons_outline:clipboard-document-check"></mat-icon>
+        <div class="text-lg text-secondary">{{ mensagemVazia }}</div>
+    </div>
+</ng-template>
+
+<!-- Falha ao carregar -->
+<ng-template #erro>
+    <div role="alert" class="flex flex-col items-center gap-3 px-4 py-8 text-center">
+        <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
+        <div class="text-lg text-secondary">Não foi possível carregar as pendências.</div>
+        <button mat-stroked-button type="button" (click)="recarregar()">Tentar de novo</button>
+    </div>
+</ng-template>
+
+<div class="absolute inset-0 flex flex-col min-w-0 overflow-hidden bg-white" appFecharComEsc (esc)="aoEsc()">
+    <!-- Cabeçalho: título com contador, Lista | Quadro e filtros -->
+    <app-pagina-cabecalho titulo="Pendências" [contador]="visao === 'lista' && !erroCarga ? totalCount : null">
+        <div class="flex items-center gap-2 shrink-0">
+            <mat-button-toggle-group class="fuse-mat-dense" [value]="visao" (change)="mudarVisao($event.value)" aria-label="Visão">
+                <mat-button-toggle value="lista" aria-label="Lista" title="Lista">
+                    <mat-icon class="icon-size-5" svgIcon="heroicons_outline:list-bullet"></mat-icon>
+                    <span class="hidden sm:inline ml-1">Lista</span>
+                </mat-button-toggle>
+                <mat-button-toggle value="quadro" aria-label="Quadro" title="Quadro">
+                    <mat-icon class="icon-size-5" svgIcon="heroicons_outline:view-columns"></mat-icon>
+                    <span class="hidden sm:inline ml-1">Quadro</span>
+                </mat-button-toggle>
+            </mat-button-toggle-group>
+            <app-filtro-botao [ativo]="filtrosAtivos" (clicado)="abrirFiltros()"></app-filtro-botao>
         </div>
+    </app-pagina-cabecalho>
 
-        <!-- Falha ao carregar -->
-        <div *ngIf="erroCarga && !loading" role="alert" class="flex flex-col items-center gap-3 px-4 py-8 text-center">
-            <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
-            <div class="text-lg text-secondary">Não foi possível carregar as pendências.</div>
-            <button mat-stroked-button type="button" (click)="recarregar()">Tentar de novo</button>
-        </div>
+    <mat-drawer-container class="flex-auto min-h-0 bg-white" (backdropClick)="menuAberto = false">
+        <!-- Lateral de filtros rápidos: fixa a partir de lg, gaveta abaixo; escondida no Quadro -->
+        <mat-drawer class="w-64 max-w-[85vw]" [mode]="ehLg ? 'side' : 'over'" [opened]="sidebarAberta" [autoFocus]="false"
+            (closedStart)="menuAberto = false">
+            <app-pendencia-sidebar [contagem]="contagem" [atual]="chaveRapida" (selecionar)="escolherRapido($event)"></app-pendencia-sidebar>
+        </mat-drawer>
 
-        <div *ngIf="!erroCarga" class="flex flex-col gap-3 w-full px-4 sm:px-6 md:px-8 py-4 transition-opacity" [class.opacity-60]="loading">
-            <div *ngIf="!loading && pendencias.length === 0" class="flex flex-col items-center gap-3 py-8 text-center">
-                <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:clipboard-document-check"></mat-icon>
-                <div class="text-lg text-secondary">{{ mensagemVazia }}</div>
+        <mat-drawer-content class="flex flex-col bg-white">
+            <!-- ===== Quadro ===== -->
+            <div *ngIf="visao === 'quadro'" class="flex-auto min-h-0 overflow-y-auto overflow-x-hidden">
+                <app-pendencia-quadro [prioridade]="prioridade" [membroId]="membroId"></app-pendencia-quadro>
             </div>
 
-            <!-- Celular: cartões -->
-            <div *ngIf="pendencias.length" class="grid grid-cols-1 gap-3 md:hidden">
-                <div *ngFor="let p of pendencias; trackBy: trackPendencia" role="button" tabindex="0"
-                    class="flex flex-col gap-1.5 p-3 rounded-lg border bg-white cursor-pointer hover:shadow-md transition-shadow min-w-0"
-                    (click)="abrir(p)" (keydown.enter)="abrir(p)">
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="font-semibold break-words min-w-0" [class.line-through]="p.EVP_STATUS === concluida" [class.opacity-60]="p.EVP_STATUS === concluida">{{ p.EVP_TITULO }}</div>
-                        <app-pendencia-status-chip [item]="p" (alterado)="recarregar()"></app-pendencia-status-chip>
+            <!-- ===== Lista, a partir de lg: lista compacta + detalhe ===== -->
+            <div *ngIf="visao === 'lista' && ehLg" class="flex flex-auto min-h-0">
+                <div class="flex flex-col w-[380px] shrink-0 min-h-0 border-r">
+                    <ng-container *ngTemplateOutlet="barraLista"></ng-container>
+                    <div class="flex-auto min-h-0 overflow-y-auto overflow-x-hidden" [attr.aria-busy]="loading">
+                        <ng-container *ngIf="erroCarga && !loading"><ng-container *ngTemplateOutlet="erro"></ng-container></ng-container>
+                        <ng-container *ngIf="!erroCarga">
+                            <ng-container *ngIf="!loading && pendencias.length === 0"><ng-container *ngTemplateOutlet="vazio"></ng-container></ng-container>
+                            <div class="transition-opacity" [class.opacity-60]="loading">
+                                <app-pendencia-linha *ngFor="let p of pendencias; trackBy: trackPendencia" [item]="p" [selecionada]="selecionada?.Id === p.Id"
+                                    (abrir)="abrir($event)" (evento)="abrirEvento($event.item, $event.event)" (alterado)="aoAlterarItem($event)"></app-pendencia-linha>
+                            </div>
+                        </ng-container>
                     </div>
-                    <div class="text-sm text-secondary break-words">
-                        <span role="link" tabindex="0" class="underline cursor-pointer"
-                            (click)="abrirEvento(p, $event)" (auxclick)="abrirEvento(p, $event)" (keydown.enter)="abrirEvento(p); $event.stopPropagation()">{{ p.EVE_NOME }}</span>
-                        · {{ formatarDataComDiaSemana(p.EVE_DATA) }}
-                    </div>
-                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-                        <ng-container *ngTemplateOutlet="prazoSelo; context: { $implicit: p }"></ng-container>
-                        <span class="leading-none rounded-full px-2.5 py-1 text-xs font-semibold" [ngClass]="prioridadeCor[p.EVP_PRIORIDADE]">{{ prioridadeRotulo[p.EVP_PRIORIDADE] }}</span>
-                        <span *ngIf="p.EVP_MEMBRO_ID" class="text-secondary break-words">{{ p.MEM_NOME }}<span *ngIf="p.MEM_ATIVO === false"> (inativo)</span></span>
-                    </div>
+                    <mat-paginator *ngIf="totalCount > 0" class="shrink-0 border-t" [length]="totalCount" [pageIndex]="page" [pageSize]="pageSize"
+                        [pageSizeOptions]="[pageSize]" hidePageSize (page)="onPage($event)">
+                    </mat-paginator>
+                </div>
+
+                <div class="flex flex-auto min-w-0 min-h-0">
+                    <app-pendencia-detalhe *ngIf="selecionada; else semSelecao" [pendencia]="selecionada"
+                        (concluido)="aoConcluirDetalhe($event)" (fechar)="fecharDetalhe()"></app-pendencia-detalhe>
+                    <ng-template #semSelecao>
+                        <div class="flex flex-col items-center justify-center gap-3 w-full px-4 text-center">
+                            <mat-icon class="icon-size-14 text-hint" svgIcon="heroicons_outline:clipboard-document-list"></mat-icon>
+                            <div class="text-lg text-secondary">Selecione uma pendência</div>
+                        </div>
+                    </ng-template>
                 </div>
             </div>
 
-            <!-- md+: tabela -->
-            <div *ngIf="pendencias.length" class="hidden md:block rounded-lg border overflow-hidden">
-                <table class="w-full table-fixed text-sm">
-                    <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-secondary">
-                        <tr>
-                            <th class="w-36 px-3 py-2">Prazo</th>
-                            <th class="px-3 py-2">Pendência</th>
-                            <th class="px-3 py-2">Evento</th>
-                            <th class="w-40 px-3 py-2">Responsável</th>
-                            <th class="w-28 px-3 py-2">Prioridade</th>
-                            <th class="w-40 px-3 py-2">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr *ngFor="let p of pendencias; trackBy: trackPendencia" role="button" tabindex="0"
-                            class="border-t cursor-pointer bg-white hover:bg-gray-100 focus-visible:outline focus-visible:outline-2"
-                            (click)="abrir(p)" (keydown.enter)="abrir(p)">
-                            <td class="px-3 py-2"><ng-container *ngTemplateOutlet="prazoSelo; context: { $implicit: p }"></ng-container></td>
-                            <td class="px-3 py-2" [class.opacity-60]="p.EVP_STATUS === concluida">
-                                <div class="truncate font-semibold" [class.line-through]="p.EVP_STATUS === concluida" [attr.title]="p.EVP_TITULO">{{ p.EVP_TITULO }}</div>
-                                <div class="truncate text-xs text-secondary">{{ categoriaRotulo[p.EVP_CATEGORIA] }}</div>
-                            </td>
-                            <td class="px-3 py-2">
-                                <div class="truncate">
-                                    <span role="link" tabindex="0" class="underline cursor-pointer" [attr.title]="p.EVE_NOME"
-                                        (click)="abrirEvento(p, $event)" (auxclick)="abrirEvento(p, $event)" (keydown.enter)="abrirEvento(p); $event.stopPropagation()">{{ p.EVE_NOME }}</span>
-                                </div>
-                                <div class="truncate text-xs text-secondary">{{ formatarDataComDiaSemana(p.EVE_DATA) }}</div>
-                            </td>
-                            <td class="px-3 py-2">
-                                <div class="truncate" [class.text-secondary]="!p.EVP_MEMBRO_ID"
-                                    [attr.title]="p.EVP_MEMBRO_ID ? p.MEM_NOME + (p.MEM_ATIVO === false ? ' (inativo)' : '') : ''">
-                                    <ng-container *ngIf="p.EVP_MEMBRO_ID; else semResponsavel">{{ p.MEM_NOME }}<span *ngIf="p.MEM_ATIVO === false" class="text-secondary"> (inativo)</span></ng-container>
-                                    <ng-template #semResponsavel>—</ng-template>
-                                </div>
-                            </td>
-                            <td class="px-3 py-2">
-                                <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center" [ngClass]="prioridadeCor[p.EVP_PRIORIDADE]">{{ prioridadeRotulo[p.EVP_PRIORIDADE] }}</span>
-                            </td>
-                            <td class="px-3 py-2"><app-pendencia-status-chip [item]="p" (alterado)="recarregar()"></app-pendencia-status-chip></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <!-- ===== Lista abaixo de lg: cartões (< md) ou tabela (md a lg); o clique abre o modal ===== -->
+            <div *ngIf="visao === 'lista' && !ehLg" class="flex flex-col flex-auto min-h-0">
+                <ng-container *ngTemplateOutlet="barraLista"></ng-container>
+                <div class="flex-auto min-h-0 overflow-y-auto overflow-x-hidden" [attr.aria-busy]="loading">
+                    <ng-container *ngIf="erroCarga && !loading"><ng-container *ngTemplateOutlet="erro"></ng-container></ng-container>
 
-            <mat-paginator *ngIf="totalCount > 0" [length]="totalCount" [pageIndex]="page" [pageSize]="pageSize"
-                [pageSizeOptions]="[10, 25, 50, 100]" (page)="onPage($event)" showFirstLastButtons>
-            </mat-paginator>
-        </div>
-    </div>
+                    <div *ngIf="!erroCarga" class="flex flex-col gap-3 w-full px-3 sm:px-6 md:px-8 py-4 transition-opacity" [class.opacity-60]="loading">
+                        <ng-container *ngIf="!loading && pendencias.length === 0"><ng-container *ngTemplateOutlet="vazio"></ng-container></ng-container>
+
+                        <!-- Celular: cartões -->
+                        <div *ngIf="pendencias.length && !ehMd" class="grid grid-cols-1 gap-3">
+                            <div *ngFor="let p of pendencias; trackBy: trackPendencia" role="button" tabindex="0"
+                                class="flex items-start gap-2 p-3 rounded-lg border bg-white cursor-pointer hover:shadow-md transition-shadow min-w-0"
+                                (click)="abrir(p)" (keydown.enter)="abrir(p)">
+                                <div class="pt-1 pl-1"><app-pendencia-check [item]="p"></app-pendencia-check></div>
+                                <div class="flex flex-col gap-1.5 flex-auto min-w-0">
+                                    <div class="flex items-start justify-between gap-2">
+                                        <div class="font-semibold break-words min-w-0" [class.line-through]="p.EVP_STATUS === concluida" [class.opacity-60]="esmaecida(p)">{{ p.EVP_TITULO }}</div>
+                                        <app-pendencia-status-chip [item]="p"></app-pendencia-status-chip>
+                                    </div>
+                                    <div class="text-sm text-secondary break-words">
+                                        <span role="link" tabindex="0" class="underline cursor-pointer"
+                                            (click)="abrirEvento(p, $event)" (auxclick)="abrirEvento(p, $event)" (keydown.enter)="abrirEvento(p); $event.stopPropagation()">{{ p.EVE_NOME }}</span>
+                                        · {{ formatarDataComDiaSemana(p.EVE_DATA) }}
+                                    </div>
+                                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                                        <ng-container *ngTemplateOutlet="prazoSelo; context: { $implicit: p }"></ng-container>
+                                        <span class="leading-none rounded-full px-2.5 py-1 text-xs font-semibold" [ngClass]="prioridadeCor[p.EVP_PRIORIDADE]">{{ prioridadeRotulo[p.EVP_PRIORIDADE] }}</span>
+                                        <span *ngIf="p.EVP_MEMBRO_ID" class="text-secondary break-words">{{ p.MEM_NOME }}<span *ngIf="p.MEM_ATIVO === false"> (inativo)</span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- md a lg: tabela -->
+                        <div *ngIf="pendencias.length && ehMd" class="rounded-lg border overflow-hidden">
+                            <table class="w-full table-fixed text-sm">
+                                <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-secondary">
+                                    <tr>
+                                        <th class="w-12 px-2 py-2"><span class="sr-only">Concluir</span></th>
+                                        <th class="w-36 px-3 py-2">Prazo</th>
+                                        <th class="px-3 py-2">Pendência</th>
+                                        <th class="px-3 py-2">Evento</th>
+                                        <th class="w-40 px-3 py-2">Responsável</th>
+                                        <th class="w-28 px-3 py-2">Prioridade</th>
+                                        <th class="w-40 px-3 py-2">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let p of pendencias; trackBy: trackPendencia" role="button" tabindex="0"
+                                        class="border-t cursor-pointer bg-white hover:bg-gray-100 focus-visible:outline focus-visible:outline-2"
+                                        (click)="abrir(p)" (keydown.enter)="abrir(p)">
+                                        <td class="px-2 py-2"><app-pendencia-check [item]="p"></app-pendencia-check></td>
+                                        <td class="px-3 py-2"><ng-container *ngTemplateOutlet="prazoSelo; context: { $implicit: p }"></ng-container></td>
+                                        <td class="px-3 py-2" [class.opacity-60]="esmaecida(p)">
+                                            <div class="truncate font-semibold" [class.line-through]="p.EVP_STATUS === concluida" [attr.title]="p.EVP_TITULO">{{ p.EVP_TITULO }}</div>
+                                            <div class="truncate text-xs text-secondary">{{ categoriaRotulo[p.EVP_CATEGORIA] }}</div>
+                                        </td>
+                                        <td class="px-3 py-2">
+                                            <div class="truncate">
+                                                <span role="link" tabindex="0" class="underline cursor-pointer" [attr.title]="p.EVE_NOME"
+                                                    (click)="abrirEvento(p, $event)" (auxclick)="abrirEvento(p, $event)" (keydown.enter)="abrirEvento(p); $event.stopPropagation()">{{ p.EVE_NOME }}</span>
+                                            </div>
+                                            <div class="truncate text-xs text-secondary">{{ formatarDataComDiaSemana(p.EVE_DATA) }}</div>
+                                        </td>
+                                        <td class="px-3 py-2">
+                                            <div class="truncate" [class.text-secondary]="!p.EVP_MEMBRO_ID"
+                                                [attr.title]="p.EVP_MEMBRO_ID ? p.MEM_NOME + (p.MEM_ATIVO === false ? ' (inativo)' : '') : ''">
+                                                <ng-container *ngIf="p.EVP_MEMBRO_ID; else semResponsavel">{{ p.MEM_NOME }}<span *ngIf="p.MEM_ATIVO === false" class="text-secondary"> (inativo)</span></ng-container>
+                                                <ng-template #semResponsavel>—</ng-template>
+                                            </div>
+                                        </td>
+                                        <td class="px-3 py-2">
+                                            <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center" [ngClass]="prioridadeCor[p.EVP_PRIORIDADE]">{{ prioridadeRotulo[p.EVP_PRIORIDADE] }}</span>
+                                        </td>
+                                        <td class="px-3 py-2"><app-pendencia-status-chip [item]="p"></app-pendencia-status-chip></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <mat-paginator *ngIf="totalCount > 0" [length]="totalCount" [pageIndex]="page" [pageSize]="pageSize"
+                            [pageSizeOptions]="[10, 25, 50, 100]" (page)="onPage($event)" showFirstLastButtons>
+                        </mat-paginator>
+                    </div>
+                </div>
+            </div>
+        </mat-drawer-content>
+    </mat-drawer-container>
 
     <app-filtro-painel [aberto]="filtroAberto" (aplicar)="aplicarFiltros()" (limpar)="limparFiltros()" (fechar)="fecharFiltros()">
-        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense">
-            <mat-label>Status</mat-label>
-            <mat-select [formControl]="fStatus">
-                <mat-option *ngFor="let s of statusLista" [value]="s.valor">{{ s.rotulo }}</mat-option>
-            </mat-select>
-        </mat-form-field>
-
         <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense">
             <mat-label>Prioridade</mat-label>
             <mat-select [formControl]="fPrioridade">
@@ -123,12 +201,5 @@
 
         <custom-search-select [formControl]="fMembro" label="Responsável" emptyOptionLabel="Todos"
             [options]="membrosOpcoes" [dense]="true" [floatLabelAlways]="true"></custom-search-select>
-
-        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense">
-            <mat-label>Prazo</mat-label>
-            <mat-select [formControl]="fPrazo">
-                <mat-option *ngFor="let p of prazoLista" [value]="p.valor">{{ p.rotulo }}</mat-option>
-            </mat-select>
-        </mat-form-field>
     </app-filtro-painel>
 </div>

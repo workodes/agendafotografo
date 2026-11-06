@@ -4,11 +4,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { EventoPendenciaItem } from 'app/models/DTOs/responses/EventoPendenciaItem';
-import { STATUS_PENDENCIA, STATUS_PENDENCIA_COR, STATUS_PENDENCIA_ROTULO } from 'app/models/enums/StatusPendencia';
+import { STATUS_PENDENCIA_COR, STATUS_PENDENCIA_ROTULO, StatusPendencia } from 'app/models/enums/StatusPendencia';
 import { EventoService } from 'app/services/evento.service';
 import { mensagemErro } from 'app/utils/mensagem-erro';
 
-// Chip de status da pendência com menu dos 3 status: a troca grava na hora (AtualizarStatusPendencia) e devolve o item atualizado.
+// Chip de status da pendência com menu de 4 opções (A fazer, Em andamento, Concluída e Ignorar/Restaurar): a troca grava na hora (AtualizarStatusPendencia) e devolve o item atualizado.
 @Component({
     standalone: true,
     selector: 'app-pendencia-status-chip',
@@ -22,8 +22,14 @@ import { mensagemErro } from 'app/utils/mensagem-erro';
             <mat-icon class="icon-size-4" svgIcon="heroicons_mini:chevron-down"></mat-icon>
         </button>
         <mat-menu #menu="matMenu">
-            <button mat-menu-item type="button" *ngFor="let s of lista" [disabled]="s.valor === item.EVP_STATUS" (click)="trocar(s.valor, $event)">
-                {{ s.rotulo }}
+            <!-- Ignorada já volta para A fazer pelo "Restaurar": não repete a opção -->
+            <ng-container *ngFor="let s of lista">
+                <button mat-menu-item type="button" *ngIf="!(ignorada && s.valor === aFazer)" [disabled]="s.valor === item.EVP_STATUS" (click)="trocar(s.valor, $event)">
+                    {{ s.rotulo }}
+                </button>
+            </ng-container>
+            <button mat-menu-item type="button" (click)="trocar(ignorada ? aFazer : statusIgnorada, $event)">
+                {{ ignorada ? 'Restaurar' : 'Ignorar' }}
             </button>
         </mat-menu>
     `,
@@ -34,8 +40,19 @@ export class PendenciaStatusChipComponent {
 
     cor = STATUS_PENDENCIA_COR;
     rotulo = STATUS_PENDENCIA_ROTULO;
-    lista = STATUS_PENDENCIA;
+    // Os 3 status "de trabalho"; Ignorar/Restaurar é a quarta opção do menu.
+    lista = [
+        { valor: StatusPendencia.AFazer, rotulo: STATUS_PENDENCIA_ROTULO[StatusPendencia.AFazer] },
+        { valor: StatusPendencia.EmAndamento, rotulo: STATUS_PENDENCIA_ROTULO[StatusPendencia.EmAndamento] },
+        { valor: StatusPendencia.Concluida, rotulo: STATUS_PENDENCIA_ROTULO[StatusPendencia.Concluida] },
+    ];
+    aFazer = StatusPendencia.AFazer;
+    statusIgnorada = StatusPendencia.Ignorada;
     salvando = false;
+
+    get ignorada(): boolean {
+        return this.item.EVP_STATUS === StatusPendencia.Ignorada;
+    }
 
     constructor(private _service: EventoService, private _snackBar: MatSnackBar) { }
 
@@ -48,6 +65,8 @@ export class PendenciaStatusChipComponent {
         this._service.AtualizarStatusPendencia(this.item.Id, { EVP_STATUS: status }).subscribe({
             next: item => {
                 this.salvando = false;
+                // Atualiza o sino de avisos (e as telas que escutam alterado$); quem usa o chip só recarrega a própria lista.
+                this._service.NotificarAlteracao();
                 this.alterado.emit(item);
             },
             error: error => {

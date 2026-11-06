@@ -1,3 +1,4 @@
+import { ProgressoPendenciasComponent } from 'app/modules/shared/components/progresso-pendencias/progresso-pendencias.component';
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -22,7 +23,7 @@ import { LinkPublicoCompartilharService } from '../eventos/link-publico-comparti
     selector: 'visao-do-dia',
     templateUrl: './visao-do-dia.component.html',
     host: { class: 'flex flex-col flex-auto w-full min-w-0 min-h-0' },
-    imports: [CommonModule, RouterModule, MatButtonModule, MatDatepickerModule, MatIconModule, MatInputModule],
+    imports: [CommonModule, RouterModule, MatButtonModule, MatDatepickerModule, MatIconModule, MatInputModule, ProgressoPendenciasComponent],
 })
 export class VisaoDoDiaComponent implements OnInit, OnDestroy {
     dia?: DiaResponse;

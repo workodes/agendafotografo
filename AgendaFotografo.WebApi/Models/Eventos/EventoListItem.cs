@@ -22,4 +22,10 @@ public class EventoListItem
 
     /// <summary>Membros escalados, por nome.</summary>
     public List<EventoEquipeItem> Equipe { get; set; } = [];
+
+    /// <summary>Pendências em A fazer ou Em andamento (0 se o evento é Cancelado).</summary>
+    public int PendenciasAbertas { get; set; }
+
+    /// <summary>Pendências que não estão Ignoradas, todas as categorias (0 se o evento é Cancelado). Feitas = Total - Abertas.</summary>
+    public int PendenciasTotal { get; set; }
 }

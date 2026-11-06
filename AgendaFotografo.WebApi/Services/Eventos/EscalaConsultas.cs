@@ -57,6 +57,51 @@ public class EscalaConsultas(
     }
 
     /// <summary>
+    /// Conflitos no período (datas inclusivas): membros escalados em 2 ou mais eventos não cancelados na mesma data (a hora é ignorada,
+    /// mesma regra do conflito da escala). Um item por membro e dia, ordenado por data, nome do membro e Id; os eventos de cada item
+    /// vêm por hora ("a confirmar" por último), nome e Id.
+    /// </summary>
+    public async Task<List<ConflitoPeriodo>> ConflitosNoPeriodoAsync(Guid assinanteId, DateOnly de, DateOnly ate, CancellationToken cancellationToken)
+    {
+        var linhas = await _repEventoMembro.SelectContext().AsNoTracking()
+            .Where(x => x.EVM_ASSINANTE_ID == assinanteId &&
+                        x.Evento!.EVE_DATA >= de && x.Evento.EVE_DATA <= ate &&
+                        x.Evento.EVE_STATUS != StatusEvento.Cancelado)
+            .Select(x => new
+            {
+                x.EVM_MEMBRO_ID,
+                MembroNome = x.Membro!.MEM_NOME,
+                Resumo = new EventoResumo
+                {
+                    Id = x.EVM_EVENTO_ID,
+                    EVE_NOME = x.Evento!.EVE_NOME,
+                    EVE_DATA = x.Evento.EVE_DATA,
+                    EVE_HORA = x.Evento.EVE_HORA,
+                    EVE_CIDADE = x.Evento.EVE_CIDADE,
+                    EVE_LOCAL = x.Evento.EVE_LOCAL,
+                    EVE_STATUS = x.Evento.EVE_STATUS
+                }
+            })
+            .ToListAsync(cancellationToken);
+
+        return linhas
+            .GroupBy(x => (x.EVM_MEMBRO_ID, x.Resumo.EVE_DATA))
+            .Select(g => new
+            {
+                g.Key.EVM_MEMBRO_ID,
+                g.Key.EVE_DATA,
+                MembroNome = g.First().MembroNome,
+                Eventos = g.Select(x => x.Resumo).DistinctBy(e => e.Id)
+                    .OrderBy(e => e.EVE_HORA == null).ThenBy(e => e.EVE_HORA).ThenBy(e => e.EVE_NOME).ThenBy(e => e.Id)
+                    .ToList()
+            })
+            .Where(x => x.Eventos.Count >= 2)
+            .OrderBy(x => x.EVE_DATA).ThenBy(x => x.MembroNome).ThenBy(x => x.EVM_MEMBRO_ID)
+            .Select(x => new ConflitoPeriodo(x.EVM_MEMBRO_ID, x.MembroNome, x.EVE_DATA, x.Eventos))
+            .ToList();
+    }
+
+    /// <summary>
     /// Escala do evento (por nome do membro), com os outros eventos da data de cada membro. Com <paramref name="escalaId"/>
     /// devolve só essa linha. Se o próprio evento está Cancelado, <c>OutrosEventos</c> vem vazio (não há conflito).
     /// </summary>
@@ -243,3 +288,6 @@ public class EscalaConsultas(
         return new DiaResponse { Data = data, Eventos = eventos, Livres = livres, Conflitos = conflitos };
     }
 }
+
+/// <summary>Membro com 2 ou mais eventos não cancelados na mesma data.</summary>
+public sealed record ConflitoPeriodo(Guid MembroId, string MembroNome, DateOnly Data, List<EventoResumo> Eventos);

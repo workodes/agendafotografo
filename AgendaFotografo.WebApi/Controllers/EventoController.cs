@@ -11,6 +11,7 @@ using AgendaFotografo.WebApi.Models.Eventos;
 using AgendaFotografo.WebApi.Services.CurrentUser;
 using AgendaFotografo.WebApi.Services.Eventos;
 using AgendaFotografo.WebApi.Services.LinkPublico;
+using AgendaFotografo.WebApi.Services.Pendencias;
 using AgendaFotografo.WebApi.Validators.Evento;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -35,6 +36,7 @@ public class EventoController(
     IBaseRepository<Membro> repMembro,
     EscalaConsultas escalaConsultas,
     PendenciaConsultas pendenciaConsultas,
+    PendenciaChecklistPadrao checklistPadrao,
     IArquivoStorage arquivoStorage,
     IUnitOfWork unitOfWork,
     AssinanteEscopo assinanteEscopo,
@@ -49,6 +51,7 @@ public class EventoController(
     private readonly IBaseRepository<EventoLink> _repEventoLink = repEventoLink;
     private readonly IBaseRepository<EventoPendencia> _repEventoPendencia = repEventoPendencia;
     private readonly PendenciaConsultas _pendenciaConsultas = pendenciaConsultas;
+    private readonly PendenciaChecklistPadrao _checklistPadrao = checklistPadrao;
     private readonly IBaseRepository<TipoEvento> _repTipoEvento = repTipoEvento;
     private readonly IBaseRepository<Organizador> _repOrganizador = repOrganizador;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
@@ -94,6 +97,23 @@ public class EventoController(
         EVE_ORGANIZADOR_ID = x.EVE_ORGANIZADOR_ID,
         OrganizadorNome = x.Organizador != null ? x.Organizador.ORG_NOME : null
     };
+
+    /// <summary>Preenche <c>PendenciasAbertas</c>/<c>PendenciasTotal</c> com uma chamada agrupada (sem N+1); sem entrada no dicionário = 0 e 0.</summary>
+    private async Task PreencherPendenciasAsync<T>(List<T> itens, Func<T, Guid> id, Action<T, int, int> atribuir, Guid assinanteId,
+        CancellationToken cancellationToken)
+    {
+        if (itens.Count == 0) return;
+
+        var contagem = await _pendenciaConsultas.ContarPorEventoAsync(assinanteId, itens.Select(id).ToList(), cancellationToken);
+        foreach (var item in itens)
+        {
+            var (abertas, total) = contagem.GetValueOrDefault(id(item));
+            atribuir(item, abertas, total);
+        }
+    }
+
+    private Task PreencherPendenciasAsync(List<EventoListItem> itens, Guid assinanteId, CancellationToken cancellationToken) =>
+        PreencherPendenciasAsync(itens, x => x.Id, (x, a, t) => { x.PendenciasAbertas = a; x.PendenciasTotal = t; }, assinanteId, cancellationToken);
 
     /// <summary>Preenche a Equipe dos itens com uma consulta em EVENTOXMEMBRO (do assinante), ordenada pelo nome do membro.</summary>
     private async Task CarregarEquipeAsync(List<EventoListItem> dados, Guid assinanteId, CancellationToken cancellationToken)
@@ -203,6 +223,7 @@ public class EventoController(
                 .ToListAsync(cancellationToken);
 
             await CarregarEquipeAsync(dados, assinanteId, cancellationToken);
+            await PreencherPendenciasAsync(dados, assinanteId, cancellationToken);
 
             return Ok(new PaginatedResponse<EventoListItem>
             {
@@ -277,6 +298,7 @@ public class EventoController(
                 .ToListAsync(cancellationToken);
 
             await CarregarEquipeAsync(dados, assinanteId, cancellationToken);
+            await PreencherPendenciasAsync(dados, assinanteId, cancellationToken);
 
             return Ok(dados);
         }
@@ -356,6 +378,11 @@ public class EventoController(
             var evento = new Evento { EVE_ASSINANTE_ID = assinanteId };
             Aplicar(evento, model);
             await _repEvento.InsertTransactionAsync(evento, cancellationToken);
+
+            // Checklist padrão na mesma transação (falha aqui desfaz o evento). Salva antes de aplicar porque os modelos são lidos do banco
+            await _checklistPadrao.GarantirModelosAsync(assinanteId, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _checklistPadrao.AplicarAsync(assinanteId, evento, Hoje(), false, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await _unitOfWork.CommitAsync(cancellationToken);
 
@@ -695,7 +722,10 @@ public class EventoController(
                 !DateOnly.TryParseExact(data.Trim(), FormatoData, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dia))
                 throw new Exception("Data inválida");
 
-            return Ok(await _escalaConsultas.ObterDiaAsync(assinanteId, dia, cancellationToken));
+            var resposta = await _escalaConsultas.ObterDiaAsync(assinanteId, dia, cancellationToken);
+            await PreencherPendenciasAsync(resposta.Eventos, x => x.Id, (x, a, t) => { x.PendenciasAbertas = a; x.PendenciasTotal = t; },
+                assinanteId, cancellationToken);
+            return Ok(resposta);
         }
         catch (AssinanteSemVinculoException) { return SemVinculo(); }
         catch (Exception ex)
@@ -1237,7 +1267,7 @@ public class EventoController(
     }
 
     /// <summary>
-    /// Lista geral de pendências do assinante (só eventos não cancelados), paginada. Filtros: status (vazio/abertas, todas, 1, 2, 3),
+    /// Lista geral de pendências do assinante (só eventos não cancelados), paginada. Filtros: status (vazio/abertas, todas (inclui ignoradas), 1, 2, 3, 4),
     /// prioridade (1 a 3), membroId e prazo (todos, vencidas, vencendo, vencidasOuVencendo). Entradas inválidas = 400.
     /// </summary>
     [HttpGet]
@@ -1284,6 +1314,80 @@ public class EventoController(
         catch (AssinanteSemVinculoException) { return SemVinculo(); }
         catch (Exception ex)
         {
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>
+    /// Contadores dos filtros rápidos da tela Pendências (abertas, vencidas, vencendo, concluídas, ignoradas), só de eventos não cancelados.
+    /// Respeita prioridade (1 a 3) e membroId; cada contador é igual ao TotalCount do ListarPendencias equivalente.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> ContarPendencias(CancellationToken cancellationToken, int? prioridade = null, Guid? membroId = null)
+    {
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            if (!ModelState.IsValid) throw new Exception("Filtro inválido");
+
+            PrioridadePendencia? prioridadeFiltro = null;
+            if (prioridade is not null)
+            {
+                if (!Enum.IsDefined((PrioridadePendencia)prioridade.Value)) throw new Exception("Filtro de prioridade inválido");
+                prioridadeFiltro = (PrioridadePendencia)prioridade.Value;
+            }
+
+            Response.Headers.CacheControl = "no-store";
+            return Ok(await _pendenciaConsultas.ContarAsync(assinanteId, Hoje(), prioridadeFiltro, membroId, cancellationToken));
+        }
+        catch (AssinanteSemVinculoException) { return SemVinculo(); }
+        catch (Exception ex)
+        {
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>
+    /// Aplica o checklist padrão ao evento (inclusive Cancelado): acrescenta só os modelos ativos que ainda não estão representados no evento
+    /// (uma pendência ignorada conta como já aplicada). Idempotente. Devolve a quantidade adicionada e a lista na ordem da ficha.
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> AplicarChecklist(Guid id, CancellationToken cancellationToken)
+    {
+        if (id == Guid.Empty) return BadRequest(MsgIdObrigatorio);
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+
+            var evento = await _repEvento.SelectContext().AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id && x.EVE_ASSINANTE_ID == assinanteId, cancellationToken);
+            if (evento is null)
+            {
+                await _unitOfWork.RollbackAsync(cancellationToken);
+                return NotFound(MsgNaoEncontrado);
+            }
+
+            // Assinante existente sem modelos: cria a lista inicial e salva antes de aplicar (os modelos são lidos do banco)
+            await _checklistPadrao.GarantirModelosAsync(assinanteId, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            var adicionadas = await _checklistPadrao.AplicarAsync(assinanteId, evento, Hoje(), true, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
+
+            var itens = await _pendenciaConsultas.ListarDoEventoAsync(assinanteId, id, Hoje(), null, cancellationToken);
+            return Ok(new EventoAplicarChecklistResponse { Adicionadas = adicionadas, Itens = itens });
+        }
+        catch (AssinanteSemVinculoException)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return SemVinculo();
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
             return BadRequest(ErrorHelper.Seguro(ex, _logger));
         }
     }
@@ -1393,7 +1497,7 @@ public class EventoController(
         }
     }
 
-    /// <summary>Troca só o status da pendência (troca livre entre os 3).</summary>
+    /// <summary>Troca só o status da pendência (troca livre entre os 4: A fazer, Em andamento, Concluída e Ignorada).</summary>
     [HttpPut]
     public async Task<IActionResult> AtualizarStatusPendencia(Guid id, [FromBody] EventoPendenciaStatusModel model, CancellationToken cancellationToken)
     {

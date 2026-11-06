@@ -1,0 +1,66 @@
+<!-- Sino -->
+<button mat-icon-button type="button" (click)="abrirPainel()" #avisosOrigin [attr.aria-label]="rotuloBotao" [title]="rotuloBotao">
+    <span *ngIf="contador" class="absolute top-0 right-0 left-0 flex items-center justify-center h-3">
+        <span class="flex items-center justify-center shrink-0 min-w-4 h-4 px-1 ml-4 mt-2.5 rounded-full text-xs font-medium"
+              [ngClass]="temCritico ? 'bg-red-600 text-white' : 'bg-primary text-on-primary'">
+            {{ contador }}
+        </span>
+    </span>
+    <mat-icon [svgIcon]="'heroicons_outline:bell'"></mat-icon>
+</button>
+
+<!-- Painel -->
+<ng-template #avisosPanel>
+    <div class="fixed inset-0 sm:static sm:inset-auto flex flex-col sm:min-w-96 sm:w-96 sm:rounded-2xl overflow-hidden shadow-lg" role="dialog" aria-label="Avisos">
+
+        <!-- Cabeçalho -->
+        <div class="flex shrink-0 items-center py-4 pr-4 pl-6 bg-primary text-on-primary">
+            <div class="sm:hidden -ml-1 mr-3">
+                <button mat-icon-button type="button" (click)="fecharPainel()" aria-label="Fechar avisos">
+                    <mat-icon class="icon-size-5 text-current" [svgIcon]="'heroicons_solid:x-mark'"></mat-icon>
+                </button>
+            </div>
+            <div class="text-lg font-medium leading-10">Avisos</div>
+        </div>
+
+        <!-- Conteúdo -->
+        <div class="relative flex flex-col flex-auto sm:max-h-120 overflow-y-auto bg-card">
+            <!-- Falha ao atualizar: a lista abaixo é a última carregada -->
+            <div *ngIf="avisos && falhou && !carregando" class="px-4 py-2 text-xs text-secondary bg-gray-50 dark:bg-gray-800 border-b">
+                Não foi possível atualizar agora. Mostrando os últimos avisos carregados.
+            </div>
+            <ng-container *ngIf="avisos?.Itens?.length">
+                <div *ngIf="criticos.length" class="px-4 pt-3 pb-1 text-xs font-semibold tracking-wider uppercase text-red-700">Críticos</div>
+                <div class="divide-y">
+                    <app-aviso-item *ngFor="let aviso of criticos; trackBy: trackByChave" [aviso]="aviso" (selecionado)="fecharPainel()"></app-aviso-item>
+                </div>
+                <div *ngIf="atencao.length" class="px-4 pt-3 pb-1 text-xs font-semibold tracking-wider uppercase text-amber-700" [ngClass]="{ 'border-t mt-2': criticos.length }">Atenção</div>
+                <div class="divide-y">
+                    <app-aviso-item *ngFor="let aviso of atencao; trackBy: trackByChave" [aviso]="aviso" (selecionado)="fecharPainel()"></app-aviso-item>
+                </div>
+                <div *ngIf="restantes > 0" class="px-4 py-3 text-sm text-secondary border-t">
+                    Mostrando {{ avisos?.Itens?.length }} de {{ avisos?.Total }} avisos.
+                </div>
+            </ng-container>
+
+            <!-- Primeira carga em andamento -->
+            <div *ngIf="!avisos && (carregando || !falhou)" class="flex flex-col flex-auto items-center justify-center sm:justify-start py-12 px-8 text-center text-secondary">
+                Carregando os avisos...
+            </div>
+
+            <!-- Falha sem nenhum aviso anterior (o sino fica sem número; aqui só o aviso discreto) -->
+            <div *ngIf="!avisos && !carregando && falhou" class="flex flex-col flex-auto items-center justify-center sm:justify-start py-12 px-8 text-center text-secondary">
+                Não foi possível carregar os avisos agora.
+            </div>
+
+            <!-- Sem avisos -->
+            <div *ngIf="avisos && !avisos.Itens?.length" class="flex flex-col flex-auto items-center justify-center sm:justify-start py-12 px-8">
+                <div class="flex flex-0 items-center justify-center w-14 h-14 rounded-full bg-primary-100 dark:bg-primary-600">
+                    <mat-icon class="text-primary-700 dark:text-primary-50" [svgIcon]="'heroicons_outline:check-circle'"></mat-icon>
+                </div>
+                <div class="mt-5 text-2xl font-semibold tracking-tight">Tudo em dia.</div>
+                <div class="w-full max-w-60 mt-1 text-md text-center text-secondary">Quando algo pedir atenção, aparece aqui.</div>
+            </div>
+        </div>
+    </div>
+</ng-template>

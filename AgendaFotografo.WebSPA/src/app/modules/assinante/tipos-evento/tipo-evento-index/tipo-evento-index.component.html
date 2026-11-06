@@ -9,9 +9,7 @@
         <mat-drawer-content class="flex flex-col bg-white">
             <div class="flex flex-col flex-auto min-h-0">
                 <!-- Abaixo de sm o cabeçalho empilha (título, busca, botões) -->
-                <div class="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4 p-4 sm:p-6 md:px-8 border-b">
-                    <div class="text-3xl sm:text-4xl font-extrabold tracking-tight leading-none">Tipos de evento</div>
-
+                <app-pagina-cabecalho titulo="Tipos de evento" [contador]="totalCount">
                     <div class="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
                         <mat-form-field class="fuse-mat-dense fuse-mat-rounded sm:min-w-64 w-full sm:w-auto" subscriptSizing="dynamic">
                             <mat-icon class="icon-size-5" svgIcon="heroicons_outline:magnifying-glass" matPrefix></mat-icon>
@@ -26,7 +24,7 @@
                             <app-filtro-botao [ativo]="filtrosAtivos" (clicado)="abrirFiltros()"></app-filtro-botao>
                         </div>
                     </div>
-                </div>
+                </app-pagina-cabecalho>
 
                 <div class="flex flex-col flex-auto min-h-0 py-4 px-2 sm:px-6 md:px-8">
                     <div *ngIf="loading && dataSource.data.length === 0" class="flex items-center justify-center py-12">
@@ -57,11 +55,12 @@
 
                                 <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
                                 <tr mat-row *matRowDef="let row; columns: displayedColumns;"
-                                    class="cursor-pointer hover:bg-gray-50" (click)="abrir(row, $event)" (auxclick)="abrir(row, $event)"></tr>
+                                    class="cursor-pointer hover:bg-hover" (click)="abrir(row, $event)" (auxclick)="abrir(row, $event)"></tr>
                             </table>
 
-                            <div *ngIf="dataSource.data.length === 0" class="text-sm text-secondary text-center py-6">
-                                Nenhum tipo de evento encontrado.
+                            <div *ngIf="dataSource.data.length === 0 && !loading" class="flex flex-col items-center gap-2 py-12 text-center text-secondary">
+                                <mat-icon class="icon-size-14 text-hint" svgIcon="heroicons_outline:tag"></mat-icon>
+                                <div class="text-lg font-medium">Nenhum tipo de evento encontrado.</div>
                             </div>
                         </div>
 

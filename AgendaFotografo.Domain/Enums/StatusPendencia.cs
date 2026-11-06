@@ -5,5 +5,8 @@ public enum StatusPendencia
 {
     AFazer = 1,
     EmAndamento = 2,
-    Concluida = 3
+    Concluida = 3,
+
+    /// <summary>Estado final reversível: o coordenador decidiu que esta pendência não vale para o evento. Não é "aberta".</summary>
+    Ignorada = 4
 }

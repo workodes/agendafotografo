@@ -24,6 +24,8 @@ export class DiaEventoItem {
     EVE_ORGANIZADOR_ID?: string | null;
     OrganizadorNome?: string | null;
     Equipe: DiaEquipeItem[];
+    PendenciasAbertas: number;
+    PendenciasTotal: number;
 }
 
 export class DiaMembroLivreItem {

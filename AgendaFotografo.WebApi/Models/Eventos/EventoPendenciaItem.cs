@@ -18,6 +18,9 @@ public class EventoPendenciaItem
     public DateOnly? EVP_PRAZO { get; set; }
     public string? EVP_OBSERVACOES { get; set; }
 
+    /// <summary>Modelo do checklist padrão que originou a pendência (etiqueta "Padrão"); nulo = pendência manual. Só leitura.</summary>
+    public Guid? EVP_MODELO_ID { get; set; }
+
     /// <summary>Nulos quando não há responsável.</summary>
     public string? MEM_NOME { get; set; }
     public bool? MEM_ATIVO { get; set; }

@@ -80,8 +80,12 @@ Passo a passo e pontos de atenção em `docs/deploy.md`. Endpoint ou arquivo nov
 4. Agenda (lista + calendário): **pronto** (`docs/planos/04 - Agenda.md`; actions `Agenda` e `Cidades` do `EventoController` e tela Agenda no SPA, que substituiu a lista "Eventos")
 5. Link público: **pronto** (`docs/planos/05 - Link publico.md`; `EventoLink`/`EVENTOLINKS`, 4 actions no `EventoController`, `LinkPublicoController` anônimo e página `/e/:token` no SPA)
 6. Pendências: **pronto** (`docs/planos/06 - Pendências.md`; actions de pendência no `EventoController`, seção na ficha do evento e tela Pendências no SPA)
-7. Recorrência
-8. Painel + e-mail de lembretes
+7. Pendências padrão do evento (checklist por assinante em `PENDENCIAMODELOS`, status Ignorada, `Evento/AplicarChecklist`, tela Checklist padrão em Cadastros): **pronto** (`docs/planos/07 - Pendências padrão do evento.md`; `PendenciaModeloController`)
+8. Avisos e novo layout (absorve o Painel): **pronto** (`docs/planos/08 - Avisos e novo layout.md`; `AvisoController` com `GET Listar`, sino de avisos, busca global e "+ Novo evento" no cabeçalho do assinante e novo Início do assinante no SPA)
+9. Pendências no estilo Fuse (tela estilo mailbox com filtros rápidos e contadores, detalhe no painel, visão Quadro): **pronto** (`docs/planos/09 - Pendências no estilo Fuse.md`; action `ContarPendencias` do `EventoController`; aguarda revisão e testes)
+10. Agenda, ficha do evento e cadastros no estilo Fuse: **pronto, aguardando revisão/testes** (`docs/planos/10 - Agenda, ficha do evento e cadastros no estilo Fuse.md`; progresso de pendências na Agenda e Visão do dia, ficha com navegação lateral e selos, cabeçalho compartilhado nos cadastros)
+11. Recorrência (era o 7, depois o 10)
+12. E-mail diário de lembretes (era o "Painel + e-mail", módulo 8, depois o 11)
 9. Área admin de assinantes (criar, ativar, bloquear, redefinir acesso) em `AssinanteController` (`[Authorize(Roles = Admin)]`): **pronto, entregue antes do módulo 1** (`docs/planos/01 - Assinantes.md`)
 
 Nomes e perfis do domínio (do desenho): Equipe (membros: Fotógrafo/Editor/Assistente), Organizadores, Tipos de evento
@@ -91,4 +95,4 @@ Nomes de tabela/entidade/controller sugeridos: ver `AgendaFotografo.WebApi/CLAUD
 
 ## Subagents
 `fartec:backend` (API), `fartec:frontend` (SPA), `fartec:engenheiro` (planos), `fartec:revisor`, `fartec:testador`.
-Somente o colaborador faz commit/branch/worktree. A base da API e a do SPA (ambas alinhadas ao Portal, com o contrato de Auth novo) estão prontas, assim como os planos 01 (Assinantes), 02 (módulo 1), 03 (módulos 2 e 3) e 04 (módulo 4, Agenda); os planos 05 (Link público) e 06 (Pendências) estão construídos (aguardam revisão e testes); o próximo módulo é o 7, Recorrência (`fartec:engenheiro`).
+Somente o colaborador faz commit/branch/worktree. A base da API e a do SPA (ambas alinhadas ao Portal, com o contrato de Auth novo) estão prontas, assim como os planos 01 (Assinantes), 02 (módulo 1), 03 (módulos 2 e 3) e 04 (módulo 4, Agenda); os planos 05 (Link público), 06 (Pendências), 07 (Pendências padrão do evento) 08 (Avisos e novo layout) 09 (Pendências no estilo Fuse) e 10 (Agenda, ficha do evento e cadastros no estilo Fuse, back-end e front-end) estão construídos (aguardam revisão e testes); o próximo é o plano 11 (Recorrência). O e-mail diário é o módulo 12.

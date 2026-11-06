@@ -321,6 +321,9 @@ namespace AgendaFotografo.Infra.Data.Migrations
                     b.Property<Guid?>("EVP_MEMBRO_ID")
                         .HasColumnType("char(36)");
 
+                    b.Property<Guid?>("EVP_MODELO_ID")
+                        .HasColumnType("char(36)");
+
                     b.Property<string>("EVP_OBSERVACOES")
                         .HasMaxLength(2000)
                         .HasColumnType("varchar(2000)");
@@ -347,6 +350,11 @@ namespace AgendaFotografo.Infra.Data.Migrations
                     b.HasIndex("EVP_EVENTO_ID");
 
                     b.HasIndex("EVP_MEMBRO_ID");
+
+                    b.HasIndex("EVP_MODELO_ID");
+
+                    b.HasIndex("EVP_EVENTO_ID", "EVP_MODELO_ID")
+                        .IsUnique();
 
                     b.HasIndex("EVP_ASSINANTE_ID", "EVP_STATUS", "EVP_PRAZO");
 
@@ -452,6 +460,50 @@ namespace AgendaFotografo.Infra.Data.Migrations
                     b.HasIndex("ORG_ASSINANTE_ID", "ORG_NOME");
 
                     b.ToTable("ORGANIZADORES", (string)null);
+                });
+
+            modelBuilder.Entity("AgendaFotografo.Domain.Entities.PendenciaModelo", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("PEM_ASSINANTE_ID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("PEM_ATIVO")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("PEM_CATEGORIA")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PEM_DIAS_ANTES")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PEM_PRIORIDADE")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("PEM_TIPO_EVENTO_ID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("PEM_TITULO")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PEM_TIPO_EVENTO_ID");
+
+                    b.HasIndex("PEM_ASSINANTE_ID", "PEM_ATIVO");
+
+                    b.ToTable("PENDENCIAMODELOS", (string)null);
                 });
 
             modelBuilder.Entity("AgendaFotografo.Domain.Entities.TipoEvento", b =>
@@ -812,11 +864,18 @@ namespace AgendaFotografo.Infra.Data.Migrations
                         .HasForeignKey("EVP_MEMBRO_ID")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("AgendaFotografo.Domain.Entities.PendenciaModelo", "Modelo")
+                        .WithMany()
+                        .HasForeignKey("EVP_MODELO_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Assinante");
 
                     b.Navigation("Evento");
 
                     b.Navigation("Membro");
+
+                    b.Navigation("Modelo");
                 });
 
             modelBuilder.Entity("AgendaFotografo.Domain.Entities.Membro", b =>
@@ -839,6 +898,24 @@ namespace AgendaFotografo.Infra.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Assinante");
+                });
+
+            modelBuilder.Entity("AgendaFotografo.Domain.Entities.PendenciaModelo", b =>
+                {
+                    b.HasOne("AgendaFotografo.Domain.Entities.Assinante", "Assinante")
+                        .WithMany()
+                        .HasForeignKey("PEM_ASSINANTE_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AgendaFotografo.Domain.Entities.TipoEvento", "TipoEvento")
+                        .WithMany()
+                        .HasForeignKey("PEM_TIPO_EVENTO_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Assinante");
+
+                    b.Navigation("TipoEvento");
                 });
 
             modelBuilder.Entity("AgendaFotografo.Domain.Entities.TipoEvento", b =>

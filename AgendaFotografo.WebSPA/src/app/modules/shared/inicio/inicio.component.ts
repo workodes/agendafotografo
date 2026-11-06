@@ -2,7 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 import { UsuarioService } from 'app/core/services/usuario.service';
 
-// Página inicial de todos os perfis após o login. Será substituída pelo Painel do assinante (lembretes e próximos 7 dias) e pelo painel do Admin nos respectivos planos.
+// Início do Admin (placeholder). O assinante tem o próprio Início em modules/assinante/inicio (plano 08); o painel do Admin é um plano futuro.
 @Component({
     selector: 'app-inicio',
     standalone: true,

@@ -1,0 +1,51 @@
+<!-- Erro da API (ex.: "Membro inativo.") junto do formulário -->
+<div *ngIf="erroApi" role="alert" class="mb-3 p-3 rounded-lg border border-red-200 bg-red-50 text-red-800 text-sm">{{ erroApi }}</div>
+
+<form [id]="formId" class="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+    <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
+        <mat-label>Título</mat-label>
+        <input matInput formControlName="EVP_TITULO" maxlength="200" autocomplete="off" placeholder="O que falta fazer?">
+        <mat-error>{{ erro('EVP_TITULO') }}</mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
+        <mat-label>Categoria</mat-label>
+        <mat-select formControlName="EVP_CATEGORIA">
+            <mat-option *ngFor="let c of categorias" [value]="c.valor">{{ c.rotulo }}</mat-option>
+        </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+        <mat-label>Prioridade</mat-label>
+        <mat-select formControlName="EVP_PRIORIDADE">
+            <mat-option *ngFor="let p of prioridades" [value]="p.valor">{{ p.rotulo }}</mat-option>
+        </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+        <mat-label>Status</mat-label>
+        <mat-select formControlName="EVP_STATUS">
+            <mat-option *ngFor="let s of statusLista" [value]="s.valor">{{ s.rotulo }}</mat-option>
+        </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+        <mat-label>Prazo (opcional)</mat-label>
+        <input matInput [matDatepicker]="pickerPrazo" [min]="prazoMin" [max]="prazoMax" formControlName="EVP_PRAZO" placeholder="dd/mm/aaaa" autocomplete="off">
+        <button *ngIf="form.get('EVP_PRAZO')?.value" matSuffix mat-icon-button type="button" aria-label="Limpar prazo" title="Limpar prazo" (click)="limparPrazo($event)">
+            <mat-icon class="icon-size-5" svgIcon="heroicons_outline:x-mark"></mat-icon>
+        </button>
+        <mat-datepicker-toggle matIconSuffix [for]="pickerPrazo"></mat-datepicker-toggle>
+        <mat-datepicker #pickerPrazo></mat-datepicker>
+        <mat-error>{{ erro('EVP_PRAZO') }}</mat-error>
+    </mat-form-field>
+
+    <custom-search-select formControlName="EVP_MEMBRO_ID" label="Responsável" emptyOptionLabel="Ninguém"
+        [options]="membrosOpcoes" [dense]="true" [floatLabelAlways]="true"></custom-search-select>
+
+    <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
+        <mat-label>Observações (opcional)</mat-label>
+        <textarea matInput formControlName="EVP_OBSERVACOES" rows="3" maxlength="2000"></textarea>
+        <mat-error>{{ erro('EVP_OBSERVACOES') }}</mat-error>
+    </mat-form-field>
+</form>

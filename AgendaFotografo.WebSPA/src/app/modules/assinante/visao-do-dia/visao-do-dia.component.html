@@ -81,6 +81,8 @@
                         <div *ngIf="e.OrganizadorNome" class="text-xs text-secondary break-words">{{ e.OrganizadorNome }}</div>
                     </div>
 
+                    <app-progresso-pendencias *ngIf="e.EVE_STATUS !== cancelado" [abertas]="e.PendenciasAbertas" [total]="e.PendenciasTotal"></app-progresso-pendencias>
+
                     <div class="flex flex-col gap-1 pt-2 border-t">
                         <div class="text-xs font-semibold uppercase tracking-wide text-secondary">Equipe</div>
                         <div *ngIf="e.Equipe.length === 0" class="text-sm text-secondary">Ninguém escalado.</div>

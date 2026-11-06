@@ -18,4 +18,6 @@ export class EventoListItem {
     EVE_ORGANIZADOR_ID?: string | null;
     OrganizadorNome?: string | null;
     Equipe: EventoListItemEquipe[];
+    PendenciasAbertas: number;
+    PendenciasTotal: number;
 }

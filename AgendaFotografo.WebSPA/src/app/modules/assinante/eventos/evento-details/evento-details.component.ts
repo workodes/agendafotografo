@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -32,10 +32,12 @@ import { CustomSearchSelectComponent } from 'app/modules/shared/components/custo
 import { OpcoesSelect } from 'app/utils/opcoes-select';
 import { OrganizadorDialogComponent } from '../../organizadores/organizador-dialog/organizador-dialog.component';
 import { EventoService } from 'app/services/evento.service';
-import { diaSemana, formatarDataIso, horaDaApi, horaParaApi, parseDataIso } from 'app/utils/data-evento';
+import { diaSemana, formatarDataComDiaSemana, formatarDataIso, formatarHora, horaDaApi, horaParaApi, parseDataIso } from 'app/utils/data-evento';
 import { textoOutrosEventos } from 'app/utils/escala';
 import { mensagemErro } from 'app/utils/mensagem-erro';
-import { formatarPrazo } from 'app/utils/pendencia';
+import { contarPendencias, formatarPrazo } from 'app/utils/pendencia';
+import { EventoLinkItem } from 'app/models/DTOs/responses/EventoLinkItem';
+import { ProgressoPendenciasComponent } from 'app/modules/shared/components/progresso-pendencias/progresso-pendencias.component';
 import { normalizarUrl, urlHttp } from 'app/utils/url-evento';
 import { EscalarMembroDialogComponent, EscalarMembroDialogData } from '../escalar-membro-dialog/escalar-membro-dialog.component';
 import { EventoArquivoComponent } from '../evento-arquivo/evento-arquivo.component';
@@ -54,6 +56,24 @@ const CAMPOS_LINK = [
     'EVE_LARGADA_LINK', 'EVE_CHEGADA_LINK', 'EVE_LINK_INSCRICAO', 'EVE_LINK_FOTOS', 'EVE_ROTA_LINK_MAPS', 'EVE_ROTA_LINK_STRAVA',
 ] as const;
 
+// Seções da ficha, na ordem da página (a navegação lateral rola até o `id` e destaca a visível).
+interface SecaoFicha {
+    id: string;
+    rotulo: string;
+    subtitulo: string;
+    // Seções que ficam bloqueadas em `novo` (mostram cadeado no lugar do selo).
+    bloqueadaNoNovo?: boolean;
+}
+
+const SECOES_FICHA: SecaoFicha[] = [
+    { id: 'sec-dados', rotulo: 'Dados do evento', subtitulo: 'Nome, data, hora e links' },
+    { id: 'sec-local', rotulo: 'Local e rota', subtitulo: 'Largada, chegada e percurso' },
+    { id: 'sec-equipe', rotulo: 'Equipe', subtitulo: 'Quem vai cobrir', bloqueadaNoNovo: true },
+    { id: 'sec-pendencias', rotulo: 'Pendências', subtitulo: 'O que falta fazer', bloqueadaNoNovo: true },
+    { id: 'sec-observacoes', rotulo: 'Observações', subtitulo: 'Para a equipe e internas' },
+    { id: 'sec-link', rotulo: 'Link público', subtitulo: 'Página para a equipe', bloqueadaNoNovo: true },
+];
+
 // Ficha do evento em página inteira (cabeçalho fixo com Excluir/Fechar/Salvar): Dados, Local e rota, Equipe, Pendências, Observações e Link público.
 // Em `novo` a Equipe e os uploads ficam desabilitados até o primeiro salvamento (depois navega para :id).
 @Component({
@@ -65,15 +85,34 @@ const CAMPOS_LINK = [
         CommonModule, RouterModule, ReactiveFormsModule,
         MatButtonModule, MatCheckboxModule, MatDatepickerModule, MatFormFieldModule, MatIconModule, MatInputModule,
         MatProgressSpinnerModule, MatSelectModule, CustomSearchSelectComponent,
-        EventoArquivoComponent, EventoLinkPublicoComponent, PendenciaStatusChipComponent,
+        EventoArquivoComponent, EventoLinkPublicoComponent, PendenciaStatusChipComponent, ProgressoPendenciasComponent,
     ],
 })
-export class EventoDetailsComponent implements OnInit, OnDestroy {
+export class EventoDetailsComponent implements OnInit, AfterViewInit, OnDestroy {
+    @ViewChild('rolagem') rolagem?: ElementRef<HTMLElement>;
+    readonly secoes = SECOES_FICHA;
+    secaoAtual = SECOES_FICHA[0].id;
+    // Selo do Link público: vem do `linkChange` da seção (nulo = ainda não carregou).
+    linkItem: EventoLinkItem | null = null;
+    private _observador?: IntersectionObserver;
     form: FormGroup;
     // Preenchido na edição (vem do resolver e é atualizado ao salvar).
     evento?: Evento | null;
     equipe: EventoMembroItem[] = [];
-    pendencias: EventoPendenciaItem[] = [];
+    // Pendências da ficha. A atribuição separa as que estão em jogo (abertas e concluídas, na ordem da API) das ignoradas.
+    private _pendencias: EventoPendenciaItem[] = [];
+    pendenciasVisiveis: EventoPendenciaItem[] = [];
+    pendenciasIgnoradas: EventoPendenciaItem[] = [];
+    get pendencias(): EventoPendenciaItem[] { return this._pendencias; }
+    set pendencias(lista: EventoPendenciaItem[]) {
+        this._pendencias = lista ?? [];
+        this.pendenciasVisiveis = this._pendencias.filter(p => p.EVP_STATUS !== StatusPendencia.Ignorada);
+        this.pendenciasIgnoradas = this._pendencias.filter(p => p.EVP_STATUS === StatusPendencia.Ignorada);
+    }
+    ignoradasExpandidas = false;
+    aplicandoChecklist = false;
+    // Ids com Ignorar/Restaurar em andamento (evita clique duplo).
+    private _alterandoStatus = new Set<string>();
     arquivos: EventoArquivoItem[] = [];
     tipos: Opcao[] = [];
     organizadores: Opcao[] = [];
@@ -93,6 +132,7 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
     prioridadePendenciaRotulo = PRIORIDADE_PENDENCIA_ROTULO;
     prioridadePendenciaCor = PRIORIDADE_PENDENCIA_COR;
     concluida = StatusPendencia.Concluida;
+    ignorada = StatusPendencia.Ignorada;
     formatarPrazo = formatarPrazo;
 
     readonly dataMin = new Date(2000, 0, 1);
@@ -132,9 +172,23 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
         return !this.evento?.Id;
     }
 
+    // Abertas = A fazer e Em andamento; total não conta Ignoradas (mesma regra da API; ver utils/pendencia.ts).
+    get contagem() { return contarPendencias(this.pendencias); }
+
     get pendenciasAbertas(): number {
-        return this.pendencias.filter(p => p.EVP_STATUS !== StatusPendencia.Concluida).length;
+        return this.contagem.abertas;
     }
+
+    get cancelado(): boolean {
+        return this.evento?.EVE_STATUS === StatusEvento.Cancelado;
+    }
+
+    get tipoNome(): string {
+        return this.evento?.TipoEventoNome || this.tipos.find(t => t.Id === this.evento?.EVE_TIPO_EVENTO_ID)?.Nome || '';
+    }
+
+    get resumoData(): string { return formatarDataComDiaSemana(this.evento?.EVE_DATA); }
+    get resumoHora(): string { return formatarHora(this.evento?.EVE_HORA); }
 
     // Evento cancelado com pendências abertas: elas não aparecem na lista de Pendências nem nos alertas.
     get avisoCancelado(): boolean {
@@ -193,6 +247,7 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
             this.organizadores = d?.organizadores ?? [];
             this.equipe = d?.equipe ?? [];
             this.pendencias = d?.pendencias ?? [];
+            this.linkItem = null;
             this.evento = d?.evento ?? null;
             this.arquivos = [...(this.evento?.Arquivos ?? [])];
             this.preencher(this.evento ?? null);
@@ -200,7 +255,51 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
         });
     }
 
+    ngAfterViewInit(): void {
+        this.observarSecoes();
+    }
+
+    // Destaca a seção visível: observa cada seção com a área rolável como raiz (faixa do topo, para valer a que cruza o início da tela).
+    private observarSecoes(): void {
+        const raiz = this.rolagem?.nativeElement;
+        if (!raiz || typeof IntersectionObserver === 'undefined') {
+            return;
+        }
+        const visiveis = new Set<string>();
+        this._observador = new IntersectionObserver(entradas => {
+            entradas.forEach(e => e.isIntersecting ? visiveis.add(e.target.id) : visiveis.delete(e.target.id));
+            const primeira = this.secoes.find(s => visiveis.has(s.id));
+            if (primeira && primeira.id !== this.secaoAtual) {
+                this.secaoAtual = primeira.id;
+            }
+        }, { root: raiz, rootMargin: '0px 0px -65% 0px', threshold: 0 });
+        this.secoes.forEach(s => {
+            const el = raiz.querySelector('#' + s.id);
+            if (el) {
+                this._observador!.observe(el);
+            }
+        });
+    }
+
+    irParaSecao(id: string): void {
+        this.secaoAtual = id;
+        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    aoMudarLink(link: EventoLinkItem | null): void {
+        this.linkItem = link;
+    }
+
+    // Texto do selo do Link público.
+    get seloLink(): string {
+        if (!this.linkItem) {
+            return '';
+        }
+        return !this.linkItem.Configurado ? 'Sem link' : (this.linkItem.EVL_ATIVO ? 'Ativo' : 'Desativado');
+    }
+
     ngOnDestroy(): void {
+        this._observador?.disconnect();
         this._destroy$.next();
         this._destroy$.complete();
     }
@@ -458,6 +557,7 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
         this._dialog.open<PendenciaDialogComponent, PendenciaDialogData, PendenciaDialogResultado>(PendenciaDialogComponent, { ...PENDENCIA_DIALOG_CONFIG, data })
             .afterClosed().pipe(filter((r): r is PendenciaDialogResultado => !!r)).subscribe(r => {
                 this.recarregarPendencias();
+                this._service.NotificarAlteracao(); // atualiza o sino de avisos
                 this._snackBar.open(r.acao === 'excluida' ? 'Pendência excluída.' : 'Pendência salva.', 'X', { duration: 3000 });
             });
     }
@@ -469,6 +569,79 @@ export class EventoDetailsComponent implements OnInit, OnDestroy {
         this._service.Pendencias(this.evento.Id).subscribe({
             next: lista => (this.pendencias = lista),
             error: () => { /* mantém a lista na tela; os selos ficam desatualizados até recarregar */ },
+        });
+    }
+
+    // Ignorar (um toque, sem confirmação): o snackbar oferece "Desfazer", que volta ao status anterior.
+    ignorarPendencia(p: EventoPendenciaItem, event: Event): void {
+        event.stopPropagation();
+        const anterior = p.EVP_STATUS;
+        this.trocarStatusPendencia(p, StatusPendencia.Ignorada, () => {
+            this._snackBar.open('Pendência ignorada', 'Desfazer', { duration: 6000 }).onAction().subscribe(() => {
+                this._service.AtualizarStatusPendencia(p.Id, { EVP_STATUS: anterior }).subscribe({
+                    next: () => {
+                        this.recarregarPendencias();
+                        this._service.NotificarAlteracao(); // atualiza o sino de avisos
+                    },
+                    error: error => this._snackBar.open(mensagemErro(error, 'Não foi possível desfazer.'), 'X', { duration: 6000 }),
+                });
+            });
+        });
+    }
+
+    // Restaurar: a ignorada volta para A fazer.
+    restaurarPendencia(p: EventoPendenciaItem, event: Event): void {
+        event.stopPropagation();
+        this.trocarStatusPendencia(p, StatusPendencia.AFazer, () => {
+            this._snackBar.open('Pendência restaurada', 'X', { duration: 3000 });
+        });
+    }
+
+    estaAlterando(p: EventoPendenciaItem): boolean {
+        return this._alterandoStatus.has(p.Id);
+    }
+
+    private trocarStatusPendencia(p: EventoPendenciaItem, status: number, depois: () => void): void {
+        if (this._alterandoStatus.has(p.Id)) {
+            return;
+        }
+        this._alterandoStatus.add(p.Id);
+        this._service.AtualizarStatusPendencia(p.Id, { EVP_STATUS: status }).subscribe({
+            next: () => {
+                this._alterandoStatus.delete(p.Id);
+                this.recarregarPendencias();
+                this._service.NotificarAlteracao(); // atualiza o sino de avisos
+                depois();
+            },
+            error: error => {
+                this._alterandoStatus.delete(p.Id);
+                this._snackBar.open(mensagemErro(error, 'Não foi possível mudar o status.'), 'X', { duration: 6000 });
+            },
+        });
+    }
+
+    // Acrescenta só os modelos do checklist padrão que ainda faltam no evento (idempotente; ignorados não voltam).
+    aplicarChecklist(): void {
+        if (!this.evento?.Id || this.aplicandoChecklist) {
+            return;
+        }
+        this.aplicandoChecklist = true;
+        this._service.AplicarChecklist(this.evento.Id).subscribe({
+            next: r => {
+                this.aplicandoChecklist = false;
+                this.pendencias = r.Itens ?? [];
+                const n = r.Adicionadas ?? 0;
+                if (n > 0) {
+                    this._service.NotificarAlteracao(); // atualiza o sino de avisos
+                }
+                this._snackBar.open(
+                    n === 0 ? 'O checklist padrão já está neste evento.' : n === 1 ? '1 pendência adicionada.' : `${n} pendências adicionadas.`,
+                    'X', { duration: 4000 });
+            },
+            error: error => {
+                this.aplicandoChecklist = false;
+                this._snackBar.open(mensagemErro(error, 'Não foi possível adicionar o checklist padrão.'), 'X', { duration: 6000 });
+            },
         });
     }
 

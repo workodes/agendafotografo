@@ -9,7 +9,7 @@ import { ROLE_NAMES } from './core/constants/RoleNames';
 // em minúsculas): /admin/... e /assinante/.... Rota nova entra no array da(s) role(s) que a acessa
 // e no menu correspondente em core/navigation/menu.data.ts.
 
-// Módulos disponíveis para as duas roles (hoje só o Início).
+// Módulos disponíveis para as duas roles (hoje só o Início; o do Admin é o placeholder compartilhado).
 const rotasComuns: Route[] = [
     { path: '', pathMatch: 'full', redirectTo: 'inicio' },
     { path: 'inicio', loadChildren: () => import('app/modules/shared/inicio/inicio.routes') },
@@ -21,15 +21,18 @@ const rotasAdmin: Route[] = [
     { path: 'assinantes', loadChildren: () => import('app/modules/admin/assinantes/assinantes.routes') },
 ];
 
-// Área do Assinante (coordenador): Equipe, Organizadores e Tipos de evento (plano 02); Eventos e Visão do dia (plano 03); Agenda (plano 04); Pendências (plano 06). Link público etc. entram aqui, um plano por módulo.
+// Área do Assinante (coordenador): Equipe, Organizadores e Tipos de evento (plano 02); Eventos e Visão do dia (plano 03); Agenda (plano 04); Pendências (plano 06); Checklist padrão (plano 07); Início (plano 08). Link público etc. entram aqui, um plano por módulo.
 const rotasAssinante: Route[] = [
-    ...rotasComuns,
+    { path: '', pathMatch: 'full', redirectTo: 'inicio' },
+    // Início próprio do assinante (plano 08): números do dia, próximos 7 dias e avisos. O Admin continua com o placeholder de rotasComuns.
+    { path: 'inicio', data: { titulo: 'Início' }, loadChildren: () => import('app/modules/assinante/inicio/inicio-assinante.routes') },
     { path: 'agenda', data: { titulo: 'Agenda' }, loadChildren: () => import('app/modules/assinante/agenda/agenda.routes') },
     { path: 'eventos', data: { titulo: 'Eventos' }, loadChildren: () => import('app/modules/assinante/eventos/eventos.routes') },
     { path: 'visao-do-dia', data: { titulo: 'Visão do dia' }, loadChildren: () => import('app/modules/assinante/visao-do-dia/visao-do-dia.routes') },
     { path: 'pendencias', data: { titulo: 'Pendências' }, loadChildren: () => import('app/modules/assinante/pendencias/pendencias.routes') },
     { path: 'equipe', data: { titulo: 'Equipe' }, loadChildren: () => import('app/modules/assinante/equipe/equipe.routes') },
     { path: 'organizadores', data: { titulo: 'Organizadores' }, loadChildren: () => import('app/modules/assinante/organizadores/organizadores.routes') },
+    { path: 'checklist-padrao', data: { titulo: 'Checklist padrão' }, loadChildren: () => import('app/modules/assinante/checklist-padrao/checklist-padrao.routes') },
     { path: 'tipos-evento', data: { titulo: 'Tipos de evento' }, loadChildren: () => import('app/modules/assinante/tipos-evento/tipos-evento.routes') },
 ];
 

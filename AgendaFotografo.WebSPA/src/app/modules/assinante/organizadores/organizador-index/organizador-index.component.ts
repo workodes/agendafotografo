@@ -1,3 +1,4 @@
+import { PaginaCabecalhoComponent } from 'app/modules/shared/components/pagina-cabecalho/pagina-cabecalho.component';
 import { CommonModule } from '@angular/common';
 import { AfterViewInit, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
@@ -46,7 +47,7 @@ type Situacao = 'true' | 'false' | 'todos';
         CommonModule, RouterModule, ReactiveFormsModule,
         MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule, MatPaginatorModule,
         MatProgressSpinnerModule, MatSelectModule, MatSidenavModule, MatTableModule,
-        FiltroBotaoComponent, FiltroPainelComponent, FecharComEscDirective,
+        FiltroBotaoComponent, FiltroPainelComponent, FecharComEscDirective, PaginaCabecalhoComponent,
     ],
 })
 export class OrganizadorIndexComponent implements OnInit, AfterViewInit, OnDestroy {

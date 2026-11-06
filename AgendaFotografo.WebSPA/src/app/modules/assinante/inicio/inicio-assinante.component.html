@@ -1,0 +1,114 @@
+<div class="flex flex-col w-full min-w-0 p-4 sm:p-6 md:p-8 gap-6">
+
+    <!-- Saudação -->
+    <div class="flex flex-col">
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight break-words">{{ saudacao }}{{ nome ? ', ' + nome : '' }}</h1>
+        <div class="text-secondary">{{ dataExtenso }}</div>
+    </div>
+
+    <!-- Carregando -->
+    <mat-progress-bar *ngIf="estado === 'carregando'" mode="indeterminate"></mat-progress-bar>
+
+    <!-- Erro -->
+    <div *ngIf="estado === 'erro'" role="alert" class="flex flex-col items-center gap-3 px-4 py-10 text-center">
+        <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
+        <div class="text-lg text-secondary">Não foi possível carregar o início.</div>
+        <button mat-stroked-button type="button" (click)="carregar()">Tentar de novo</button>
+    </div>
+
+    <ng-container *ngIf="estado === 'pronto'">
+
+        <!-- Números -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <a class="flex flex-col p-4 sm:p-5 rounded-2xl shadow bg-card min-w-0 hover:shadow-md" routerLink="/assinante/visao-do-dia">
+                <div class="text-sm sm:text-lg font-medium text-secondary truncate">Hoje</div>
+                <div class="mt-1 text-4xl sm:text-5xl font-bold tracking-tight leading-none text-primary">{{ hojeQtd }}</div>
+                <div class="mt-2 text-sm text-secondary truncate">{{ hojeQtd === 1 ? 'evento' : 'eventos' }}</div>
+            </a>
+            <a class="flex flex-col p-4 sm:p-5 rounded-2xl shadow bg-card min-w-0 hover:shadow-md" routerLink="/assinante/visao-do-dia" [queryParams]="{ data: amanha }">
+                <div class="text-sm sm:text-lg font-medium text-secondary truncate">Amanhã</div>
+                <div class="mt-1 text-4xl sm:text-5xl font-bold tracking-tight leading-none text-primary">{{ amanhaQtd }}</div>
+                <div class="mt-2 text-sm text-secondary truncate">{{ amanhaQtd === 1 ? 'evento' : 'eventos' }}</div>
+            </a>
+            <a class="flex flex-col p-4 sm:p-5 rounded-2xl shadow bg-card min-w-0 hover:shadow-md" routerLink="/assinante/pendencias" [queryParams]="{ prazo: 'vencidas' }">
+                <div class="text-sm sm:text-lg font-medium text-secondary truncate">Pendências vencidas</div>
+                <div class="mt-1 text-4xl sm:text-5xl font-bold tracking-tight leading-none" [ngClass]="vencidasQtd > 0 ? 'text-red-600' : 'text-green-600'">{{ vencidasQtd }}</div>
+                <div class="mt-2 text-sm text-secondary truncate">{{ vencidasQtd > 0 ? 'passaram do prazo' : 'nenhuma' }}</div>
+            </a>
+            <a class="flex flex-col p-4 sm:p-5 rounded-2xl shadow bg-card min-w-0 hover:shadow-md" routerLink="/assinante/pendencias" [queryParams]="{ prazo: 'vencendo' }">
+                <div class="text-sm sm:text-lg font-medium text-secondary truncate">Pendências vencendo</div>
+                <div class="mt-1 text-4xl sm:text-5xl font-bold tracking-tight leading-none" [ngClass]="vencendoQtd > 0 ? 'text-amber-600' : 'text-green-600'">{{ vencendoQtd }}</div>
+                <div class="mt-2 text-sm text-secondary truncate">{{ vencendoQtd > 0 ? 'perto do prazo' : 'nenhuma' }}</div>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
+            <!-- Próximos 7 dias -->
+            <section class="lg:col-span-2 flex flex-col min-w-0 rounded-2xl shadow bg-card overflow-hidden">
+                <div class="flex items-center justify-between gap-2 px-4 sm:px-6 py-4 border-b">
+                    <h2 class="text-lg font-semibold">Próximos 7 dias</h2>
+                    <a mat-button routerLink="/assinante/agenda">Ver Agenda</a>
+                </div>
+
+                <div *ngIf="!dias.length" class="flex flex-col items-center gap-3 px-4 py-10 text-center">
+                    <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:calendar-days"></mat-icon>
+                    <div class="text-lg text-secondary">Nenhum evento nos próximos 7 dias.</div>
+                    <a mat-flat-button color="primary" routerLink="/assinante/eventos/novo">Novo evento</a>
+                </div>
+
+                <div *ngFor="let dia of dias; trackBy: trackByData">
+                    <div class="flex items-center gap-2 px-4 sm:px-6 py-2 bg-gray-50 dark:bg-black dark:bg-opacity-10 border-b text-sm font-semibold">
+                        <span>{{ dia.titulo }}</span>
+                        <span *ngIf="dia.selo" class="px-2 py-0.5 rounded-full text-xs bg-primary text-on-primary">{{ dia.selo }}</span>
+                    </div>
+                    <a *ngFor="let evento of dia.eventos; trackBy: trackById"
+                       class="flex items-start gap-3 px-4 sm:px-6 py-3 border-b min-w-0 hover:bg-gray-50 dark:hover:bg-black dark:hover:bg-opacity-5"
+                       [ngClass]="{ 'opacity-60': evento.EVE_STATUS === Cancelado }"
+                       [routerLink]="['/assinante/eventos', evento.Id]">
+                        <div class="shrink-0 w-14 pt-0.5 text-sm font-medium tabular-nums" [ngClass]="evento.EVE_HORA ? '' : 'text-secondary'">{{ formatarHora(evento.EVE_HORA, 'A conf.') }}</div>
+                        <div class="flex flex-col flex-auto min-w-0">
+                            <div class="font-medium break-words" [ngClass]="{ 'line-through': evento.EVE_STATUS === Cancelado }">{{ evento.EVE_NOME }}</div>
+                            <div class="text-sm text-secondary break-words">{{ evento.EVE_CIDADE }}</div>
+                            <ng-container *ngIf="avisoDoEvento(evento) as aviso">
+                                <div class="mt-1 flex items-start gap-1.5 text-xs text-amber-800">
+                                    <span class="shrink-0 flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-white font-bold leading-none" title="Pede atenção">!</span>
+                                    <span class="break-words">{{ aviso.Detalhes.join(' · ') }}</span>
+                                </div>
+                            </ng-container>
+                        </div>
+                        <span class="shrink-0 px-2 py-0.5 rounded-full text-xs font-medium" [ngClass]="STATUS_COR[evento.EVE_STATUS]">{{ STATUS_ROTULO[evento.EVE_STATUS] }}</span>
+                    </a>
+                </div>
+            </section>
+
+            <!-- Avisos -->
+            <section class="flex flex-col min-w-0 rounded-2xl shadow bg-card overflow-hidden">
+                <div class="px-4 sm:px-6 py-4 border-b">
+                    <h2 class="text-lg font-semibold">Avisos</h2>
+                </div>
+
+                <div *ngIf="!criticos.length && !atencao.length" class="flex flex-col items-center gap-3 px-4 py-10 text-center">
+                    <mat-icon class="icon-size-10 text-green-600" svgIcon="heroicons_outline:check-circle"></mat-icon>
+                    <div class="text-lg text-secondary">Tudo em dia.</div>
+                </div>
+
+                <ng-container *ngIf="criticos.length">
+                    <div class="px-4 pt-3 pb-1 text-xs font-semibold tracking-wider uppercase text-red-700">Críticos</div>
+                    <div class="divide-y">
+                        <app-aviso-item *ngFor="let aviso of criticos; trackBy: trackByChave" [aviso]="aviso"></app-aviso-item>
+                    </div>
+                </ng-container>
+                <ng-container *ngIf="atencao.length">
+                    <div class="px-4 pt-3 pb-1 text-xs font-semibold tracking-wider uppercase text-amber-700" [ngClass]="{ 'border-t mt-2': criticos.length }">Atenção</div>
+                    <div class="divide-y">
+                        <app-aviso-item *ngFor="let aviso of atencao; trackBy: trackByChave" [aviso]="aviso"></app-aviso-item>
+                    </div>
+                </ng-container>
+                <div *ngIf="totalAvisos > criticos.length + atencao.length" class="px-4 py-3 text-sm text-secondary border-t">
+                    Mostrando {{ criticos.length + atencao.length }} de {{ totalAvisos }} avisos.
+                </div>
+            </section>
+        </div>
+    </ng-container>
+</div>

@@ -1,0 +1,83 @@
+<div class="flex flex-col flex-1 gap-4 min-h-0 w-full">
+    <div class="flex items-center justify-between pt-6 pb-4 border-b border-gray-300">
+        <span class="text-2xl sm:text-3xl font-bold text-accent">{{ ehNovo ? 'Novo item do checklist' : 'Item do checklist' }}</span>
+        <button mat-icon-button type="button" aria-label="Fechar" (click)="voltar()">
+            <mat-icon class="text-warn" svgIcon="heroicons_outline:x-mark"></mat-icon>
+        </button>
+    </div>
+
+    <div class="flex flex-col flex-1 min-h-0 overflow-auto">
+        <!-- Status e ação (só na edição) -->
+        <div *ngIf="!ehNovo" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 p-3 rounded-lg bg-gray-50 border">
+            <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center self-start"
+                [ngClass]="modelo?.PEM_ATIVO ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-700'">
+                {{ modelo?.PEM_ATIVO ? 'Ativo' : 'Inativo' }}
+            </span>
+            <button *ngIf="modelo?.PEM_ATIVO" mat-stroked-button color="warn" type="button" [disabled]="acaoEmAndamento" (click)="inativar()">
+                <mat-icon svgIcon="heroicons_outline:no-symbol"></mat-icon>
+                <span class="ml-2">Inativar</span>
+            </button>
+            <button *ngIf="!modelo?.PEM_ATIVO" mat-stroked-button type="button" [disabled]="acaoEmAndamento" (click)="ativar()">
+                <mat-icon svgIcon="heroicons_outline:check-circle"></mat-icon>
+                <span class="ml-2">Ativar</span>
+            </button>
+        </div>
+
+        <p class="text-sm text-secondary mb-3">
+            Vale para eventos criados daqui para frente. Editar o item não altera as pendências que já existem nos eventos.
+        </p>
+
+        <form id="form-checklist" class="flex flex-col gap-1" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Título</mat-label>
+                <input matInput formControlName="PEM_TITULO" maxlength="200" autocomplete="off" placeholder="O que precisa ser feito?">
+                <mat-error>{{ erro('PEM_TITULO') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Categoria</mat-label>
+                <mat-select formControlName="PEM_CATEGORIA">
+                    <mat-option *ngFor="let c of categorias" [value]="c.valor">{{ c.rotulo }}</mat-option>
+                </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Prioridade</mat-label>
+                <mat-select formControlName="PEM_PRIORIDADE">
+                    <mat-option *ngFor="let p of prioridades" [value]="p.valor">{{ p.rotulo }}</mat-option>
+                </mat-select>
+            </mat-form-field>
+
+            <!-- Prazo relativo à data do evento: o número de dias só vale com "Antes" ou "Depois" -->
+            <div class="grid grid-cols-1 min-[420px]:grid-cols-2 gap-x-3">
+                <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                    <mat-label>Prazo</mat-label>
+                    <mat-select formControlName="tipoPrazo">
+                        <mat-option *ngFor="let t of tiposPrazo" [value]="t.valor">{{ t.rotulo }}</mat-option>
+                    </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                    <mat-label>Dias</mat-label>
+                    <input matInput type="number" inputmode="numeric" formControlName="diasPrazo" step="1"
+                        [attr.min]="tipoPrazo === 'antes' ? 0 : 1" [attr.max]="tipoPrazo === 'antes' ? maxAntes : maxDepois" autocomplete="off">
+                    <mat-error>{{ erroDias() }}</mat-error>
+                </mat-form-field>
+            </div>
+            <p class="text-xs text-secondary -mt-1 mb-2">
+                Se o prazo já tiver passado quando o evento for criado, a pendência nasce sem prazo.
+            </p>
+
+            <custom-search-select formControlName="PEM_TIPO_EVENTO_ID" label="Tipo de evento" emptyOptionLabel="Todos os tipos"
+                [options]="tiposOpcoes" [dense]="true" [floatLabelAlways]="true"></custom-search-select>
+        </form>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-300">
+        <button mat-button type="button" [disabled]="salvando" (click)="voltar()">Fechar</button>
+        <button mat-flat-button color="primary" type="submit" form="form-checklist" [disabled]="salvando">
+            <mat-progress-spinner *ngIf="salvando" diameter="20" mode="indeterminate"></mat-progress-spinner>
+            <span *ngIf="!salvando">Salvar</span>
+        </button>
+    </div>
+</div>

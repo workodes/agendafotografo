@@ -24,4 +24,8 @@ public class EventoPendencia : BaseEntity
     public DateOnly? EVP_PRAZO { get; set; }
 
     public string? EVP_OBSERVACOES { get; set; }
+
+    /// <summary>Modelo do checklist padrão que originou a pendência (preenchido só pelo servidor). Nulo = pendência manual.</summary>
+    public Guid? EVP_MODELO_ID { get; set; }
+    public PendenciaModelo? Modelo { get; set; }
 }

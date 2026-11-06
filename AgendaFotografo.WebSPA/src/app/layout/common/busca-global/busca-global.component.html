@@ -1,0 +1,67 @@
+<!-- Campo (telas largas) -->
+<ng-container *ngIf="modo === 'campo'">
+    <div class="relative flex items-center w-56 xl:w-72">
+        <mat-icon class="absolute left-3 icon-size-5 text-secondary pointer-events-none" [svgIcon]="'heroicons_outline:magnifying-glass'"></mat-icon>
+        <input
+            type="search"
+            class="w-full h-10 pl-10 pr-3 rounded-full border bg-gray-50 dark:bg-transparent outline-none focus:border-primary"
+            placeholder="Buscar evento..."
+            aria-label="Buscar evento"
+            autocomplete="off"
+            [formControl]="busca"
+            [matAutocomplete]="autocomplete"
+            (keydown)="aoTeclar($event)">
+    </div>
+</ng-container>
+
+<!-- Barra (celular e tablet): ícone que abre uma barra sobre o cabeçalho -->
+<ng-container *ngIf="modo === 'barra'">
+    <button mat-icon-button type="button" *ngIf="!aberta" (click)="abrir()" aria-label="Buscar evento">
+        <mat-icon [svgIcon]="'heroicons_outline:magnifying-glass'"></mat-icon>
+    </button>
+    <div class="absolute inset-0 flex items-center z-99 bg-card" *ngIf="aberta">
+        <mat-icon class="absolute ml-4 icon-size-5 text-secondary pointer-events-none" [svgIcon]="'heroicons_outline:magnifying-glass'"></mat-icon>
+        <input
+            #campoBarra
+            type="search"
+            class="w-full h-full pl-12 pr-14 bg-transparent outline-none"
+            placeholder="Buscar evento..."
+            aria-label="Buscar evento"
+            autocomplete="off"
+            [formControl]="busca"
+            [matAutocomplete]="autocomplete"
+            (keydown)="aoTeclar($event)">
+        <button class="absolute right-2 shrink-0" mat-icon-button type="button" (click)="fechar()" aria-label="Fechar busca">
+            <mat-icon [svgIcon]="'heroicons_outline:x-mark'"></mat-icon>
+        </button>
+    </div>
+</ng-container>
+
+<mat-autocomplete
+    #autocomplete="matAutocomplete"
+    class="max-h-128 rounded shadow-md"
+    [panelWidth]="modo === 'campo' ? 400 : ''"
+    [autoSelectActiveOption]="true"
+    [displayWith]="exibirVazio"
+    [disableRipple]="true"
+    (optionSelected)="selecionar($event)">
+
+    <mat-option *ngIf="erro" class="pointer-events-none text-secondary" [disabled]="true">Não foi possível buscar agora.</mat-option>
+    <mat-option *ngIf="!erro && resultados && !resultados.length" class="pointer-events-none text-secondary" [disabled]="true">Nenhum evento encontrado.</mat-option>
+
+    <ng-container *ngIf="resultados?.length">
+        <mat-option *ngFor="let evento of resultados; trackBy: trackById" [value]="evento.Id" class="!min-h-14">
+            <div class="flex items-center gap-3 min-w-0 py-1">
+                <div class="flex flex-col flex-auto min-w-0 leading-tight">
+                    <span class="truncate font-medium">{{ evento.EVE_NOME }}</span>
+                    <span class="truncate text-sm text-secondary">{{ formatarData(evento.EVE_DATA) }}<ng-container *ngIf="evento.EVE_CIDADE"> · {{ evento.EVE_CIDADE }}</ng-container></span>
+                </div>
+                <span class="shrink-0 px-2 py-0.5 rounded-full text-xs font-medium" [ngClass]="STATUS_COR[evento.EVE_STATUS]">{{ STATUS_ROTULO[evento.EVE_STATUS] }}</span>
+            </div>
+        </mat-option>
+        <mat-option [value]="VER_NA_AGENDA" class="border-t text-primary">
+            <mat-icon class="icon-size-5 text-primary" [svgIcon]="'heroicons_outline:calendar-days'"></mat-icon>
+            Ver na Agenda
+        </mat-option>
+    </ng-container>
+</mat-autocomplete>

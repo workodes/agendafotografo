@@ -1,0 +1,84 @@
+<!-- Cartão (molde do cartão do scrumboard): título, evento e data, prazo, prioridade, responsável e chip de status -->
+<ng-template #cartao let-p>
+    <div class="flex flex-col gap-1.5 p-3 min-w-0">
+        <div class="flex items-start justify-between gap-2">
+            <div class="font-semibold break-words min-w-0 leading-snug" [class.line-through]="p.EVP_STATUS === concluida">{{ p.EVP_TITULO }}</div>
+            <span *ngIf="p.EVP_MODELO_ID" class="shrink-0 leading-none rounded-full px-2 py-1 text-xs font-semibold bg-gray-100 text-gray-600">Padrão</span>
+        </div>
+        <div class="text-sm text-secondary break-words">
+            <span role="link" tabindex="0" class="underline cursor-pointer"
+                (click)="abrirEvento(p, $event)" (auxclick)="abrirEvento(p, $event)" (keydown.enter)="abrirEvento(p); $event.stopPropagation()">{{ p.EVE_NOME }}</span>
+            · {{ formatarDataComDiaSemana(p.EVE_DATA) }}
+        </div>
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+            <span class="whitespace-nowrap" [class.text-secondary]="!p.EVP_PRAZO">{{ formatarPrazo(p.EVP_PRAZO) }}</span>
+            <span *ngIf="p.Vencida" class="leading-none rounded-full px-2 py-1 text-xs font-semibold bg-red-100 text-red-800">Vencida</span>
+            <span *ngIf="p.Vencendo" class="leading-none rounded-full px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800">Vencendo</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <span class="leading-none rounded-full px-2.5 py-1 text-xs font-semibold" [ngClass]="prioridadeCor[p.EVP_PRIORIDADE]">{{ prioridadeRotulo[p.EVP_PRIORIDADE] }}</span>
+            <app-pendencia-status-chip [item]="p" (alterado)="carregar()"></app-pendencia-status-chip>
+            <span *ngIf="p.EVP_MEMBRO_ID" class="text-xs text-secondary break-words min-w-0">{{ p.MEM_NOME }}<span *ngIf="p.MEM_ATIVO === false"> (inativo)</span></span>
+        </div>
+    </div>
+</ng-template>
+
+<!-- Estado vazio da coluna -->
+<ng-template #vazio>
+    <div class="py-6 text-center text-sm text-secondary">Nenhuma pendência.</div>
+</ng-template>
+
+<!-- Falha ao carregar -->
+<div *ngIf="erroCarga && !loading" role="alert" class="flex flex-col items-center gap-3 px-4 py-8 text-center">
+    <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
+    <div class="text-lg text-secondary">Não foi possível carregar as pendências.</div>
+    <button mat-stroked-button type="button" (click)="carregar()">Tentar de novo</button>
+</div>
+
+<div *ngIf="!erroCarga" class="flex flex-col gap-3 px-4 sm:px-6 py-4 transition-opacity" [class.opacity-60]="loading" [attr.aria-busy]="loading">
+    <div *ngIf="loading && !carregou" class="flex items-center justify-center py-2">
+        <mat-progress-spinner diameter="24" mode="indeterminate"></mat-progress-spinner>
+    </div>
+
+    <ng-container *ngIf="carregou">
+        <!-- md+: 3 colunas lado a lado, arrastar muda o status -->
+        <div *ngIf="ehMd" cdkDropListGroup class="grid grid-cols-3 gap-4 items-start">
+            <div *ngFor="let c of colunas" class="flex flex-col min-w-0">
+                <div class="flex items-center justify-between gap-2 mb-2 px-1">
+                    <div class="text-lg font-semibold truncate">{{ c.rotulo }}</div>
+                    <span class="min-w-6 px-2 py-1 rounded-full text-center text-sm font-semibold leading-none bg-gray-300">{{ c.total }}</span>
+                </div>
+                <div class="pq-coluna-corpo min-h-24 p-2 rounded-xl bg-gray-400 bg-opacity-12 flex flex-col gap-2"
+                    cdkDropList cdkDropListSortingDisabled [cdkDropListData]="c" (cdkDropListDropped)="soltou($event)">
+                    <div *ngFor="let p of c.itens; trackBy: trackPendencia" cdkDrag [cdkDragData]="p" [cdkDragStartDelay]="atrasoToque"
+                        (cdkDragStarted)="arrastando = true" (cdkDragEnded)="fimArrasto()"
+                        class="pq-cartao shadow rounded-lg bg-card cursor-pointer min-w-0" role="button" tabindex="0"
+                        (click)="abrir(p)" (keydown.enter)="abrir(p)">
+                        <ng-container *ngTemplateOutlet="cartao; context: { $implicit: p }"></ng-container>
+                    </div>
+                    <ng-container *ngIf="c.itens.length === 0"><ng-container *ngTemplateOutlet="vazio"></ng-container></ng-container>
+                </div>
+                <div *ngIf="c.total > limite" class="mt-2 px-1 text-xs text-secondary">Mostrando {{ c.itens.length }} de {{ c.total }}. Use a Lista para ver todas.</div>
+            </div>
+        </div>
+
+        <!-- Abaixo de md: uma coluna por vez, escolhida nas abas; o status muda pelo chip (sem arrastar) -->
+        <ng-container *ngIf="!ehMd">
+            <mat-button-toggle-group class="w-full" [value]="colunaMobile" (change)="colunaMobile = $event.value" aria-label="Coluna do quadro">
+                <mat-button-toggle *ngFor="let c of colunas" class="flex-1 min-w-0" [value]="c.status">
+                    <span class="text-xs sm:text-sm">{{ c.rotulo }} ({{ c.total }})</span>
+                </mat-button-toggle>
+            </mat-button-toggle-group>
+            <ng-container *ngFor="let c of colunas">
+                <div *ngIf="c.status === colunaMobile" class="flex flex-col gap-2 p-2 rounded-xl bg-gray-400 bg-opacity-12">
+                    <div *ngFor="let p of c.itens; trackBy: trackPendencia" class="shadow rounded-lg bg-card cursor-pointer min-w-0" role="button" tabindex="0"
+                        (click)="abrir(p)" (keydown.enter)="abrir(p)">
+                        <ng-container *ngTemplateOutlet="cartao; context: { $implicit: p }"></ng-container>
+                    </div>
+                    <ng-container *ngIf="c.itens.length === 0"><ng-container *ngTemplateOutlet="vazio"></ng-container></ng-container>
+                    <div *ngIf="c.total > limite" class="px-1 text-xs text-secondary">Mostrando {{ c.itens.length }} de {{ c.total }}. Use a Lista para ver todas.</div>
+                </div>
+            </ng-container>
+        </ng-container>
+    </ng-container>
+</div>

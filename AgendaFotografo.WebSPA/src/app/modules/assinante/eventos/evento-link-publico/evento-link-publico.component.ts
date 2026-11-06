@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -27,7 +27,15 @@ export class EventoLinkPublicoComponent implements OnChanges {
     @Input() nome = '';
     @Input() data = '';
 
-    link: EventoLinkItem | null = null;
+    // Avisa a ficha (selo da navegação lateral) a cada carga ou alteração; nulo = ainda sem dados.
+    @Output() linkChange = new EventEmitter<EventoLinkItem | null>();
+
+    private _link: EventoLinkItem | null = null;
+    get link(): EventoLinkItem | null { return this._link; }
+    set link(valor: EventoLinkItem | null) {
+        this._link = valor;
+        this.linkChange.emit(valor);
+    }
     carregando = false;
     ocupado = false;
     erroCarga = false;
@@ -51,7 +59,7 @@ export class EventoLinkPublicoComponent implements OnChanges {
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['eventoId'] && this.eventoId !== this._carregadoDe) {
             this._carregadoDe = this.eventoId ?? undefined;
-            this.link = null;
+            this._link = null; // sem emitir: a ficha zera o selo ao trocar de evento
             if (this.eventoId) {
                 this.carregar();
             }

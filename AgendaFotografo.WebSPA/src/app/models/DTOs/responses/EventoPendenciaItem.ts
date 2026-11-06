@@ -11,6 +11,8 @@ export class EventoPendenciaItem {
     EVP_MEMBRO_ID?: string | null;
     EVP_PRAZO?: string | null;
     EVP_OBSERVACOES?: string | null;
+    // Preenchido (só pelo servidor) quando a pendência veio do checklist padrão: mostra a etiqueta "Padrão".
+    EVP_MODELO_ID?: string | null;
     MEM_NOME?: string | null;
     MEM_ATIVO?: boolean | null;
     EVE_NOME: string;

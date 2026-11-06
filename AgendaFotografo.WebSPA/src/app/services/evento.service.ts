@@ -3,8 +3,10 @@ import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { AgendaFiltro } from 'app/models/DTOs/filters/AgendaFiltro';
 import { EventoFiltro } from 'app/models/DTOs/filters/EventoFiltro';
+import { PendenciasContagem } from 'app/models/DTOs/responses/PendenciasContagem';
 import { PendenciaFiltro } from 'app/models/DTOs/filters/PendenciaFiltro';
 import { EventoPendenciaModel, EventoPendenciaStatusModel } from 'app/models/DTOs/requests/EventoPendenciaModel';
+import { EventoAplicarChecklistResponse } from 'app/models/DTOs/responses/EventoAplicarChecklistResponse';
 import { EventoPendenciaItem } from 'app/models/DTOs/responses/EventoPendenciaItem';
 import { EventoMembroModel, EventoMembroPosicaoModel } from 'app/models/DTOs/requests/EventoMembroModel';
 import { DiaResponse } from 'app/models/DTOs/responses/DiaResponse';
@@ -145,6 +147,18 @@ export class EventoService {
         return this._httpClient.get<PaginatedResponse<EventoPendenciaItem>>(environment.Evento.listarPendencias, { params });
     }
 
+    // Contadores dos filtros rápidos da tela Pendências. Só Prioridade e Responsável entram (os mesmos filtros secundários da lista).
+    ContarPendencias(filtro: Pick<PendenciaFiltro, 'prioridade' | 'membroId'> = {}): Observable<PendenciasContagem> {
+        let params = new HttpParams();
+        if (filtro.prioridade != null) {
+            params = params.set('prioridade', filtro.prioridade);
+        }
+        if (filtro.membroId) {
+            params = params.set('membroId', filtro.membroId);
+        }
+        return this._httpClient.get<PendenciasContagem>(environment.Evento.contarPendencias, { params });
+    }
+
     AdicionarPendencia(model: EventoPendenciaModel): Observable<EventoPendenciaItem> {
         return this._httpClient.post<EventoPendenciaItem>(environment.Evento.adicionarPendencia, model, { headers: this._headers });
     }
@@ -156,6 +170,11 @@ export class EventoService {
     // Troca só o status (menu do chip).
     AtualizarStatusPendencia(id: string, model: EventoPendenciaStatusModel): Observable<EventoPendenciaItem> {
         return this._httpClient.put<EventoPendenciaItem>(environment.Evento.atualizarStatusPendencia, model, { headers: this._headers, params: new HttpParams().set('id', id) });
+    }
+
+    // Checklist padrão: acrescenta só os modelos que ainda faltam no evento (idempotente) e devolve a lista da ficha.
+    AplicarChecklist(eventoId: string): Observable<EventoAplicarChecklistResponse> {
+        return this._httpClient.post<EventoAplicarChecklistResponse>(environment.Evento.aplicarChecklist, null, { params: new HttpParams().set('id', eventoId) });
     }
 
     ExcluirPendencia(id: string): Observable<ApiResponse> {

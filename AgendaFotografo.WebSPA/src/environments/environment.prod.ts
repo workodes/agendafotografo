@@ -51,6 +51,15 @@ export const environment = {
         opcoes: `${baseUrl}/TipoEvento/Opcoes`,
     },
 
+    PendenciaModelo: {
+        listar: `${baseUrl}/PendenciaModelo/Listar`,
+        obter: `${baseUrl}/PendenciaModelo/Obter`,
+        criar: `${baseUrl}/PendenciaModelo/Criar`,
+        atualizar: `${baseUrl}/PendenciaModelo/Atualizar`,
+        inativar: `${baseUrl}/PendenciaModelo/Inativar`,
+        ativar: `${baseUrl}/PendenciaModelo/Ativar`,
+    },
+
     Evento: {
         listar: `${baseUrl}/Evento/Listar`,
         obter: `${baseUrl}/Evento/Obter`,
@@ -74,15 +83,21 @@ export const environment = {
         regerarLink: `${baseUrl}/Evento/RegerarLink`,
         pendencias: `${baseUrl}/Evento/Pendencias`,
         listarPendencias: `${baseUrl}/Evento/ListarPendencias`,
+        contarPendencias: `${baseUrl}/Evento/ContarPendencias`,
         adicionarPendencia: `${baseUrl}/Evento/AdicionarPendencia`,
         atualizarPendencia: `${baseUrl}/Evento/AtualizarPendencia`,
         atualizarStatusPendencia: `${baseUrl}/Evento/AtualizarStatusPendencia`,
         excluirPendencia: `${baseUrl}/Evento/ExcluirPendencia`,
+        aplicarChecklist: `${baseUrl}/Evento/AplicarChecklist`,
     },
 
     LinkPublico: {
         acessar: `${baseUrl}/LinkPublico/Acessar`,
         evento: `${baseUrl}/LinkPublico/Evento`,
         arquivo: `${baseUrl}/LinkPublico/Arquivo`,
+    },
+
+    Aviso: {
+        listar: `${baseUrl}/Aviso/Listar`,
     },
 };

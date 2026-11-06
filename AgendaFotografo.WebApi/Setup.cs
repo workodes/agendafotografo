@@ -9,8 +9,10 @@ using AgendaFotografo.Infra.Data.Context;
 using AgendaFotografo.Infra.Data.Interceptors;
 using AgendaFotografo.Infra.Data.Repository;
 using AgendaFotografo.WebApi.Services.Assinantes;
+using AgendaFotografo.WebApi.Services.Avisos;
 using AgendaFotografo.WebApi.Services.Eventos;
 using AgendaFotografo.WebApi.Services.LinkPublico;
+using AgendaFotografo.WebApi.Services.Pendencias;
 using AgendaFotografo.WebApi.Services.TiposEvento;
 using AgendaFotografo.WebApi.Services.CurrentUser;
 using AgendaFotografo.WebApi.Services.Security;
@@ -195,6 +197,8 @@ public static class Setup
         services.AddScoped<TipoEventoPadrao>();
         services.AddScoped<EscalaConsultas>();
         services.AddScoped<PendenciaConsultas>();
+        services.AddScoped<AvisoConsultas>();
+        services.AddScoped<PendenciaChecklistPadrao>();
 
         services.Configure<MailSettings>(configuration.GetSection("MailSettings"));
         services.AddSingleton<IEmailService, EmailService>();

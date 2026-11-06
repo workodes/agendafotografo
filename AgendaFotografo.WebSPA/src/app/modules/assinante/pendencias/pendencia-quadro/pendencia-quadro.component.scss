@@ -1,0 +1,21 @@
+/* Arrasto do Quadro de pendências (molde: scrumboard do Fuse). ViewEncapsulation.None porque o preview é anexado ao body. */
+.pq-cartao.cdk-drag-preview {
+    box-sizing: border-box;
+    border-radius: 0.5rem;
+    box-shadow: 0 5px 5px -3px rgba(0, 0, 0, .2), 0 8px 10px 1px rgba(0, 0, 0, .14), 0 3px 14px 2px rgba(0, 0, 0, .12);
+    z-index: 1000 !important;
+}
+
+.pq-cartao.cdk-drag-placeholder {
+    opacity: 0.4;
+}
+
+.pq-cartao.cdk-drag-animating,
+.pq-coluna-corpo.cdk-drop-list-dragging .pq-cartao {
+    transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.pq-coluna-corpo.cdk-drop-list-receiving {
+    outline: 2px dashed rgba(100, 116, 139, .5);
+    outline-offset: -2px;
+}

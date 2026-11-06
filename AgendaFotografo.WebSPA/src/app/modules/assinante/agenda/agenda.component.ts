@@ -1,3 +1,4 @@
+import { ProgressoPendenciasComponent } from 'app/modules/shared/components/progresso-pendencias/progresso-pendencias.component';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { CommonModule } from '@angular/common';
 import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
@@ -60,7 +61,7 @@ interface GrupoDia {
     imports: [
         CommonModule, RouterModule, ReactiveFormsModule,
         MatButtonModule, MatButtonToggleModule, MatFormFieldModule, MatIconModule, MatProgressSpinnerModule, MatSelectModule,
-        FiltroBotaoComponent, FiltroPainelComponent, FecharComEscDirective, CustomSearchSelectComponent,
+        FiltroBotaoComponent, FiltroPainelComponent, FecharComEscDirective, CustomSearchSelectComponent, ProgressoPendenciasComponent,
     ],
 })
 export class AgendaComponent implements OnInit, OnDestroy {

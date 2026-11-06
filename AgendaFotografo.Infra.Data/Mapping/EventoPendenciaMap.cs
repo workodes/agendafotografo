@@ -34,6 +34,18 @@ public class EventoPendenciaMap : BaseMap<EventoPendencia>
             .HasForeignKey(x => x.EVP_MEMBRO_ID)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne(x => x.Modelo)
+            .WithMany()
+            .HasForeignKey(x => x.EVP_MODELO_ID)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Índice explícito do evento: sem ele o EF removeria o índice de FK existente por ser prefixo do único abaixo
+        // (e o MySQL não deixa apagar o índice usado pela FK antes de existir o substituto)
+        builder.HasIndex(x => x.EVP_EVENTO_ID);
+
+        // Um modelo só uma vez por evento (vários NULL são aceitos: pendências manuais não são afetadas)
+        builder.HasIndex(x => new { x.EVP_EVENTO_ID, x.EVP_MODELO_ID }).IsUnique();
+
         // Lista geral e Painel: pendências do assinante por status e prazo
         builder.HasIndex(x => new { x.EVP_ASSINANTE_ID, x.EVP_STATUS, x.EVP_PRAZO });
     }

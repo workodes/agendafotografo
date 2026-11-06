@@ -17,6 +17,7 @@
         </div>
         <div class="font-semibold break-words" [class.line-through]="e.EVE_STATUS === cancelado">{{ e.EVE_NOME }}</div>
         <div class="text-sm text-secondary break-words">{{ e.TipoEventoNome }}<span *ngIf="localCidade(e)"> · {{ localCidade(e) }}</span></div>
+        <app-progresso-pendencias *ngIf="e.EVE_STATUS !== cancelado" [abertas]="e.PendenciasAbertas" [total]="e.PendenciasTotal" class="block py-0.5"></app-progresso-pendencias>
         <div *ngIf="e.Equipe?.length" class="truncate text-xs text-secondary" [attr.title]="equipe(e)">{{ equipe(e) }}</div>
     </div>
 </ng-template>
@@ -115,7 +116,10 @@
                                 [class.opacity-60]="e.EVE_STATUS === cancelado"
                                 (click)="abrirEvento(e, $event)" (auxclick)="abrirEvento(e, $event)" (keydown.enter)="abrirEvento(e)">
                                 <td class="px-3 py-2 font-bold whitespace-nowrap" [class.text-secondary]="!e.EVE_HORA" [class.line-through]="e.EVE_STATUS === cancelado">{{ formatarHora(e.EVE_HORA) }}</td>
-                                <td class="px-3 py-2 font-semibold"><div class="truncate" [class.line-through]="e.EVE_STATUS === cancelado" [attr.title]="e.EVE_NOME">{{ e.EVE_NOME }}</div></td>
+                                <td class="px-3 py-2 font-semibold">
+                                    <div class="truncate" [class.line-through]="e.EVE_STATUS === cancelado" [attr.title]="e.EVE_NOME">{{ e.EVE_NOME }}</div>
+                                    <app-progresso-pendencias *ngIf="e.EVE_STATUS !== cancelado" [abertas]="e.PendenciasAbertas" [total]="e.PendenciasTotal" [compacto]="true" class="block font-normal"></app-progresso-pendencias>
+                                </td>
                                 <td class="px-3 py-2"><div class="truncate" [attr.title]="e.TipoEventoNome">{{ e.TipoEventoNome }}</div></td>
                                 <td class="px-3 py-2"><div class="truncate" [attr.title]="localCidade(e)">{{ localCidade(e) }}</div></td>
                                 <td class="px-3 py-2 text-xs text-secondary"><div class="truncate" [attr.title]="equipe(e)">{{ equipe(e) }}</div></td>

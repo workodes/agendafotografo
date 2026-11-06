@@ -38,13 +38,73 @@
         </div>
     </div>
 
-    <div class="flex-auto min-h-0 overflow-auto">
-        <div class="flex flex-col gap-8 max-w-4xl mx-auto w-full px-4 sm:px-6 md:px-8 py-6">
+    <div #rolagem class="flex-auto min-h-0 overflow-auto">
+        <div class="mx-auto w-full max-w-4xl px-4 sm:px-6 md:px-8 py-6 lg:grid lg:max-w-[1216px] lg:grid-cols-[256px_minmax(0,1fr)] lg:items-start lg:gap-10">
+
+            <!-- Navegação lateral (a partir de lg): resumo, progresso e seções, no visual dos passos do academy -->
+            <nav aria-label="Seções do evento" class="hidden lg:flex lg:sticky lg:top-6 flex-col gap-5 min-w-0">
+                <div class="flex flex-col gap-2 min-w-0">
+                    <div *ngIf="tipoNome" class="text-sm font-medium text-secondary truncate">{{ tipoNome }}</div>
+                    <ng-container *ngIf="!ehNovo; else resumoNovo">
+                        <div class="flex items-center gap-2 text-sm min-w-0">
+                            <mat-icon class="icon-size-5 shrink-0 text-hint" svgIcon="heroicons_outline:calendar"></mat-icon>
+                            <span class="truncate">{{ resumoData }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm min-w-0">
+                            <mat-icon class="icon-size-5 shrink-0 text-hint" svgIcon="heroicons_outline:clock"></mat-icon>
+                            <span class="truncate" [class.text-secondary]="!evento?.EVE_HORA">{{ resumoHora }}</span>
+                        </div>
+                        <div *ngIf="evento?.EVE_CIDADE" class="flex items-center gap-2 text-sm min-w-0">
+                            <mat-icon class="icon-size-5 shrink-0 text-hint" svgIcon="heroicons_outline:map-pin"></mat-icon>
+                            <span class="truncate">{{ evento?.EVE_CIDADE }}</span>
+                        </div>
+                    </ng-container>
+                    <ng-template #resumoNovo><div class="text-sm text-secondary">Preencha os dados e salve o evento.</div></ng-template>
+                    <app-progresso-pendencias *ngIf="!ehNovo && !cancelado" class="block pt-1"
+                        [abertas]="contagem.abertas" [total]="contagem.total"></app-progresso-pendencias>
+                </div>
+
+                <ol class="relative flex flex-col">
+                    <li *ngFor="let sec of secoes; let i = index; let ultimo = last" class="relative">
+                        <!-- Linha vertical ligando os itens -->
+                        <span *ngIf="!ultimo" class="absolute left-4 top-8 -ml-px h-full w-px bg-gray-300" aria-hidden="true"></span>
+                        <button type="button" class="relative flex w-full items-start gap-3 rounded-md py-2 text-left hover:bg-hover"
+                            [attr.aria-current]="secaoAtual === sec.id ? 'true' : null" (click)="irParaSecao(sec.id)">
+                            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 bg-card text-sm font-semibold"
+                                [ngClass]="secaoAtual === sec.id ? 'border-primary ring-4 ring-primary-100 text-primary-700' : 'border-gray-300 text-secondary'">{{ i + 1 }}</span>
+                            <span class="flex min-w-0 flex-auto flex-col">
+                                <span class="text-sm leading-snug" [class.font-bold]="secaoAtual === sec.id" [class.font-medium]="secaoAtual !== sec.id">{{ sec.rotulo }}</span>
+                                <span class="truncate text-xs text-secondary">{{ sec.subtitulo }}</span>
+                            </span>
+
+                            <!-- Selos -->
+                            <span class="mt-1 shrink-0">
+                                <mat-icon *ngIf="ehNovo && sec.bloqueadaNoNovo" class="icon-size-4 text-hint" svgIcon="heroicons_solid:lock-closed" title="Salve o evento para liberar"></mat-icon>
+                                <ng-container *ngIf="!ehNovo">
+                                    <span *ngIf="sec.id === 'sec-equipe'" class="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold leading-none text-gray-700"
+                                        [attr.title]="equipe.length + ' escalados'">{{ equipe.length }}</span>
+                                    <span *ngIf="sec.id === 'sec-pendencias' && contagem.total > 0"
+                                        class="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold leading-none"
+                                        [ngClass]="cancelado ? 'bg-gray-200 text-gray-600' : (contagem.abertas === 0 ? 'bg-green-100 text-green-800' : 'bg-primary-100 text-primary-800')"
+                                        [attr.title]="contagem.feitas + ' de ' + contagem.total + ' feitas'">
+                                        <mat-icon *ngIf="!cancelado && contagem.abertas === 0" class="icon-size-3 !h-3 !w-3" svgIcon="heroicons_solid:check"></mat-icon>
+                                        {{ contagem.feitas }}/{{ contagem.total }}
+                                    </span>
+                                    <span *ngIf="sec.id === 'sec-link' && seloLink" class="rounded-full px-2 py-0.5 text-xs font-semibold leading-none"
+                                        [ngClass]="seloLink === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'">{{ seloLink }}</span>
+                                </ng-container>
+                            </span>
+                        </button>
+                    </li>
+                </ol>
+            </nav>
+
+        <div class="flex min-w-0 flex-col gap-8">
 
             <form id="form-evento" class="flex flex-col gap-8" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
 
                 <!-- 1. Dados -->
-                <section class="flex flex-col gap-2">
+                <section id="sec-dados" class="flex flex-col gap-2 scroll-mt-4">
                     <h2 class="text-xl font-bold text-accent">Dados do evento</h2>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                         <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
@@ -122,7 +182,7 @@
                 </section>
 
                 <!-- 2. Local e rota -->
-                <section class="flex flex-col gap-2">
+                <section id="sec-local" class="flex flex-col gap-2 scroll-mt-4">
                     <h2 class="text-xl font-bold text-accent">Local e rota</h2>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                         <ng-container *ngFor="let p of pontos">
@@ -151,7 +211,7 @@
             </form>
 
             <!-- 3. Equipe (fora do <form>: Enter nas posições não salva o evento) -->
-            <section class="flex flex-col gap-3">
+            <section id="sec-equipe" class="flex flex-col gap-3 scroll-mt-4">
                 <div class="flex items-center justify-between gap-3">
                     <h2 class="text-xl font-bold text-accent">Equipe</h2>
                     <button mat-flat-button color="primary" type="button" [disabled]="ehNovo" (click)="escalar()">
@@ -205,16 +265,26 @@
             </section>
 
             <!-- Pendências (fora do <form>) -->
-            <section class="flex flex-col gap-3">
-                <div class="flex items-center justify-between gap-3">
+            <section id="sec-pendencias" class="flex flex-col gap-3 scroll-mt-4">
+                <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                     <div class="flex items-baseline gap-2 min-w-0">
                         <h2 class="text-xl font-bold text-accent">Pendências</h2>
                         <span *ngIf="!ehNovo && !avisoCancelado" class="text-sm text-secondary whitespace-nowrap">{{ pendenciasAbertas }} {{ pendenciasAbertas === 1 ? 'aberta' : 'abertas' }}</span>
                     </div>
-                    <button mat-flat-button color="primary" type="button" class="shrink-0" [disabled]="ehNovo" (click)="abrirPendencia()">
-                        <mat-icon svgIcon="heroicons_outline:plus"></mat-icon>
-                        <span class="ml-2">Nova pendência</span>
-                    </button>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Só na edição: acrescenta os modelos do checklist padrão que ainda faltam no evento -->
+                        <button *ngIf="!ehNovo" mat-stroked-button type="button" class="shrink-0" [disabled]="aplicandoChecklist" (click)="aplicarChecklist()">
+                            <mat-progress-spinner *ngIf="aplicandoChecklist" diameter="20" mode="indeterminate"></mat-progress-spinner>
+                            <ng-container *ngIf="!aplicandoChecklist">
+                                <mat-icon svgIcon="heroicons_outline:clipboard-document-list"></mat-icon>
+                                <span class="ml-2">Adicionar checklist padrão</span>
+                            </ng-container>
+                        </button>
+                        <button mat-flat-button color="primary" type="button" class="shrink-0" [disabled]="ehNovo" (click)="abrirPendencia()">
+                            <mat-icon svgIcon="heroicons_outline:plus"></mat-icon>
+                            <span class="ml-2">Nova pendência</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div *ngIf="ehNovo" class="text-sm text-secondary p-3 rounded-lg border bg-gray-50">
@@ -228,32 +298,67 @@
 
                     <div *ngIf="pendencias.length === 0" class="text-sm text-secondary p-3 rounded-lg border bg-gray-50">Nenhuma pendência neste evento.</div>
 
-                    <div *ngFor="let p of pendencias; trackBy: trackPendencia" role="button" tabindex="0"
-                        class="flex flex-col gap-2 p-3 rounded-lg border bg-white cursor-pointer hover:shadow-md transition-shadow min-w-0"
-                        (click)="abrirPendencia(p)" (keydown.enter)="abrirPendencia(p)">
-                        <div class="flex items-start justify-between gap-2">
-                            <div class="font-semibold break-words min-w-0" [class.line-through]="p.EVP_STATUS === concluida" [class.opacity-60]="p.EVP_STATUS === concluida">{{ p.EVP_TITULO }}</div>
-                            <app-pendencia-status-chip [item]="p" (alterado)="recarregarPendencias()"></app-pendencia-status-chip>
+                    <ng-template #itemPendencia let-p>
+                        <div role="button" tabindex="0"
+                            class="flex flex-col gap-2 p-3 rounded-lg border bg-white cursor-pointer hover:shadow-md transition-shadow min-w-0"
+                            (click)="abrirPendencia(p)" (keydown.enter)="abrirPendencia(p)">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="min-w-0" [class.opacity-60]="p.EVP_STATUS === concluida || p.EVP_STATUS === ignorada">
+                                    <div class="font-semibold break-words" [class.line-through]="p.EVP_STATUS === concluida">{{ p.EVP_TITULO }}</div>
+                                    <span *ngIf="p.EVP_MODELO_ID" class="inline-block mt-1 leading-none rounded-full px-2 py-1 text-xs font-semibold bg-gray-100 text-gray-600">Padrão</span>
+                                </div>
+                                <div class="flex items-center gap-1 shrink-0">
+                                    <app-pendencia-status-chip [item]="p" (alterado)="recarregarPendencias()"></app-pendencia-status-chip>
+                                    <button *ngIf="p.EVP_STATUS !== ignorada" mat-icon-button type="button" class="!w-8 !h-8 !p-0 flex items-center justify-center"
+                                        aria-label="Ignorar pendência" title="Ignorar" [disabled]="estaAlterando(p)"
+                                        (click)="ignorarPendencia(p, $event)" (keydown.enter)="$event.stopPropagation()">
+                                        <mat-icon class="icon-size-5" svgIcon="heroicons_outline:eye-slash"></mat-icon>
+                                    </button>
+                                    <button *ngIf="p.EVP_STATUS === ignorada" mat-icon-button type="button" class="!w-8 !h-8 !p-0 flex items-center justify-center"
+                                        aria-label="Restaurar pendência" title="Restaurar" [disabled]="estaAlterando(p)"
+                                        (click)="restaurarPendencia(p, $event)" (keydown.enter)="$event.stopPropagation()">
+                                        <mat-icon class="icon-size-5" svgIcon="heroicons_outline:arrow-uturn-left"></mat-icon>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-secondary" [class.opacity-60]="p.EVP_STATUS === concluida || p.EVP_STATUS === ignorada">
+                                <span class="break-words">{{ categoriaPendenciaRotulo[p.EVP_CATEGORIA] }}</span>
+                                <span class="leading-none rounded-full px-2.5 py-1 text-xs font-semibold" [ngClass]="prioridadePendenciaCor[p.EVP_PRIORIDADE]">{{ prioridadePendenciaRotulo[p.EVP_PRIORIDADE] }}</span>
+                                <span *ngIf="p.EVP_PRAZO" class="inline-flex items-center gap-1">
+                                    <mat-icon class="icon-size-4" svgIcon="heroicons_outline:calendar"></mat-icon>{{ formatarPrazo(p.EVP_PRAZO) }}
+                                </span>
+                                <span *ngIf="p.Vencida" class="leading-none rounded-full px-2 py-1 text-xs font-semibold bg-red-100 text-red-800">Vencida</span>
+                                <span *ngIf="p.Vencendo" class="leading-none rounded-full px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800">Vencendo</span>
+                                <span *ngIf="p.EVP_MEMBRO_ID" class="inline-flex items-center gap-1 min-w-0">
+                                    <mat-icon class="icon-size-4" svgIcon="heroicons_outline:user"></mat-icon>
+                                    <span class="break-words">{{ p.MEM_NOME }}<span *ngIf="p.MEM_ATIVO === false"> (inativo)</span></span>
+                                </span>
+                            </div>
                         </div>
-                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-secondary" [class.opacity-60]="p.EVP_STATUS === concluida">
-                            <span class="break-words">{{ categoriaPendenciaRotulo[p.EVP_CATEGORIA] }}</span>
-                            <span class="leading-none rounded-full px-2.5 py-1 text-xs font-semibold" [ngClass]="prioridadePendenciaCor[p.EVP_PRIORIDADE]">{{ prioridadePendenciaRotulo[p.EVP_PRIORIDADE] }}</span>
-                            <span *ngIf="p.EVP_PRAZO" class="inline-flex items-center gap-1">
-                                <mat-icon class="icon-size-4" svgIcon="heroicons_outline:calendar"></mat-icon>{{ formatarPrazo(p.EVP_PRAZO) }}
-                            </span>
-                            <span *ngIf="p.Vencida" class="leading-none rounded-full px-2 py-1 text-xs font-semibold bg-red-100 text-red-800">Vencida</span>
-                            <span *ngIf="p.Vencendo" class="leading-none rounded-full px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800">Vencendo</span>
-                            <span *ngIf="p.EVP_MEMBRO_ID" class="inline-flex items-center gap-1 min-w-0">
-                                <mat-icon class="icon-size-4" svgIcon="heroicons_outline:user"></mat-icon>
-                                <span class="break-words">{{ p.MEM_NOME }}<span *ngIf="p.MEM_ATIVO === false"> (inativo)</span></span>
-                            </span>
-                        </div>
+                    </ng-template>
+
+                    <ng-container *ngFor="let p of pendenciasVisiveis; trackBy: trackPendencia">
+                        <ng-container *ngTemplateOutlet="itemPendencia; context: { $implicit: p }"></ng-container>
+                    </ng-container>
+
+                    <!-- Ignoradas: grupo recolhido, sempre por último -->
+                    <div *ngIf="pendenciasIgnoradas.length" class="flex flex-col gap-3">
+                        <button type="button" class="flex items-center gap-1 self-start text-sm font-semibold text-secondary py-1"
+                            [attr.aria-expanded]="ignoradasExpandidas" (click)="ignoradasExpandidas = !ignoradasExpandidas">
+                            <mat-icon class="icon-size-5" [svgIcon]="ignoradasExpandidas ? 'heroicons_mini:chevron-down' : 'heroicons_mini:chevron-right'"></mat-icon>
+                            Ignoradas ({{ pendenciasIgnoradas.length }})
+                        </button>
+                        <ng-container *ngIf="ignoradasExpandidas">
+                            <ng-container *ngFor="let p of pendenciasIgnoradas; trackBy: trackPendencia">
+                                <ng-container *ngTemplateOutlet="itemPendencia; context: { $implicit: p }"></ng-container>
+                            </ng-container>
+                        </ng-container>
                     </div>
                 </ng-container>
             </section>
 
             <!-- 4. Observações -->
-            <section class="flex flex-col gap-2" [formGroup]="form">
+            <section id="sec-observacoes" class="flex flex-col gap-2 scroll-mt-4" [formGroup]="form">
                 <h2 class="text-xl font-bold text-accent">Observações</h2>
                 <div class="grid grid-cols-1 gap-y-1">
                     <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
@@ -276,7 +381,11 @@
             </section>
 
             <!-- 5. Link público (fora do <form>) -->
-            <app-evento-link-publico [eventoId]="evento?.Id" [nome]="evento?.EVE_NOME ?? ''" [data]="evento?.EVE_DATA ?? ''"></app-evento-link-publico>
+            <div id="sec-link" class="scroll-mt-4 min-w-0">
+                <app-evento-link-publico [eventoId]="evento?.Id" [nome]="evento?.EVE_NOME ?? ''" [data]="evento?.EVE_DATA ?? ''"
+                    (linkChange)="aoMudarLink($event)"></app-evento-link-publico>
+            </div>
+        </div>
         </div>
     </div>
 </div>
