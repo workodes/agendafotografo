@@ -146,15 +146,28 @@ export function embedDoLink(link: string | null | undefined): string | null {
         return `${EMBED_MAPS}?saddr=${encodeURIComponent(saddr)}&daddr=${encodeURIComponent(daddr)}&output=embed`;
     }
     if (partes[1] === 'dir') {
-        const paradas = partes.slice(2).filter(p => !!p.trim() && !p.startsWith('@') && !p.startsWith('data='));
+        // As paradas são os trechos depois de "dir" até o primeiro "@lat,lon,zoom". O que vem depois ("am=t", "data=...")
+        // é controle do Google, nunca parada: tratar "am=t" como destino fazia o Maps procurar "AMT" (ex.: um restaurante na Serra/ES).
+        const paradas: string[] = [];
+        for (const p of partes.slice(2)) {
+            if (p.startsWith('@') || p.includes('=')) {
+                break;
+            }
+            if (p.trim()) {
+                paradas.push(p.trim());
+            }
+        }
+        const dados = partes.find(p => p.startsWith('data=')) ?? '';
+        const porApi = !!u.searchParams.get('destination');
         const viaApi = (u.searchParams.get('waypoints') ?? '').split('|').map(p => p.trim()).filter(p => !!p);
         const origem = u.searchParams.get('origin') ?? paradas[0];
         const destino = u.searchParams.get('destination') ?? paradas[paradas.length - 1];
         // Paradas do meio entram como "B to:C to:D" (formato clássico do embed, sem chave de API)
-        const meio = u.searchParams.get('destination') ? viaApi : paradas.slice(1, -1);
+        const meio = porApi ? viaApi : comPontosDePassagem(paradas, dados).slice(1, -1);
+        const modo = modoDaRota(dados, u.searchParams.get('travelmode'));
         if (origem && destino && origem !== destino) {
             const daddrs = [...meio, destino].map(encodeURIComponent).join('+to:');
-            return `${EMBED_MAPS}?saddr=${encodeURIComponent(origem)}&daddr=${daddrs}&output=embed`;
+            return `${EMBED_MAPS}?saddr=${encodeURIComponent(origem)}&daddr=${daddrs}${modo ? '&dirflg=' + modo : ''}&output=embed`;
         }
         if (destino) {
             return embedBusca(destino);
@@ -174,6 +187,30 @@ export function embedDoLink(link: string | null | undefined): string | null {
         return embedBusca(`${coords[1]},${coords[2]}`);
     }
     return null;
+}
+
+/** Intercala nas paradas os pontos de passagem que o usuário arrastou no Maps (ficam no "data=" como !3m4!1m2!1d<lon>!2d<lat>,
+ *  logo depois da parada de onde saem; as paradas aparecem como !2m2!1d<lon>!2d<lat>). Sem isso o mapa recalcula o caminho
+ *  mais rápido e o percurso da prova sai diferente. Se a contagem não bater com as paradas do caminho, devolve só as paradas. */
+function comPontosDePassagem(paradas: string[], dados: string): string[] {
+    const itens = [...dados.matchAll(/!(2m2|3m4!1m2)!1d(-?\d+(?:\.\d+)?)!2d(-?\d+(?:\.\d+)?)/g)]
+        .map(m => ({ passagem: m[1] !== '2m2', coordenada: `${m[3]},${m[2]}` }));
+    if (!itens.some(i => i.passagem) || itens.filter(i => !i.passagem).length !== paradas.length) {
+        return paradas;
+    }
+    let n = 0;
+    return itens.map(i => (i.passagem ? i.coordenada : paradas[n++]));
+}
+
+/** Modo da rota para o "dirflg" do embed clássico: a pé (w), bicicleta (b) ou transporte público (r); carro = padrão (null).
+ *  Vem do "data=" (!3e1 bicicleta, !3e2 a pé, !3e3 transporte) ou do travelmode do link api=1. */
+function modoDaRota(dados: string, travelmode: string | null): string | null {
+    const porApi: Record<string, string> = { walking: 'w', bicycling: 'b', transit: 'r' };
+    if (travelmode && porApi[travelmode.toLowerCase()]) {
+        return porApi[travelmode.toLowerCase()];
+    }
+    const m = /!3e(\d)/.exec(dados);
+    return m ? ({ '1': 'b', '2': 'w', '3': 'r' } as Record<string, string>)[m[1]] ?? null : null;
 }
 
 function embedBusca(consulta: string): string {
