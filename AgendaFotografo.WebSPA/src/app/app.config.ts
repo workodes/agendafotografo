@@ -1,20 +1,22 @@
 import { registerLocaleData } from '@angular/common';
 import { provideHttpClient } from '@angular/common/http';
 import { ApplicationConfig, LOCALE_ID } from '@angular/core';
-import { DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE, NativeDateAdapter, provideNativeDateAdapter } from '@angular/material/core';
+import { DateAdapter, MAT_DATE_FORMATS, MAT_DATE_LOCALE } from '@angular/material/core';
+import { MatDatepickerIntl } from '@angular/material/datepicker';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { PreloadAllModules, provideRouter, withInMemoryScrolling, withPreloading } from '@angular/router';
 import { provideFuse } from '@fuse';
 import { appRoutes } from 'app/app.routes';
 import { provideAuth } from 'app/core/auth/auth.provider';
 import { provideIcons } from 'app/core/icons/icons.provider';
+import { CustomDateAdapter, FORMATOS_DATA_PTBR } from 'app/utils/custom-date-adapter';
+import { DatepickerIntlPtBr } from 'app/utils/datepicker-intl-ptbr';
 import localePt from '@angular/common/locales/pt';
 
 registerLocaleData(localePt);
 
 export const appConfig: ApplicationConfig = {
     providers: [
-        provideNativeDateAdapter(),
         {
             provide: LOCALE_ID,
             useValue: 'pt-BR',
@@ -25,22 +27,10 @@ export const appConfig: ApplicationConfig = {
         },
         {
             provide: DateAdapter,
-            useClass: NativeDateAdapter,
+            useClass: CustomDateAdapter,
         },
-        {
-            provide: MAT_DATE_FORMATS,
-            useValue: {
-                parse: {
-                    dateInput: 'dd/MM/yyyy',
-                },
-                display: {
-                    dateInput: 'dd/MM/yyyy',
-                    monthYearLabel: 'MMM yyyy',
-                    dateA11yLabel: 'dd/MM/yyyy',
-                    monthYearA11yLabel: 'MMMM yyyy',
-                },
-            },
-        },
+        { provide: MAT_DATE_FORMATS, useValue: FORMATOS_DATA_PTBR },
+        { provide: MatDatepickerIntl, useClass: DatepickerIntlPtBr },
 
         provideAnimations(),
         provideHttpClient(),

@@ -1,7 +1,7 @@
 <div class="absolute inset-0 flex flex-col min-w-0 overflow-hidden">
     <mat-drawer-container class="flex-auto h-full bg-white">
 
-        <mat-drawer class="w-full md:w-[560px] max-w-full" mode="over" position="end" autoFocus="first-tabbable" #detailsDrawer
+        <mat-drawer class="w-full md:w-[560px] max-w-full" mode="over" position="end" autoFocus="dialog" #detailsDrawer
             (closedStart)="onFichaFechada()">
             <router-outlet></router-outlet>
         </mat-drawer>
@@ -32,7 +32,7 @@
                     </div>
                 </div>
 
-                <div class="flex flex-col flex-auto min-h-0 py-4 px-2 sm:px-6 md:px-8">
+                <div class="flex flex-col flex-auto min-h-0 py-4 px-4 sm:px-6 md:px-8">
                     <div *ngIf="loading && dataSource.data.length === 0" class="flex items-center justify-center py-12">
                         <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
                     </div>

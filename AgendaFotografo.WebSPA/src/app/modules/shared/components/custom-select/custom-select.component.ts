@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, computed, input, Optional, output, ViewChild, DoCheck, } from '@angular/core';
-import { ControlValueAccessor, FormControl, ReactiveFormsModule, NgControl, } from '@angular/forms';
+import { ControlValueAccessor, FormControl, ReactiveFormsModule, NgControl, Validators, } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelect, MatSelectChange, MatSelectModule } from '@angular/material/select';
 import { NgxMatSelectSearchModule } from 'ngx-mat-select-search';
@@ -42,6 +42,7 @@ import { MatOptionSelectionChange } from '@angular/material/core';
                 [value]="mappedValue"
                 [multiple]="multiple()"
                 [disabled]="disabled"
+                [required]="obrigatorio"
                 (selectionChange)="onSelectionChange($event)"
             >
                 <mat-option>
@@ -67,7 +68,7 @@ import { MatOptionSelectionChange } from '@angular/material/core';
                 </mat-option>
             </mat-select>
             <mat-error *ngIf="ngControl?.hasError('required') && ngControl?.touched">
-                Campo <strong>obrigatório.</strong>
+                Campo obrigatório.
             </mat-error>
         </mat-form-field>
     `,
@@ -125,6 +126,11 @@ export class CustomSearchSelectComponent implements ControlValueAccessor, DoChec
     // uma mat-option cujo value seja null — por isso usamos um sentinela só aqui dentro pra
     // representar "nenhum valor selecionado" de um jeito que o mat-select consiga exibir.
     readonly emptySentinel = '__CUSTOM_SELECT_EMPTY__';
+
+    // Mostra o asterisco no rótulo quando o controle do pai tem Validators.required (como nos demais campos).
+    get obrigatorio(): boolean {
+        return !!this.ngControl?.control?.hasValidator(Validators.required);
+    }
 
     get mappedValue(): any {
         return this.value === null ? this.emptySentinel : this.value;

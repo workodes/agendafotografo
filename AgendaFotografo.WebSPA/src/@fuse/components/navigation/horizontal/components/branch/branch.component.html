@@ -3,8 +3,10 @@
         [ngClass]="{'fuse-horizontal-navigation-menu-active': trigger.menuOpen,
                  'fuse-horizontal-navigation-menu-active-forced': item.active}"
         [matMenuTriggerFor]="matMenu"
-        (onMenuOpen)="triggerChangeDetection()"
-        (onMenuClose)="triggerChangeDetection()"
+        (onMenuOpen)="aoAbrir(trigger, raiz)"
+        (onMenuClose)="aoFechar()"
+        (pointerenter)="aoEntrar($event, trigger)"
+        #raiz
         #trigger="matMenuTrigger">
         <ng-container *ngTemplateOutlet="itemTemplate; context: {$implicit: item}"></ng-container>
     </div>
@@ -13,6 +15,7 @@
 <mat-menu
     class="fuse-horizontal-navigation-menu-panel"
     [overlapTrigger]="false"
+    [hasBackdrop]="child ? null : false"
     #matMenu="matMenu">
 
     <ng-container *ngFor="let item of item.children; trackBy: trackByFn">

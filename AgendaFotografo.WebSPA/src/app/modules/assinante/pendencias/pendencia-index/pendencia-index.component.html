@@ -11,8 +11,9 @@
 <ng-template #barraLista>
     <div class="shrink-0">
         <div class="flex items-center gap-2 min-h-12 px-3 sm:px-4 bg-gray-50 border-b">
-            <button *ngIf="!ehLg" mat-icon-button type="button" aria-label="Abrir os filtros rápidos" (click)="alternarMenu()">
-                <mat-icon svgIcon="heroicons_outline:bars-3"></mat-icon>
+            <button *ngIf="!ehLg" mat-button type="button" class="shrink-0 !px-2" aria-label="Abrir os filtros rápidos" title="Filtros rápidos" (click)="alternarMenu()">
+                <mat-icon class="icon-size-5" svgIcon="heroicons_outline:funnel"></mat-icon>
+                <span class="ml-1">Filtros rápidos</span>
             </button>
             <div class="flex-auto min-w-0 truncate text-sm font-semibold uppercase tracking-wide">{{ nomeFiltro }}</div>
             <div class="shrink-0 text-xs text-secondary">{{ faixa }}</div>
@@ -42,14 +43,14 @@
     <!-- Cabeçalho: título com contador, Lista | Quadro e filtros -->
     <app-pagina-cabecalho titulo="Pendências" [contador]="visao === 'lista' && !erroCarga ? totalCount : null">
         <div class="flex items-center gap-2 shrink-0">
-            <mat-button-toggle-group class="fuse-mat-dense" [value]="visao" (change)="mudarVisao($event.value)" aria-label="Visão">
+            <mat-button-toggle-group class="fuse-mat-dense" [value]="visao" (change)="mudarVisao($event.value)" aria-label="Visão" hideSingleSelectionIndicator>
                 <mat-button-toggle value="lista" aria-label="Lista" title="Lista">
                     <mat-icon class="icon-size-5" svgIcon="heroicons_outline:list-bullet"></mat-icon>
-                    <span class="hidden sm:inline ml-1">Lista</span>
+                    <span class="ml-1">Lista</span>
                 </mat-button-toggle>
                 <mat-button-toggle value="quadro" aria-label="Quadro" title="Quadro">
                     <mat-icon class="icon-size-5" svgIcon="heroicons_outline:view-columns"></mat-icon>
-                    <span class="hidden sm:inline ml-1">Quadro</span>
+                    <span class="ml-1">Quadro</span>
                 </mat-button-toggle>
             </mat-button-toggle-group>
             <app-filtro-botao [ativo]="filtrosAtivos" (clicado)="abrirFiltros()"></app-filtro-botao>
@@ -193,7 +194,7 @@
     <app-filtro-painel [aberto]="filtroAberto" (aplicar)="aplicarFiltros()" (limpar)="limparFiltros()" (fechar)="fecharFiltros()">
         <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense">
             <mat-label>Prioridade</mat-label>
-            <mat-select [formControl]="fPrioridade">
+            <mat-select [formControl]="fPrioridade" placeholder="Todas">
                 <mat-option [value]="null">Todas</mat-option>
                 <mat-option *ngFor="let p of prioridadeLista" [value]="p.valor">{{ p.rotulo }}</mat-option>
             </mat-select>

@@ -23,7 +23,7 @@ import { ChaveFiltroRapido, FILTROS_RAPIDOS } from 'app/utils/pendencia';
                     [attr.aria-current]="f.chave === atual ? 'true' : null" (click)="selecionar.emit(f.chave)">
                     <mat-icon class="icon-size-5 shrink-0" [class.text-secondary]="f.chave !== atual" [svgIcon]="f.icone"></mat-icon>
                     <span class="flex-auto truncate">{{ f.rotulo }}</span>
-                    <span *ngIf="contagem" class="min-w-6 px-2 py-1 rounded-full text-center text-xs font-semibold leading-none"
+                    <span *ngIf="contagem" class="inline-flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full px-2 text-xs font-semibold leading-none"
                         [ngClass]="selo(f.chave, contagem[f.campo])">{{ contagem[f.campo] }}</span>
                 </button>
             </nav>
@@ -41,7 +41,7 @@ export class PendenciaSidebarComponent {
 
     selo(chave: ChaveFiltroRapido, valor: number): string {
         if (!valor) {
-            return 'bg-gray-100 text-gray-400';
+            return 'bg-gray-200 text-gray-600';
         }
         return chave === 'vencidas' ? 'bg-red-100 text-red-800' : 'bg-gray-200 text-gray-700';
     }

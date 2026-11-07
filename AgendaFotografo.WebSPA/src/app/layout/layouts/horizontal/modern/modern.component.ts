@@ -3,7 +3,7 @@ import { Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { RouterModule, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterModule, RouterOutlet } from '@angular/router';
 import { FuseLoadingBarComponent } from '@fuse/components/loading-bar';
 import { FuseHorizontalNavigationComponent, FuseNavigationService, FuseVerticalNavigationComponent } from '@fuse/components/navigation';
 import { FuseMediaWatcherService } from '@fuse/services/media-watcher';
@@ -15,8 +15,9 @@ import { AlterarSenhaDialogComponent } from 'app/layout/common/user/alterar-senh
 import { UserComponent } from 'app/layout/common/user/user.component';
 import { AvisosComponent } from 'app/layout/common/avisos/avisos.component';
 import { BuscaGlobalComponent } from 'app/layout/common/busca-global/busca-global.component';
+import { FecharComEscDirective } from 'app/modules/shared/directives/fechar-com-esc.directive';
 import { ROLE_NAMES } from 'app/core/constants/RoleNames';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, filter, takeUntil } from 'rxjs';
 
 @Component({
     selector     : 'modern-layout',
@@ -24,7 +25,7 @@ import { Subject, takeUntil } from 'rxjs';
     styleUrls    : ['./modern-component.scss'],
     encapsulation: ViewEncapsulation.None,
     standalone   : true,
-    imports      : [FuseLoadingBarComponent, RouterModule, NgIf, FuseVerticalNavigationComponent, FuseHorizontalNavigationComponent, MatButtonModule, MatIconModule, UserComponent, AvisosComponent, BuscaGlobalComponent, RouterOutlet],
+    imports      : [FuseLoadingBarComponent, RouterModule, NgIf, FuseVerticalNavigationComponent, FuseHorizontalNavigationComponent, MatButtonModule, MatIconModule, UserComponent, AvisosComponent, BuscaGlobalComponent, RouterOutlet, FecharComEscDirective],
 })
 export class ModernLayoutComponent implements OnInit, OnDestroy
 {
@@ -35,6 +36,9 @@ export class ModernLayoutComponent implements OnInit, OnDestroy
     private _unsubscribeAll: Subject<any> = new Subject<any>();
     /** O modal de troca obrigatória é aberto uma única vez por instância do layout (F5 recria o layout e reabre). */
     private _trocaSenhaAberta = false;
+    /** Id do item pai (ex.: Cadastros) cuja rota filha está ativa; só ele recebe a classe `pai-ativo-item` no wrapper. */
+    private _paiAtivoId: string | null = null;
+    private _menuOriginal: Navigation['horizontal'] = [];
 
     /**
      * Constructor
@@ -46,6 +50,7 @@ export class ModernLayoutComponent implements OnInit, OnDestroy
         private authService: AuthService,
         private _usuarioService: UsuarioService,
         private _matDialog: MatDialog,
+        private _router: Router,
     )
     {
     }
@@ -86,8 +91,14 @@ export class ModernLayoutComponent implements OnInit, OnDestroy
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe((navigation: Navigation) =>
             {
-                this.navigation = navigation;
+                this._menuOriginal = navigation.horizontal ?? [];
+                this._paiAtivoId = null;
+                this.atualizarPaiAtivo(true);
             });
+
+        this._router.events
+            .pipe(filter(e => e instanceof NavigationEnd), takeUntil(this._unsubscribeAll))
+            .subscribe(() => this.atualizarPaiAtivo());
 
         // Subscribe to media changes
         this._fuseMediaWatcherService.onMediaChange$
@@ -131,6 +142,14 @@ export class ModernLayoutComponent implements OnInit, OnDestroy
         }
     }
 
+    /** ESC fecha a gaveta do menu (celular), se estiver aberta. */
+    fecharGaveta(): void {
+        const nav = this._fuseNavigationService.getComponent<FuseVerticalNavigationComponent>('mainNavigation');
+        if (nav?.opened) {
+            nav.close();
+        }
+    }
+
     /** Rota da tela inicial da role logada (link real do logo). */
     get rotaInicio(): string {
         return this.authService.getRotaInicial();
@@ -139,6 +158,23 @@ export class ModernLayoutComponent implements OnInit, OnDestroy
     /** Sino de avisos, busca global e "+ Novo evento" são só do Assinante; o Admin mantém o cabeçalho enxuto. */
     get ehAssinante(): boolean {
         return this.authService.getUserRole() === ROLE_NAMES.Assinante;
+    }
+
+    private atualizarPaiAtivo(forcar = false): void {
+        const url = this._router.url.split(/[?#]/)[0];
+        const ativo = this._menuOriginal.find(item =>
+            (item.children ?? []).some(f => !!f.link && (url === f.link || url.startsWith(f.link + '/'))))?.id ?? null;
+        if (!forcar && ativo === this._paiAtivoId) {
+            return;
+        }
+        this._paiAtivoId = ativo;
+        // Novo array (o menu é OnPush): só o pai ativo ganha a classe de destaque.
+        this.navigation = {
+            ...this.navigation,
+            horizontal: this._menuOriginal.map(item => item.id === ativo
+                ? { ...item, classes: { ...item.classes, wrapper: 'pai-ativo-item' } }
+                : item),
+        };
     }
 
     private abrirTrocaSenhaObrigatoria(): void {

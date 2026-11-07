@@ -20,6 +20,7 @@ import { AlterarSenhaDialogComponent } from './alterar-senha-dialog/alterar-senh
     templateUrl: './user.component.html',
     encapsulation: ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush,
+    host: { class: 'flex items-center' },
     exportAs: 'user',
     standalone: true,
     imports: [

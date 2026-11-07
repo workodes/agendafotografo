@@ -168,7 +168,7 @@
                             <span class="flex items-center gap-1 shrink-0">
                                 <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center shrink-0"
                                     [ngClass]="statusCor[e.EVE_STATUS]">{{ statusRotulo[e.EVE_STATUS] }}</span>
-                                <button mat-icon-button type="button" class="!w-8 !h-8 !p-0 !leading-none shrink-0" aria-label="Copiar link do evento" title="Copiar link do evento"
+                                <button mat-icon-button type="button" class="!w-8 !h-8 max-sm:!w-10 max-sm:!h-10 max-sm:-my-1 !p-0 !leading-none shrink-0" aria-label="Copiar link do evento" title="Copiar link do evento"
                                     (click)="copiarLink(e, dia.Data, $event)" (keydown.enter)="$event.stopPropagation()">
                                     <mat-icon class="icon-size-5" svgIcon="heroicons_outline:link"></mat-icon>
                                 </button>
@@ -207,8 +207,8 @@
                     </div>
                 </div>
 
-                <!-- Livres, agrupados por função -->
-                <div class="flex flex-col gap-3">
+                <!-- Livres, agrupados por função (a partir de lg o painel da equipe já mostra quem está livre) -->
+                <div class="flex flex-col gap-3 lg:hidden">
                     <h2 class="text-xl font-bold text-accent">Livres neste dia</h2>
                     <div *ngIf="dia.Livres.length === 0" class="text-sm text-secondary">Ninguém livre neste dia.</div>
                     <ng-container *ngFor="let f of funcoes">

@@ -51,7 +51,7 @@
 
     <ng-container *ngIf="resultados?.length">
         <mat-option *ngFor="let evento of resultados; trackBy: trackById" [value]="evento.Id" class="!min-h-14">
-            <div class="flex items-center gap-3 min-w-0 py-1">
+            <div class="flex items-center gap-3 min-w-0 w-full py-1">
                 <div class="flex flex-col flex-auto min-w-0 leading-tight">
                     <span class="truncate font-medium">{{ evento.EVE_NOME }}</span>
                     <span class="truncate text-sm text-secondary">{{ formatarData(evento.EVE_DATA) }}<ng-container *ngIf="evento.EVE_CIDADE"> · {{ evento.EVE_CIDADE }}</ng-container></span>

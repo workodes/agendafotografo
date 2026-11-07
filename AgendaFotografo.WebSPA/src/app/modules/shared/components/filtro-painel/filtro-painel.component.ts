@@ -72,7 +72,8 @@ export class FiltroPainelComponent implements OnChanges, OnDestroy {
             this._timerFoco = setTimeout(() => {
                 this._timerFoco = undefined;
                 if (this.aberto) {
-                    this.lateral.nativeElement.focus();
+                    // preventScroll: com o painel ainda fora da tela (celular: largura total), o foco rolaria o contêiner e faria o painel piscar.
+                    this.lateral.nativeElement.focus({ preventScroll: true });
                 }
             });
         } else {
@@ -81,7 +82,7 @@ export class FiltroPainelComponent implements OnChanges, OnDestroy {
             // Só devolve o foco se ele ainda estava no painel (ou perdido); não rouba o foco da ficha que abre em seguida.
             if (!foco || foco === document.body || painel.contains(foco)) {
                 const alvo = this._anterior && document.contains(this._anterior) ? this._anterior : document.body;
-                alvo.focus();
+                alvo.focus({ preventScroll: true });
             }
             this._anterior = null;
         }

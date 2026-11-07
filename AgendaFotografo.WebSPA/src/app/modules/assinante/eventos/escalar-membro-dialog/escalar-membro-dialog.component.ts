@@ -10,7 +10,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { RouterModule } from '@angular/router';
-import { concatMap, from, toArray, catchError, of, map } from 'rxjs';
+import { concatMap, from, toArray, catchError, of, map, delay } from 'rxjs';
 import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
 import { EventoMembroItem, OpcaoEscalaItem } from 'app/models/DTOs/responses/EventoMembroItem';
 import { Membro } from 'app/models/entities/Membro';
@@ -120,7 +120,8 @@ export class EscalarMembroDialogComponent implements OnInit {
     }
 
     ngOnInit(): void {
-        this._eventoService.OpcoesEscala(this.data.eventoId).subscribe({
+        // delay(0): a requisição (que liga a barra de carregamento global) não pode começar durante a detecção de mudanças da abertura do diálogo (NG0100).
+        of(null).pipe(delay(0), concatMap(() => this._eventoService.OpcoesEscala(this.data.eventoId))).subscribe({
             next: opcoes => {
                 this.opcoes = opcoes ?? [];
                 this.carregando = false;

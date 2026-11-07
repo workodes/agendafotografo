@@ -127,3 +127,323 @@ div.carousel__previous {
 .mat-mdc-snack-bar-label {
     white-space: pre-line;
 }
+/*
+ * Menu no padrão do Fartec.Portal (cabeçalho, itens, dropdown de submenu e menu do usuário), com a cor da aplicação
+ * no lugar do azul do Portal. O destaque é o laranja translúcido (`--fuse-primary-rgb`) e o texto ativo usa o tom
+ * escuro da paleta (`--fuse-primary-700`), porque laranja puro sobre branco não tem contraste suficiente.
+ */
+.menu-topo {
+    border-bottom: 1px solid #e5e7eb;
+}
+
+fuse-horizontal-navigation.menu-horizontal {
+    .fuse-horizontal-navigation-wrapper {
+        gap: 4px;
+
+        fuse-horizontal-navigation-basic-item,
+        fuse-horizontal-navigation-branch-item {
+            .fuse-horizontal-navigation-item-wrapper {
+                border-radius: 12px;
+                transition: background-color 150ms ease;
+
+                .fuse-horizontal-navigation-item {
+                    min-height: 40px;
+                    padding: 0 14px;
+                    font-size: 14px;
+                    font-weight: 500;
+                    color: #374151;
+
+                    .fuse-horizontal-navigation-item-icon {
+                        width: 20px;
+                        height: 20px;
+                        min-width: 20px;
+                        min-height: 20px;
+                        margin-right: 10px;
+                        color: #4b5563;
+                    }
+                }
+            }
+
+            &:hover .fuse-horizontal-navigation-item-wrapper {
+                background-color: rgba(var(--fuse-primary-rgb), 0.07);
+            }
+        }
+
+        fuse-horizontal-navigation-basic-item .fuse-horizontal-navigation-item-active,
+        fuse-horizontal-navigation-basic-item .fuse-horizontal-navigation-item-active-forced {
+            .fuse-horizontal-navigation-item-title,
+            .fuse-horizontal-navigation-item-icon {
+                color: var(--fuse-primary-700) !important;
+            }
+        }
+
+        fuse-horizontal-navigation-basic-item:has(.fuse-horizontal-navigation-item-active) .fuse-horizontal-navigation-item-wrapper,
+        fuse-horizontal-navigation-basic-item:has(.fuse-horizontal-navigation-item-active-forced) .fuse-horizontal-navigation-item-wrapper,
+        fuse-horizontal-navigation-branch-item .fuse-horizontal-navigation-menu-active .fuse-horizontal-navigation-item-wrapper,
+        fuse-horizontal-navigation-branch-item .fuse-horizontal-navigation-menu-active-forced .fuse-horizontal-navigation-item-wrapper {
+            background-color: rgba(var(--fuse-primary-rgb), 0.12);
+        }
+
+        fuse-horizontal-navigation-branch-item .fuse-horizontal-navigation-menu-active-forced .fuse-horizontal-navigation-item {
+            color: var(--fuse-primary-700);
+
+            .fuse-horizontal-navigation-item-icon {
+                color: var(--fuse-primary-700);
+            }
+        }
+    }
+}
+
+/* Item pai (ex.: Cadastros) destacado quando uma rota filha dele está ativa (classe `pai-ativo-item`, definida pelo modern.component só no pai ativo). */
+fuse-horizontal-navigation.menu-horizontal fuse-horizontal-navigation-branch-item {
+    .fuse-horizontal-navigation-item-wrapper.pai-ativo-item {
+        background-color: rgba(var(--fuse-primary-rgb), 0.12);
+
+        .fuse-horizontal-navigation-item,
+        .fuse-horizontal-navigation-item .fuse-horizontal-navigation-item-icon {
+            color: var(--fuse-primary-700);
+        }
+    }
+}
+
+/* Dropdown do submenu (painel do mat-menu) */
+.fuse-horizontal-navigation-menu-panel.mat-mdc-menu-panel {
+    margin-top: 6px;
+    min-width: 200px;
+    border-radius: 12px;
+    background-color: #ffffff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+
+    .mat-mdc-menu-content {
+        padding: 6px;
+    }
+
+    .fuse-horizontal-navigation-menu-item.mat-mdc-menu-item {
+        min-height: 0;
+        padding: 0 8px;
+        border-radius: 8px;
+
+        &:hover {
+            background-color: rgba(var(--fuse-primary-rgb), 0.07);
+        }
+
+        .fuse-horizontal-navigation-item {
+            min-height: 40px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+
+            .fuse-horizontal-navigation-item-icon {
+                width: 20px;
+                height: 20px;
+                min-width: 20px;
+                min-height: 20px;
+                margin-right: 10px;
+                color: #4b5563;
+            }
+        }
+
+        &:has(.fuse-horizontal-navigation-item-active) {
+            background-color: rgba(var(--fuse-primary-rgb), 0.12);
+
+            .fuse-horizontal-navigation-item,
+            .fuse-horizontal-navigation-item .fuse-horizontal-navigation-item-icon {
+                color: var(--fuse-primary-700);
+            }
+        }
+    }
+}
+
+/* Submenu aberto por hover recebe foco programático no 1º item: sem destaque extra (o hover/teclado/ativo seguem iguais). */
+.fuse-horizontal-navigation-menu-panel .mat-mdc-menu-item.cdk-program-focused:not(:hover) {
+    background-color: transparent;
+}
+
+/* Menu do usuário (canto superior direito): mesmo padrão do dropdown dos submenus. */
+.menu-usuario.mat-mdc-menu-panel {
+    margin-top: 6px;
+    min-width: 260px;
+    max-width: 320px;
+    border-radius: 12px;
+    background-color: #ffffff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+
+    .mat-mdc-menu-content {
+        padding: 6px;
+    }
+
+    .menu-usuario-cabecalho {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 6px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background-color: rgba(var(--fuse-primary-rgb), 0.1);
+        font-size: 14px;
+    }
+
+    .menu-usuario-avatar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 40px;
+        width: 40px;
+        height: 40px;
+        border-radius: 9999px;
+        overflow: hidden;
+        background-color: #ffffff;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: scale-down;
+        }
+
+        .mat-icon {
+            width: 28px;
+            height: 28px;
+            color: var(--fuse-primary-700);
+        }
+    }
+
+    .mat-mdc-menu-item {
+        min-height: 40px;
+        padding: 0 12px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #374151;
+
+        .mat-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            color: #4b5563;
+        }
+
+        &:hover {
+            background-color: rgba(var(--fuse-primary-rgb), 0.12);
+            color: var(--fuse-primary-700);
+
+            .mat-icon {
+                color: var(--fuse-primary-700);
+            }
+        }
+
+        &.menu-usuario-sair {
+            margin-top: 4px;
+            border-top: 1px solid #e5e7eb;
+            border-radius: 0 0 8px 8px;
+
+            &:hover {
+                background-color: #fef2f2;
+                color: #dc2626;
+
+                .mat-icon {
+                    color: #dc2626;
+                }
+            }
+        }
+    }
+}
+
+
+/* ===== Ajustes de celular (teste mobile) ===== */
+
+/* Gaveta do menu: o Fuse fixa height: 95% (703 de 740 px) e o fundo escuro é absolute; ambos passam a cobrir a tela toda. */
+fuse-vertical-navigation.fuse-vertical-navigation-mode-over {
+    height: auto;
+    max-height: 100dvh;
+}
+
+.fuse-vertical-navigation-overlay {
+    position: fixed;
+}
+
+/* Seta do item expansível: gira ao expandir (apontando para a direita fechado e para baixo aberto). */
+fuse-vertical-navigation-collapsable-item .fuse-vertical-navigation-item-arrow {
+    transition: transform 300ms cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+fuse-vertical-navigation-collapsable-item.fuse-vertical-navigation-item-expanded > .fuse-vertical-navigation-item-wrapper .fuse-vertical-navigation-item-arrow {
+    transform: rotate(90deg);
+}
+
+/* Título dos diálogos com peso de título (todas as larguras). */
+.mat-mdc-dialog-container .mat-mdc-dialog-title {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+}
+
+/* Busca global: some o "x" nativo do input search (o botão de fechar da barra é o único); resultado não estoura a largura. */
+busca-global input[type='search']::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
+}
+
+.mat-mdc-autocomplete-panel .mat-mdc-option .mdc-list-item__primary-text {
+    min-width: 0;
+    max-width: 100%;
+}
+
+@media (max-width: 599px) {
+    /* Diálogos: a superfície já tem 24 px; título/conteúdo/ações não repetem o recuo (antes ~48 px de cada lado). */
+    .mat-mdc-dialog-container .mat-mdc-dialog-title,
+    .mat-mdc-dialog-container .mat-mdc-dialog-content,
+    .mat-mdc-dialog-container .mat-mdc-dialog-actions {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    /* Botões de ícone dos campos (calendário, abrir link): área de toque de 40 px, mantendo o ícone no lugar. */
+    .mat-mdc-form-field.fuse-mat-dense .mat-mdc-text-field-wrapper .mat-mdc-form-field-flex .mat-mdc-form-field-icon-suffix > .mat-mdc-icon-button,
+    .mat-mdc-form-field.fuse-mat-dense .mat-mdc-text-field-wrapper .mat-mdc-form-field-flex .mat-mdc-form-field-icon-suffix mat-datepicker-toggle .mat-mdc-icon-button {
+        width: 40px !important;
+        min-width: 40px;
+        height: 40px;
+        min-height: 40px;
+        margin-right: -10px;
+    }
+
+    /* Listas: a tabela encosta na margem da página (o texto da 1ª/última coluna alinha com o título). */
+    .mat-mdc-table.max-sm\:table-fixed .mat-mdc-header-cell:first-child,
+    .mat-mdc-table.max-sm\:table-fixed .mat-mdc-cell:first-child {
+        padding-left: 0 !important;
+    }
+
+    .mat-mdc-table.max-sm\:table-fixed .mat-mdc-header-cell:last-child,
+    .mat-mdc-table.max-sm\:table-fixed .mat-mdc-cell:last-child {
+        padding-right: 0 !important;
+    }
+
+    /* Paginação: duas linhas alinhadas à margem (tamanho da página; depois intervalo à esquerda e setas à direita). */
+    .mat-mdc-paginator .mat-mdc-paginator-container {
+        padding: 4px 0;
+        justify-content: flex-start;
+        row-gap: 0;
+    }
+
+    .mat-mdc-paginator .mat-mdc-paginator-page-size {
+        margin: 4px 0;
+        width: 100%;
+    }
+
+    .mat-mdc-paginator .mat-mdc-paginator-range-actions {
+        width: 100%;
+        margin: 0;
+        justify-content: space-between;
+    }
+
+    .mat-mdc-paginator .mat-mdc-paginator-range-label {
+        margin: 0 !important;
+    }
+}
+
+/* Seletor do tamanho da página com o canto arredondado dos demais campos. */
+.mat-mdc-paginator .mat-mdc-paginator-page-size-select .mat-mdc-text-field-wrapper {
+    border-radius: 20px;
+}

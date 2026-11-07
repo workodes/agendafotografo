@@ -12,25 +12,29 @@
 </ng-template>
 
 <div class="absolute inset-0 flex flex-col min-w-0 overflow-hidden bg-white">
-    <!-- Cabeçalho fixo: título à esquerda, ações à direita (empilha abaixo de sm) -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 md:px-8 py-3 sm:py-4 border-b shrink-0 bg-white">
-        <div class="flex flex-col min-w-0">
-            <div class="flex items-center gap-3 min-w-0">
-                <span class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight truncate">
-                    {{ ehNovo ? 'Novo evento' : (evento?.EVE_NOME || 'Evento') }}
-                </span>
-                <span *ngIf="!ehNovo && evento" class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center shrink-0"
-                    [ngClass]="statusCor[evento.EVE_STATUS]">{{ statusRotulo[evento.EVE_STATUS] }}</span>
-            </div>
+    <!-- Cabeçalho fixo: título à esquerda, ações à direita. No celular fica compacto (uma linha de ações só com ícones e título em até 2 linhas) -->
+    <div class="flex items-center justify-between gap-2 sm:gap-3 px-4 sm:px-6 md:px-8 py-2 sm:py-4 border-b shrink-0 bg-white">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0">
+            <span class="text-xl sm:text-3xl font-extrabold tracking-tight leading-tight break-words line-clamp-2 sm:truncate min-w-0">
+                {{ ehNovo ? 'Novo evento' : (evento?.EVE_NOME || 'Evento') }}
+            </span>
+            <span *ngIf="!ehNovo && evento" class="self-start leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center shrink-0"
+                [ngClass]="statusCor[evento.EVE_STATUS]">{{ statusRotulo[evento.EVE_STATUS] }}</span>
         </div>
 
-        <div class="flex items-center justify-between sm:justify-end gap-2">
-            <button *ngIf="!ehNovo" mat-stroked-button color="warn" type="button" [disabled]="salvando || excluindo" (click)="excluir()">
+        <div class="flex items-center justify-end gap-1 sm:gap-2 shrink-0">
+            <button *ngIf="!ehNovo" mat-stroked-button color="warn" type="button" class="max-sm:!hidden" [disabled]="salvando || excluindo" (click)="excluir()">
                 <mat-icon svgIcon="heroicons_outline:trash"></mat-icon>
                 <span class="ml-2">Excluir</span>
             </button>
-            <span class="flex-1 sm:hidden"></span>
-            <button mat-button type="button" [disabled]="salvando" (click)="voltar()">Fechar</button>
+            <button *ngIf="!ehNovo" mat-icon-button color="warn" type="button" class="sm:!hidden" aria-label="Excluir evento" title="Excluir evento"
+                [disabled]="salvando || excluindo" (click)="excluir()">
+                <mat-icon class="icon-size-5" svgIcon="heroicons_outline:trash"></mat-icon>
+            </button>
+            <button mat-button type="button" class="max-sm:!hidden" [disabled]="salvando" (click)="voltar()">Fechar</button>
+            <button mat-icon-button type="button" class="sm:!hidden" aria-label="Fechar" title="Fechar" [disabled]="salvando" (click)="voltar()">
+                <mat-icon class="icon-size-5" svgIcon="heroicons_outline:x-mark"></mat-icon>
+            </button>
             <button mat-flat-button color="primary" type="submit" form="form-evento" [disabled]="salvando || excluindo">
                 <mat-progress-spinner *ngIf="salvando" diameter="20" mode="indeterminate"></mat-progress-spinner>
                 <span *ngIf="!salvando">Salvar</span>
@@ -106,7 +110,7 @@
                 <!-- 1. Dados -->
                 <section id="sec-dados" class="flex flex-col gap-2 scroll-mt-4">
                     <h2 class="text-xl font-bold text-accent">Dados do evento</h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                         <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
                             <mat-label>Nome</mat-label>
                             <input matInput formControlName="EVE_NOME" maxlength="200" autocomplete="off">
@@ -116,10 +120,11 @@
                         <custom-search-select formControlName="EVE_TIPO_EVENTO_ID" label="Tipo de evento"
                             [options]="tiposOpcoes" [dense]="true" [floatLabelAlways]="true"></custom-search-select>
 
-                        <div class="flex items-start gap-2">
-                            <custom-search-select class="flex-1 min-w-0" formControlName="EVE_ORGANIZADOR_ID" label="Organizador (opcional)"
+                        <!-- Celular: o seletor ocupa a largura toda e o botão desce; a partir de sm ficam lado a lado (o botão desce 25 px: altura do rótulo, que o Fuse põe acima do campo) -->
+                        <div class="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2 min-w-0">
+                            <custom-search-select class="block w-full sm:flex-1 min-w-0" formControlName="EVE_ORGANIZADOR_ID" label="Organizador (opcional)"
                                 emptyOptionLabel="Nenhum" [options]="organizadoresOpcoes" [dense]="true" [floatLabelAlways]="true"></custom-search-select>
-                            <button mat-stroked-button type="button" class="mt-2 shrink-0" (click)="novoOrganizador()">
+                            <button mat-stroked-button type="button" class="self-start sm:mt-[25px] shrink-0" (click)="novoOrganizador()">
                                 <mat-icon svgIcon="heroicons_outline:plus"></mat-icon>
                                 <span class="ml-1">Novo organizador</span>
                             </button>
@@ -129,7 +134,7 @@
                         <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
                             <mat-label>Data</mat-label>
                             <input matInput [matDatepicker]="pickerData" [min]="dataMin" [max]="dataMax" formControlName="EVE_DATA" placeholder="dd/mm/aaaa" autocomplete="off">
-                            <span *ngIf="diaDaSemana" matSuffix class="text-secondary text-sm mr-1 capitalize">{{ diaDaSemana }}</span>
+                            <span *ngIf="diaDaSemana" matSuffix class="text-secondary text-sm mr-1 first-letter:uppercase">{{ diaDaSemana }}</span>
                             <mat-datepicker-toggle matIconSuffix [for]="pickerData"></mat-datepicker-toggle>
                             <mat-datepicker #pickerData></mat-datepicker>
                             <mat-error>{{ erro('EVE_DATA') }}</mat-error>
@@ -141,7 +146,8 @@
                                 <mat-label>Hora</mat-label>
                                 <input matInput type="time" formControlName="EVE_HORA">
                             </mat-form-field>
-                            <mat-checkbox class="mt-2 shrink-0" formControlName="EVE_HORA_A_CONFIRMAR">A confirmar</mat-checkbox>
+                            <!-- mt-[25px] = altura do rótulo acima do campo (Fuse): alinha o checkbox com a caixa da Hora -->
+                            <mat-checkbox class="mt-[25px] shrink-0" formControlName="EVE_HORA_A_CONFIRMAR">A confirmar</mat-checkbox>
                         </div>
 
                         <app-campo-local [controle]="ctrl('EVE_CIDADE')" rotulo="Cidade" modo="cidade" placeholder="Ex.: Curitiba"
@@ -174,7 +180,7 @@
                 <!-- 2. Local e rota -->
                 <section id="sec-local" class="flex flex-col gap-2 scroll-mt-4">
                     <h2 class="text-xl font-bold text-accent">Local e rota</h2>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                         <ng-container *ngFor="let p of pontos">
                             <app-campo-local [controle]="ctrl(p.local)" [rotulo]="p.rotulo + ' (local)'" modo="endereco"
                                 [maxlength]="300" [erro]="erro(p.local)" (escolhido)="aoEscolherPonto(p.link, $event)"></app-campo-local>

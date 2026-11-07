@@ -28,7 +28,7 @@ export function marcarInstalarAppVisto(): void {
 }
 
 /**
- * Convite "Use o FOKOPP como aplicativo", mostrado como item no topo do painel do sino de avisos (não é mais faixa no cabeçalho).
+ * Convite "Use o Agenda Fotógrafo como aplicativo", mostrado como item no topo do painel do sino de avisos (não é mais faixa no cabeçalho).
  * Fica no painel enquanto o sistema roda no navegador comum e some sozinho dentro do app instalado. Conta 1 no sino só até a
  * primeira abertura do painel (ver `instalarAppPendente` / `marcarInstalarAppVisto`); depois fica lá, sem contar.
  */
@@ -40,7 +40,7 @@ export function marcarInstalarAppVisto(): void {
     <div *ngIf="visivel" class="flex items-start gap-3 px-4 py-3 bg-primary-50 border-b border-primary-200 text-primary-900" role="region" aria-label="Instalar o aplicativo">
         <mat-icon class="mt-0.5 shrink-0 text-primary-700" [svgIcon]="'heroicons_outline:device-phone-mobile'"></mat-icon>
         <div class="flex-auto min-w-0 text-sm">
-            <div class="font-semibold">Use o FOKOPP como aplicativo</div>
+            <div class="font-semibold">Use o Agenda Fotógrafo como aplicativo</div>
             <ng-container>
                 <div *ngIf="plataforma === 'prompt'">Fica na tela inicial do celular e abre em tela cheia, sem a barra do navegador.</div>
                 <ol *ngIf="plataforma === 'ios-safari'" class="mt-1 list-decimal pl-5 space-y-0.5">

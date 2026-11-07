@@ -18,27 +18,24 @@
 </ng-container>
 
 <!-- Wrapper -->
-<div class="flex flex-col flex-auto w-full min-w-0">
+<div class="flex flex-col flex-auto w-full min-w-0" appFecharComEsc (esc)="fecharGaveta()">
 
-    <!-- Header -->
-    <div
-        class="relative flex flex-0 items-center w-full h-16 sm:h-20 px-3 sm:px-4 md:px-6 z-49 shadow dark:shadow-none dark:border-b bg-card dark:bg-transparent print:hidden">
-        <ng-container *ngIf="!isScreenSmall">
-            <!-- Logo -->
-            <a class="flex items-center mx-2 lg:mr-8 cursor-pointer" [routerLink]="rotaInicio" title="Início">
-                <img src="assets/images/logo/logo.png" class="h-12 w-auto" alt="AgendaFotografo">
-            </a>
-            <!-- Horizontal navigation -->
-            <fuse-horizontal-navigation class="mr-2" [name]="'mainNavigation'"
-                [navigation]="navigation.horizontal"></fuse-horizontal-navigation>
-        </ng-container>
-        <!-- Navigation toggle button -->
-        <ng-container *ngIf="isScreenSmall">
-            <button mat-icon-button (click)="toggleNavigation('mainNavigation')">
-                <mat-icon [svgIcon]="'heroicons_outline:bars-3'"></mat-icon>
-            </button>
-            <img src="assets/images/logo/logo.png" class="h-8 sm:h-9 w-auto ml-1 sm:ml-2" alt="AgendaFotografo">
-        </ng-container>
+    <!-- Cabeçalho (padrão Fartec.Portal) -->
+    <div class="menu-topo sticky top-0 flex flex-0 items-center w-full h-16 px-4 md:px-6 z-49 bg-card print:hidden">
+        <!-- Marca -->
+        <a class="flex items-center shrink-0 mr-4 lg:mr-8 cursor-pointer" [routerLink]="rotaInicio" title="Início">
+            <img src="assets/images/logo/logo.png" class="h-9 sm:h-10 w-auto" alt="AgendaFotografo">
+        </a>
+
+        <!-- Menu horizontal (desktop) -->
+        <fuse-horizontal-navigation *ngIf="!isScreenSmall" class="menu-horizontal mr-2" [name]="'mainNavigation'"
+            [navigation]="navigation.horizontal"></fuse-horizontal-navigation>
+
+        <!-- Botão de menu (tela pequena) -->
+        <button *ngIf="isScreenSmall" mat-icon-button (click)="toggleNavigation('mainNavigation')" aria-label="Abrir menu">
+            <mat-icon [svgIcon]="'heroicons_outline:bars-3'"></mat-icon>
+        </button>
+
         <!-- Components -->
         <div class="flex items-center pl-2 ml-auto space-x-0.5 sm:space-x-2">
             <ng-container *ngIf="ehAssinante">
@@ -55,8 +52,8 @@
         <router-outlet *ngIf="true"></router-outlet>
     </div>
     <!-- Rodapé: some abaixo de md -->
-    <div class="relative hidden md:flex flex-0 items-center w-full h-15 px-4 md:px-6 z-49 border-t bg-card print:hidden">
-        <span class="font-medium text-secondary w-full text-center">
+    <div class="relative hidden md:flex flex-0 items-center w-full h-14 px-4 md:px-6 z-49 border-t bg-card print:hidden">
+        <span class="font-medium text-secondary">
             AgendaFotografo &copy; {{currentYear}}, Todos os Direitos Reservados
         </span>
     </div>

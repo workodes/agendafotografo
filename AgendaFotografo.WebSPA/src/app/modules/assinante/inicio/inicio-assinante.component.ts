@@ -2,7 +2,6 @@ import { NgClass, NgFor, NgIf } from '@angular/common';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { Title } from '@angular/platform-browser';
 import { RouterLink } from '@angular/router';
 import { UsuarioService } from 'app/core/services/usuario.service';
@@ -28,7 +27,7 @@ interface DiaDoInicio {
 @Component({
     selector: 'app-inicio-assinante',
     standalone: true,
-    imports: [NgClass, NgFor, NgIf, RouterLink, MatButtonModule, MatIconModule, MatProgressBarModule, AvisoItemComponent],
+    imports: [NgClass, NgFor, NgIf, RouterLink, MatButtonModule, MatIconModule, AvisoItemComponent],
     templateUrl: './inicio-assinante.component.html',
 })
 export class InicioAssinanteComponent implements OnInit {
