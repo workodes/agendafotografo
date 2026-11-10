@@ -1,0 +1,133 @@
+<!-- Faixa fixa à direita (a partir de lg), como o "Team Chat" do Fuse -->
+<button type="button" (click)="abrir()" aria-label="Abrir o assistente" title="Assistente"
+    class="hidden lg:flex fixed top-16 bottom-0 right-0 z-40 w-16 flex-col items-center gap-4 border-l bg-card pt-5 hover:bg-hover print:hidden">
+    <mat-icon class="text-primary-600" svgIcon="heroicons_outline:sparkles"></mat-icon>
+    <span class="text-sm font-medium tracking-wide text-secondary [writing-mode:vertical-rl]">Assistente</span>
+</button>
+
+<!-- Botão flutuante (abaixo de lg), escondido enquanto o painel está aberto -->
+<button *ngIf="!aberto" type="button" (click)="abrir()" aria-label="Abrir o assistente" title="Assistente"
+    class="lg:hidden fixed bottom-4 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-on-primary shadow-lg print:hidden">
+    <mat-icon class="text-current" svgIcon="heroicons_outline:sparkles"></mat-icon>
+</button>
+
+<!-- Painel (tela cheia abaixo de sm, cerca de 30 rem a partir de sm) -->
+<fuse-drawer class="assistente-drawer print:hidden" fixed mode="over" name="assistente" position="right"
+    [opened]="aberto" (openedChanged)="aberto = $event">
+    <div class="flex h-full w-full min-h-0 flex-col" role="dialog" aria-label="Assistente" appFecharComEsc (esc)="aoEsc()">
+
+        <!-- Cabeçalho -->
+        <div class="flex h-16 shrink-0 items-center gap-2 border-b pl-4 pr-2">
+            <mat-icon class="shrink-0 text-primary-600" svgIcon="heroicons_outline:sparkles"></mat-icon>
+            <div class="min-w-0 flex-auto truncate text-lg font-semibold">Assistente</div>
+            <button mat-stroked-button type="button" class="shrink-0" [disabled]="enviando || confirmando || !mensagens.length"
+                aria-label="Nova conversa" title="Nova conversa" (click)="novaConversa()">
+                <mat-icon svgIcon="heroicons_outline:plus"></mat-icon>
+                <span class="ml-1 max-sm:hidden">Nova conversa</span>
+            </button>
+            <button mat-icon-button type="button" class="shrink-0" aria-label="Fechar o assistente" title="Fechar" (click)="fechar()">
+                <mat-icon svgIcon="heroicons_outline:x-mark"></mat-icon>
+            </button>
+        </div>
+
+        <!-- Conversa -->
+        <div #lista class="flex min-h-0 flex-auto flex-col gap-3 overflow-y-auto px-4 py-4">
+
+            <!-- Sem conversa: apresentação com exemplos -->
+            <div *ngIf="!mensagens.length" class="flex flex-col gap-4 py-2">
+                <div class="flex h-14 w-14 items-center justify-center rounded-full bg-primary-100">
+                    <mat-icon class="text-primary-700" svgIcon="heroicons_outline:sparkles"></mat-icon>
+                </div>
+                <div class="flex flex-col gap-1">
+                    <div class="text-lg font-semibold">Olá, eu sou o Assistente.</div>
+                    <div class="text-secondary">Eu lanço eventos (pela mensagem ou pela imagem do flyer) e respondo perguntas sobre a sua agenda.</div>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <div class="text-xs font-semibold uppercase tracking-wider text-secondary">Por exemplo</div>
+                    <button *ngFor="let ex of exemplos" type="button" (click)="usarExemplo(ex)"
+                        class="rounded-xl border px-3 py-2 text-left text-sm hover:bg-hover">{{ ex }}</button>
+                </div>
+            </div>
+
+            <ng-container *ngFor="let m of mensagens">
+                <!-- Usuário -->
+                <div *ngIf="m.Papel === papel.Usuario" class="flex justify-end">
+                    <div class="flex max-w-[85%] flex-col items-end gap-1 rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-sm text-on-primary">
+                        <button *ngIf="miniatura(m) as url" type="button" (click)="alternarAmpliada(m)"
+                            [attr.aria-label]="ampliadas.has(m) ? 'Reduzir a imagem do flyer' : 'Ampliar a imagem do flyer'">
+                            <img [src]="url" alt="Flyer enviado" class="rounded-lg object-cover"
+                                [ngClass]="ampliadas.has(m) ? 'max-h-96 w-full object-contain' : 'h-24 w-24'">
+                        </button>
+                        <span *ngIf="m.TemImagem && !miniatura(m)" class="inline-flex items-center gap-1 rounded-full bg-black/10 px-2 py-0.5 text-xs">
+                            <mat-icon class="icon-size-4 !h-4 !w-4 text-current" svgIcon="heroicons_outline:photo"></mat-icon>
+                            Imagem enviada
+                        </span>
+                        <div *ngIf="m.Texto" class="whitespace-pre-wrap break-words">{{ m.Texto }}</div>
+                    </div>
+                </div>
+
+                <!-- Aviso de sistema (erro, limite) -->
+                <div *ngIf="m.Papel === papel.Assistente && m.Sistema" class="flex justify-center" role="alert">
+                    <div class="max-w-[90%] whitespace-pre-wrap break-words rounded-xl bg-red-50 px-3 py-2 text-center text-sm text-red-700">{{ m.Texto }}</div>
+                </div>
+
+                <!-- Assistente -->
+                <div *ngIf="m.Papel === papel.Assistente && !m.Sistema" class="flex flex-col items-start gap-2">
+                    <div *ngIf="m.Texto" class="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl rounded-bl-sm bg-gray-100 px-3 py-2 text-sm dark:bg-gray-700">{{ m.Texto }}</div>
+                    <!-- Eventos citados na resposta: abrem a ficha -->
+                    <div *ngIf="m.Eventos?.length" class="flex w-full max-w-[95%] flex-col gap-1">
+                        <button *ngFor="let e of m.Eventos" type="button"
+                            class="flex w-full min-w-0 items-center gap-2 rounded-xl border px-3 py-2 text-left hover:bg-hover"
+                            (click)="abrirEvento(e, $event)" (auxclick)="abrirEvento(e, $event)">
+                            <span class="flex min-w-0 flex-auto flex-col">
+                                <span class="truncate text-sm font-medium">{{ e.EVE_NOME }}</span>
+                                <span class="truncate text-xs text-secondary">{{ linhaResumo(e) }}</span>
+                            </span>
+                            <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium" [ngClass]="statusCor[e.EVE_STATUS]">{{ statusRotulo[e.EVE_STATUS] }}</span>
+                        </button>
+                    </div>
+                    <app-assistente-rascunho *ngIf="m.Rascunho" class="block w-full" [mensagem]="m" (fechar)="fechar()"></app-assistente-rascunho>
+                </div>
+            </ng-container>
+
+            <!-- Digitando -->
+            <div *ngIf="enviando" class="flex items-start" role="status" aria-live="polite">
+                <div class="rounded-2xl rounded-bl-sm bg-gray-100 px-3 py-2 text-sm italic text-secondary dark:bg-gray-700">digitando...</div>
+            </div>
+        </div>
+
+        <!-- Barra de digitação (fixa embaixo) -->
+        <div class="shrink-0 border-t bg-card px-3 pb-3 pt-2">
+            <div *ngIf="aviso" class="mb-2 rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-800" role="alert">{{ aviso }}</div>
+            <div *ngIf="bloqueado" class="mb-2 rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-800" role="status">
+                O limite de mensagens de hoje foi atingido. Tente de novo amanhã.
+            </div>
+            <!-- Pré-visualização da imagem anexada -->
+            <div *ngIf="imagem" class="mb-2 flex items-center gap-3 rounded-xl border p-2">
+                <img [src]="imagem.Url" alt="Imagem anexada" class="h-16 w-16 shrink-0 rounded-lg object-cover">
+                <span class="min-w-0 flex-auto truncate text-sm text-secondary">Imagem anexada</span>
+                <button mat-stroked-button type="button" class="shrink-0" [disabled]="enviando" (click)="removerImagem()">Remover</button>
+            </div>
+            <div *ngIf="anexando" class="mb-2 text-xs text-secondary" role="status">Preparando a imagem...</div>
+            <div class="flex items-end gap-2">
+                <input #arquivo type="file" accept="image/jpeg,image/png,image/webp" class="hidden" tabindex="-1" aria-hidden="true" (change)="aoEscolherArquivo($event)">
+                <button mat-icon-button type="button" class="shrink-0" aria-label="Anexar a imagem do flyer" title="Anexar a imagem do flyer"
+                    [disabled]="enviando || bloqueado || anexando" (click)="arquivo.click()">
+                    <mat-icon svgIcon="heroicons_outline:paper-clip"></mat-icon>
+                </button>
+                <textarea #campo [(ngModel)]="texto" (ngModelChange)="aviso = ''" [disabled]="bloqueado" [maxLength]="limiteTexto"
+                    cdkTextareaAutosize cdkAutosizeMinRows="1" cdkAutosizeMaxRows="5"
+                    (keydown.enter)="aoTeclar($event)" (paste)="aoColar($event)"
+                    rows="1" placeholder="Pergunte ou anexe o flyer" aria-label="Mensagem para o assistente"
+                    class="min-w-0 flex-auto resize-none rounded-2xl border bg-transparent px-3 py-2 text-sm leading-5 disabled:opacity-60"></textarea>
+                <button mat-flat-button color="primary" type="button" class="shrink-0" aria-label="Enviar mensagem"
+                    [disabled]="enviando || bloqueado || anexando || (!texto.trim() && !imagem)" (click)="enviar()">
+                    <mat-icon svgIcon="heroicons_solid:paper-airplane"></mat-icon>
+                </button>
+            </div>
+            <div *ngIf="status && status.LimiteDiario > 0" class="mt-1 text-right text-xs text-secondary">
+                {{ status.UsadasHoje }} de {{ status.LimiteDiario }} mensagens hoje
+            </div>
+        </div>
+    </div>
+</fuse-drawer>

@@ -45,6 +45,13 @@ services:
       # PROVISÓRIO: o padrão 172.16.0.0/12 cobre as redes Docker comuns; confirmar a faixa real (docker network inspect) e definir
       # AGENDA_REDE_CONFIAVEL no Dokploy. Ver docs/deploy.md. Faixa errada não derruba nada: o limite por IP só passa a valer para todos juntos.
       ForwardedHeaders__KnownIPNetworks__0: "${AGENDA_REDE_CONFIAVEL:-172.16.0.0/12}"
+      # Assistente com IA (OpenAI padrão ou Azure OpenAI). Valores só nas variáveis do Dokploy (Environment); NUNCA neste arquivo.
+      # ApiKey ou Modelo vazio = chat desligado (a API sobe normalmente). Ver docs/ia.md.
+      IA__Provedor: "${AGENDA_IA_PROVEDOR:-OpenAI}"
+      IA__ApiKey: "${AGENDA_IA_APIKEY:-}"
+      IA__Modelo: "${AGENDA_IA_MODELO:-}"
+      IA__Endpoint: "${AGENDA_IA_ENDPOINT:-}"
+      IA__LimiteDiario: "${AGENDA_IA_LIMITE_DIARIO:-100}"
     volumes:
       # Flyer, imagem de rota e GPX (Arquivos:Pasta = /app/dados/arquivos). Sem volume, somem a cada deploy.
       - agenda-arquivos:/app/dados

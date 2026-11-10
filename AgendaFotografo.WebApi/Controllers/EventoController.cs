@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Linq.Expressions;
 using AgendaFotografo.CrossCutting.Services.Arquivos;
 using AgendaFotografo.Domain.Constants;
 using AgendaFotografo.Domain.Entities;
@@ -35,6 +34,7 @@ public class EventoController(
     IBaseRepository<Organizador> repOrganizador,
     IBaseRepository<Membro> repMembro,
     EscalaConsultas escalaConsultas,
+    AgendaConsulta agendaConsulta,
     PendenciaConsultas pendenciaConsultas,
     PendenciaChecklistPadrao checklistPadrao,
     IArquivoStorage arquivoStorage,
@@ -45,6 +45,7 @@ public class EventoController(
     private readonly IArquivoStorage _arquivoStorage = arquivoStorage;
     private readonly IBaseRepository<Membro> _repMembro = repMembro;
     private readonly EscalaConsultas _escalaConsultas = escalaConsultas;
+    private readonly AgendaConsulta _agendaConsulta = agendaConsulta;
     private readonly IBaseRepository<Evento> _repEvento = repEvento;
     private readonly IBaseRepository<EventoMembro> _repEventoMembro = repEventoMembro;
     private readonly IBaseRepository<EventoArquivo> _repEventoArquivo = repEventoArquivo;
@@ -82,64 +83,6 @@ public class EventoController(
         return (StatusEvento)status;
     }
 
-    /// <summary>Projeção comum de Evento para EventoListItem (sem a equipe, preenchida por <see cref="CarregarEquipeAsync"/>).</summary>
-    private static readonly Expression<Func<Evento, EventoListItem>> ProjecaoListItem = x => new EventoListItem
-    {
-        Id = x.Id,
-        EVE_NOME = x.EVE_NOME,
-        EVE_TIPO_EVENTO_ID = x.EVE_TIPO_EVENTO_ID,
-        TipoEventoNome = x.TipoEvento!.TPE_NOME,
-        EVE_DATA = x.EVE_DATA,
-        EVE_HORA = x.EVE_HORA,
-        EVE_CIDADE = x.EVE_CIDADE,
-        EVE_LOCAL = x.EVE_LOCAL,
-        EVE_STATUS = x.EVE_STATUS,
-        EVE_ORGANIZADOR_ID = x.EVE_ORGANIZADOR_ID,
-        OrganizadorNome = x.Organizador != null ? x.Organizador.ORG_NOME : null
-    };
-
-    /// <summary>Preenche <c>PendenciasAbertas</c>/<c>PendenciasTotal</c> com uma chamada agrupada (sem N+1); sem entrada no dicionário = 0 e 0.</summary>
-    private async Task PreencherPendenciasAsync<T>(List<T> itens, Func<T, Guid> id, Action<T, int, int> atribuir, Guid assinanteId,
-        CancellationToken cancellationToken)
-    {
-        if (itens.Count == 0) return;
-
-        var contagem = await _pendenciaConsultas.ContarPorEventoAsync(assinanteId, itens.Select(id).ToList(), cancellationToken);
-        foreach (var item in itens)
-        {
-            var (abertas, total) = contagem.GetValueOrDefault(id(item));
-            atribuir(item, abertas, total);
-        }
-    }
-
-    private Task PreencherPendenciasAsync(List<EventoListItem> itens, Guid assinanteId, CancellationToken cancellationToken) =>
-        PreencherPendenciasAsync(itens, x => x.Id, (x, a, t) => { x.PendenciasAbertas = a; x.PendenciasTotal = t; }, assinanteId, cancellationToken);
-
-    /// <summary>Preenche a Equipe dos itens com uma consulta em EVENTOXMEMBRO (do assinante), ordenada pelo nome do membro.</summary>
-    private async Task CarregarEquipeAsync(List<EventoListItem> dados, Guid assinanteId, CancellationToken cancellationToken)
-    {
-        if (dados.Count == 0) return;
-
-        var ids = dados.Select(x => x.Id).ToList();
-        var escala = await _repEventoMembro.SelectContext().AsNoTracking()
-            .Where(x => x.EVM_ASSINANTE_ID == assinanteId && ids.Contains(x.EVM_EVENTO_ID))
-            .OrderBy(x => x.Membro!.MEM_NOME).ThenBy(x => x.EVM_MEMBRO_ID)
-            .Select(x => new
-            {
-                x.EVM_EVENTO_ID,
-                Membro = new EventoEquipeItem
-                {
-                    Id = x.EVM_MEMBRO_ID,
-                    MEM_NOME = x.Membro!.MEM_NOME,
-                    MEM_INSTAGRAM = x.Membro.MEM_INSTAGRAM
-                }
-            })
-            .ToListAsync(cancellationToken);
-
-        var porEvento = escala.ToLookup(x => x.EVM_EVENTO_ID, x => x.Membro);
-        foreach (var item in dados) item.Equipe = porEvento[item.Id].ToList();
-    }
-
     private IActionResult SemVinculo() =>StatusCode(StatusCodes.Status403Forbidden, AssinanteEscopo.MensagemSemVinculo);
 
     /// <summary>
@@ -161,33 +104,21 @@ public class EventoController(
             page = Math.Max(page, 1);
             pageSize = pageSize < 1 ? 25 : Math.Min(pageSize, PageSizeMaximo);
 
-            var query = _repEvento.SelectContext().AsNoTracking().Where(x => x.EVE_ASSINANTE_ID == assinanteId);
+            var filtro = new AgendaFiltro { TipoEventoId = tipoEventoId };
 
             if (!string.IsNullOrWhiteSpace(dataDe))
-            {
-                var de = ParseData(dataDe, "Data inicial inválida");
-                query = query.Where(x => x.EVE_DATA >= de);
-            }
+                filtro.De = ParseData(dataDe, "Data inicial inválida");
 
             if (!string.IsNullOrWhiteSpace(dataAte))
-            {
-                var ate = ParseData(dataAte, "Data final inválida");
-                query = query.Where(x => x.EVE_DATA <= ate);
-            }
+                filtro.Ate = ParseData(dataAte, "Data final inválida");
 
-            if (DateOnly.TryParseExact((dataDe ?? string.Empty).Trim(), FormatoData, CultureInfo.InvariantCulture, DateTimeStyles.None, out var d1) &&
-                DateOnly.TryParseExact((dataAte ?? string.Empty).Trim(), FormatoData, CultureInfo.InvariantCulture, DateTimeStyles.None, out var d2) &&
-                d1 > d2)
+            if (filtro.De is not null && filtro.Ate is not null && filtro.De > filtro.Ate)
                 throw new Exception("A data inicial não pode ser maior que a data final");
 
             if (status is not null)
-            {
-                var st = ValidarStatus(status.Value);
-                query = query.Where(x => x.EVE_STATUS == st);
-            }
+                filtro.Status = ValidarStatus(status.Value);
 
-            if (tipoEventoId is not null && tipoEventoId != Guid.Empty)
-                query = query.Where(x => x.EVE_TIPO_EVENTO_ID == tipoEventoId);
+            var query = _agendaConsulta.Consultar(assinanteId, filtro);
 
             if (organizadorId is not null && organizadorId != Guid.Empty)
                 query = query.Where(x => x.EVE_ORGANIZADOR_ID == organizadorId);
@@ -219,11 +150,11 @@ public class EventoController(
                 .ThenBy(x => x.Id)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(ProjecaoListItem)
+                .Select(AgendaConsulta.ProjecaoListItem)
                 .ToListAsync(cancellationToken);
 
-            await CarregarEquipeAsync(dados, assinanteId, cancellationToken);
-            await PreencherPendenciasAsync(dados, assinanteId, cancellationToken);
+            await _agendaConsulta.CarregarEquipeAsync(dados, assinanteId, cancellationToken);
+            await _agendaConsulta.PreencherPendenciasAsync(dados, assinanteId, cancellationToken);
 
             return Ok(new PaginatedResponse<EventoListItem>
             {
@@ -264,41 +195,10 @@ public class EventoController(
             if (de > ate) throw new Exception("A data inicial não pode ser maior que a data final");
             if (ate.DayNumber - de.DayNumber + 1 > DiasMaximosAgenda) throw new Exception("O período não pode passar de 62 dias");
 
-            var query = _repEvento.SelectContext().AsNoTracking()
-                .Where(x => x.EVE_ASSINANTE_ID == assinanteId && x.EVE_DATA >= de && x.EVE_DATA <= ate);
+            var filtro = new AgendaFiltro { De = de, Ate = ate, TipoEventoId = tipoEventoId, Cidade = cidade, MembroId = membroId };
+            if (status is not null) filtro.Status = ValidarStatus(status.Value);
 
-            if (status is not null)
-            {
-                var st = ValidarStatus(status.Value);
-                query = query.Where(x => x.EVE_STATUS == st);
-            }
-
-            if (tipoEventoId is not null && tipoEventoId != Guid.Empty)
-                query = query.Where(x => x.EVE_TIPO_EVENTO_ID == tipoEventoId);
-
-            var cidadeFiltro = (cidade ?? string.Empty).Trim();
-            if (cidadeFiltro.Length > 0)
-                query = query.Where(x => x.EVE_CIDADE == cidadeFiltro);
-
-            if (membroId is not null && membroId != Guid.Empty)
-            {
-                var membro = membroId.Value;
-                var escala = _repEventoMembro.SelectContext().AsNoTracking()
-                    .Where(m => m.EVM_ASSINANTE_ID == assinanteId && m.EVM_MEMBRO_ID == membro);
-                query = query.Where(x => escala.Any(m => m.EVM_EVENTO_ID == x.Id));
-            }
-
-            var dados = await query
-                .OrderBy(x => x.EVE_DATA)
-                .ThenBy(x => x.EVE_HORA == null)
-                .ThenBy(x => x.EVE_HORA)
-                .ThenBy(x => x.EVE_NOME)
-                .ThenBy(x => x.Id)
-                .Select(ProjecaoListItem)
-                .ToListAsync(cancellationToken);
-
-            await CarregarEquipeAsync(dados, assinanteId, cancellationToken);
-            await PreencherPendenciasAsync(dados, assinanteId, cancellationToken);
+            var dados = await _agendaConsulta.ListarAsync(assinanteId, filtro, cancellationToken);
 
             return Ok(dados);
         }
@@ -317,18 +217,7 @@ public class EventoController(
         {
             var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
 
-            var brutas = await _repEvento.SelectContext().AsNoTracking()
-                .Where(x => x.EVE_ASSINANTE_ID == assinanteId)
-                .Select(x => x.EVE_CIDADE)
-                .Distinct()
-                .ToListAsync(cancellationToken);
-
-            var cidades = brutas
-                .Select(c => (c ?? string.Empty).Trim())
-                .Where(c => c.Length > 0)
-                .Distinct(StringComparer.Ordinal)
-                .OrderBy(c => c, StringComparer.Create(CultureInfo.GetCultureInfo("pt-BR"), ignoreCase: true))
-                .ToArray();
+            var cidades = await CidadesConsulta.ListarAsync(_repEvento.SelectContext(), assinanteId, cancellationToken);
 
             return Ok(cidades);
         }
@@ -722,7 +611,7 @@ public class EventoController(
                 throw new Exception("Data inválida");
 
             var resposta = await _escalaConsultas.ObterDiaAsync(assinanteId, dia, cancellationToken);
-            await PreencherPendenciasAsync(resposta.Eventos, x => x.Id, (x, a, t) => { x.PendenciasAbertas = a; x.PendenciasTotal = t; },
+            await _agendaConsulta.PreencherPendenciasAsync(resposta.Eventos, x => x.Id, (x, a, t) => { x.PendenciasAbertas = a; x.PendenciasTotal = t; },
                 assinanteId, cancellationToken);
             return Ok(resposta);
         }
@@ -987,31 +876,9 @@ public class EventoController(
     }
 
     /// <summary>Trim nos textos; opcional vazio vira nulo; organizador com Guid vazio vira nulo.</summary>
-    private static void Normalizar(EventoModel m)
-    {
-        m.EVE_NOME = (m.EVE_NOME ?? string.Empty).Trim();
-        m.EVE_CIDADE = (m.EVE_CIDADE ?? string.Empty).Trim();
-        m.EVE_LOCAL = Texto(m.EVE_LOCAL);
-        if (m.EVE_ORGANIZADOR_ID == Guid.Empty) m.EVE_ORGANIZADOR_ID = null;
+    private static void Normalizar(EventoModel m) => EventoNormalizacao.Normalizar(m);
 
-        m.EVE_LARGADA_LOCAL = Texto(m.EVE_LARGADA_LOCAL);
-        m.EVE_LARGADA_LINK = Texto(m.EVE_LARGADA_LINK);
-        m.EVE_CHEGADA_LOCAL = Texto(m.EVE_CHEGADA_LOCAL);
-        m.EVE_CHEGADA_LINK = Texto(m.EVE_CHEGADA_LINK);
-        m.EVE_LINK_INSCRICAO = Texto(m.EVE_LINK_INSCRICAO);
-        m.EVE_LINK_FOTOS = Texto(m.EVE_LINK_FOTOS);
-        m.EVE_ROTA_LINK_MAPS = Texto(m.EVE_ROTA_LINK_MAPS);
-        m.EVE_ROTA_LINK_STRAVA = Texto(m.EVE_ROTA_LINK_STRAVA);
-        m.EVE_INFORMACOES = Texto(m.EVE_INFORMACOES);
-        m.EVE_OBSERVACOES_EQUIPE = Texto(m.EVE_OBSERVACOES_EQUIPE);
-        m.EVE_NOTAS_INTERNAS = Texto(m.EVE_NOTAS_INTERNAS);
-    }
-
-    private static string? Texto(string? valor)
-    {
-        var t = (valor ?? string.Empty).Trim();
-        return t.Length == 0 ? null : t;
-    }
+    private static string? Texto(string? valor) => EventoNormalizacao.Texto(valor);
 
     /// <summary>Copia só os campos editáveis. Nunca altera o assinante.</summary>
     private static void Aplicar(Evento e, EventoModel m)

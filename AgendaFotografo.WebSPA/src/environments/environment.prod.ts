@@ -103,4 +103,8 @@ export const environment = {
     Local: {
         buscar: `${baseUrl}/Local/Buscar`,
     },
+    Chat: {
+        status: `${baseUrl}/Chat/Status`,
+        enviar: `${baseUrl}/Chat/Enviar`,
+    },
 };

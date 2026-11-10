@@ -5,6 +5,7 @@ import { AuthUtils } from 'app/core/auth/auth.utils';
 import { ApiResponse } from 'app/models/ApiResponse';
 import { AuthModel } from 'app/models/AuthModel';
 import { Usuario } from 'app/models/entities/Usuario';
+import { ChatService } from 'app/services/chat.service';
 import { environment } from 'environments/environment';
 import { map, Observable, of, throwError } from 'rxjs';
 import { ROLE_NAMES } from '../constants/RoleNames';
@@ -23,6 +24,7 @@ export class AuthService {
     constructor(
         private httpClient: HttpClient,
         private userService: UsuarioService,
+        private chatService: ChatService,
     ) { }
 
     set accessToken(token: string) {
@@ -66,6 +68,8 @@ export class AuthService {
     signOut(): Observable<any> {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('usuario');
+        // A conversa do assistente (sessionStorage) e o status não podem sobrar para o próximo login.
+        this.chatService.Limpar(true);
         this._authenticated = false;
         return of(true);
     }

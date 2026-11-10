@@ -1,0 +1,17 @@
+/* Largura do painel do assistente: tela cheia abaixo de sm, cerca de 30 rem a partir de sm (o FuseDrawer lê esta variável). */
+fuse-drawer.assistente-drawer {
+    --fuse-drawer-width: 100vw;
+}
+
+@media (max-width: 599.98px) {
+    fuse-drawer.assistente-drawer {
+        /* Acompanha a área visível quando o teclado do celular abre. */
+        height: 100dvh;
+    }
+}
+
+@media (min-width: 600px) {
+    fuse-drawer.assistente-drawer {
+        --fuse-drawer-width: 30rem;
+    }
+}

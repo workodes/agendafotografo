@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using AgendaFotografo.CrossCutting.Services.Arquivos;
+using AgendaFotografo.CrossCutting.Services.IA;
 using AgendaFotografo.CrossCutting.Services.Mail;
 using AgendaFotografo.Domain.Constants;
 using AgendaFotografo.Domain.Entities;
@@ -10,6 +11,7 @@ using AgendaFotografo.Infra.Data.Interceptors;
 using AgendaFotografo.Infra.Data.Repository;
 using AgendaFotografo.WebApi.Services.Assinantes;
 using AgendaFotografo.WebApi.Services.Avisos;
+using AgendaFotografo.WebApi.Services.Chat;
 using AgendaFotografo.WebApi.Services.Eventos;
 using AgendaFotografo.WebApi.Services.LinkPublico;
 using AgendaFotografo.WebApi.Services.Locais;
@@ -198,8 +200,15 @@ public static class Setup
         services.AddScoped<TipoEventoPadrao>();
         services.AddScoped<EscalaConsultas>();
         services.AddScoped<PendenciaConsultas>();
+        services.AddScoped<AgendaConsulta>();
         services.AddScoped<AvisoConsultas>();
         services.AddScoped<PendenciaChecklistPadrao>();
+
+        // Assistente com IA (OpenAI ou Azure OpenAI): IA:Provedor, ApiKey, Modelo (e Endpoint no Azure); configuração incompleta desliga o chat (sem quebrar a subida)
+        services.AddIAChat(configuration);
+        services.AddSingleton<ChatLimiteDiario>();
+        services.AddScoped<ChatFerramentas>();
+        services.AddHostedService<ChatAvisoInicial>();
 
         // Autocomplete de locais (Geoapify): chave em Geoapify:ApiKey, nunca no SPA
         services.AddHttpClient<LocalBusca>(c => c.Timeout = TimeSpan.FromSeconds(5));

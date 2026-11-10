@@ -1,4 +1,4 @@
-import { NgIf } from '@angular/common';
+import { NgClass, NgIf } from '@angular/common';
 import { Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -13,6 +13,8 @@ import { NavigationService } from 'app/core/navigation/navigation.service';
 import { Navigation } from 'app/core/navigation/navigation.types';
 import { AlterarSenhaDialogComponent } from 'app/layout/common/user/alterar-senha-dialog/alterar-senha-dialog.component';
 import { UserComponent } from 'app/layout/common/user/user.component';
+import { AssistenteComponent } from 'app/layout/common/assistente/assistente.component';
+import { ChatService } from 'app/services/chat.service';
 import { AvisosComponent } from 'app/layout/common/avisos/avisos.component';
 import { BuscaGlobalComponent } from 'app/layout/common/busca-global/busca-global.component';
 import { FecharComEscDirective } from 'app/modules/shared/directives/fechar-com-esc.directive';
@@ -25,13 +27,15 @@ import { Subject, filter, takeUntil } from 'rxjs';
     styleUrls    : ['./modern-component.scss'],
     encapsulation: ViewEncapsulation.None,
     standalone   : true,
-    imports      : [FuseLoadingBarComponent, RouterModule, NgIf, FuseVerticalNavigationComponent, FuseHorizontalNavigationComponent, MatButtonModule, MatIconModule, UserComponent, AvisosComponent, BuscaGlobalComponent, RouterOutlet, FecharComEscDirective],
+    imports      : [FuseLoadingBarComponent, RouterModule, NgIf, NgClass, AssistenteComponent, FuseVerticalNavigationComponent, FuseHorizontalNavigationComponent, MatButtonModule, MatIconModule, UserComponent, AvisosComponent, BuscaGlobalComponent, RouterOutlet, FecharComEscDirective],
 })
 export class ModernLayoutComponent implements OnInit, OnDestroy
 {
     isScreenSmall: boolean;
     /** A partir de `lg` a busca vira uma caixa no cabeçalho; abaixo disso é só o ícone (barra sobre o cabeçalho). */
     isScreenLarge: boolean;
+    /** Assistente com IA: só para o Assinante, e só quando a API informa que o chat está ligado. */
+    assistenteVisivel = false;
     navigation: Navigation = { horizontal: [] };
     private _unsubscribeAll: Subject<any> = new Subject<any>();
     /** O modal de troca obrigatória é aberto uma única vez por instância do layout (F5 recria o layout e reabre). */
@@ -51,6 +55,7 @@ export class ModernLayoutComponent implements OnInit, OnDestroy
         private _usuarioService: UsuarioService,
         private _matDialog: MatDialog,
         private _router: Router,
+        private _chatService: ChatService,
     )
     {
     }
@@ -85,6 +90,15 @@ export class ModernLayoutComponent implements OnInit, OnDestroy
                     this.abrirTrocaSenhaObrigatoria();
                 }
             });
+
+        // Assistente: consulta o status uma vez ao montar o layout do Assinante (falha = desligado).
+        if (this.ehAssinante)
+        {
+            this._chatService.status$
+                .pipe(takeUntil(this._unsubscribeAll))
+                .subscribe(status => (this.assistenteVisivel = status?.Ligado === true));
+            this._chatService.CarregarStatus();
+        }
 
         // Subscribe to navigation data
         this._navigationService.navigation$

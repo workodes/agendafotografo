@@ -48,17 +48,30 @@ public static class ArquivoEventoRegras
         if (tamanho > LimiteImagem)
             throw new Exception("A imagem deve ter no máximo 5 MB.");
 
+        var tipo = DetectarImagem(inicio);
+        if (tipo is null)
+            throw new Exception("O conteúdo do arquivo não é uma imagem JPG, PNG ou WEBP válida.");
+
+        return new ArquivoValidado(tipo == "image/jpeg" ? ".jpg" : tipo == "image/png" ? ".png" : ".webp", tipo);
+    }
+
+    /// <summary>
+    /// Confere a assinatura dos bytes (só o início basta) e devolve o content-type (image/jpeg, image/png ou image/webp), ou nulo se não
+    /// for JPG, PNG nem WEBP. Usado pelo upload de arquivos do evento e pela imagem do flyer do assistente.
+    /// </summary>
+    public static string? DetectarImagem(ReadOnlySpan<byte> inicio)
+    {
         if (inicio.Length >= 3 && inicio[0] == 0xFF && inicio[1] == 0xD8 && inicio[2] == 0xFF)
-            return new ArquivoValidado(".jpg", "image/jpeg");
+            return "image/jpeg";
 
         if (inicio.Length >= 8 && inicio[..8].SequenceEqual(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }))
-            return new ArquivoValidado(".png", "image/png");
+            return "image/png";
 
         // WEBP: "RIFF" + tamanho (4 bytes) + "WEBP"
         if (inicio.Length >= 12 && inicio[..4].SequenceEqual("RIFF"u8) && inicio.Slice(8, 4).SequenceEqual("WEBP"u8))
-            return new ArquivoValidado(".webp", "image/webp");
+            return "image/webp";
 
-        throw new Exception("O conteúdo do arquivo não é uma imagem JPG, PNG ou WEBP válida.");
+        return null;
     }
 
     private static ArquivoValidado ValidarGpx(long tamanho, string extensao, ReadOnlySpan<byte> inicio)

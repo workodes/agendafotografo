@@ -64,3 +64,11 @@ Por que a rede `interna`: na `dokploy-network` todos os projetos da VM se enxerg
 - **Segredos**: o acesso de 7 dias é um JWT com chave derivada do `Jwt:Key`. Trocar `Jwt__Key` derruba também esses acessos (a página volta a pedir o código).
 
 - **Mapa do GPX**: o navegador carrega tiles de `https://tile.openstreetmap.org` (único tráfego externo novo; só ao clicar em "Ver trajeto no mapa"). O `nginx.conf` não tem CSP, então nada a liberar; se entrar um CSP, permitir `img-src https://*.tile.openstreetmap.org`. Os tiles levam só a origem como Referer, nunca o token.
+
+## Assistente com IA
+
+- O chat do Assistente (plano 11) só liga com `IA__ApiKey` e `IA__Modelo` preenchidos no `agenda-api` (e `IA__Endpoint` no Azure OpenAI). O `docker-compose.yml` os recebe de
+  `AGENDA_IA_PROVEDOR` (padrão `OpenAI`), `AGENDA_IA_APIKEY`, `AGENDA_IA_MODELO`, `AGENDA_IA_ENDPOINT` e `AGENDA_IA_LIMITE_DIARIO` (padrão 100), definidas em *Environment*
+  do Dokploy. Sem elas o chat fica desligado e o resto do sistema funciona. **Nenhum valor real vai para o compose nem para o git.**
+- Passo a passo (conta e chave na OpenAI, créditos, limite de gasto, modelo, testes e alternativa Azure OpenAI): [`ia.md`](ia.md). Os dados das mensagens são processados fora do Brasil.
+- O limite diário fica em memória: manter **uma só instância** da API. O `/api/` do `nginx.conf` tem `proxy_read_timeout 120s`, acima do timeout de 60 s da chamada ao modelo.

@@ -16,6 +16,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FuseConfirmationService } from '@fuse/services/confirmation';
 import { Subject, filter, takeUntil } from 'rxjs';
 import { EventoArquivoItem } from 'app/models/DTOs/responses/EventoArquivoItem';
+import { ChatRascunhoMembro } from 'app/models/DTOs/responses/ChatRascunhoMembro';
 import { EventoMembroItem } from 'app/models/DTOs/responses/EventoMembroItem';
 import { EventoPendenciaItem } from 'app/models/DTOs/responses/EventoPendenciaItem';
 import { Opcao } from 'app/models/DTOs/responses/Opcao';
@@ -154,6 +155,10 @@ export class EventoDetailsComponent implements OnInit, AfterViewInit, OnDestroy 
         { campo: 'EVE_ROTA_LINK_STRAVA', rotulo: 'Rota no Strava' },
     ];
 
+    // Rascunho do assistente (plano 11): vem no estado da navegação, só no evento novo. Os campos do evento preenchem o formulário
+    // e os membros só viram o aviso "escale depois de salvar"; nada é escalado automaticamente.
+    rascunhoAssistente: { Evento: Evento; Membros: ChatRascunhoMembro[] } | null = null;
+
     salvando = false;
     excluindo = false;
     ocupadoEscala = false;
@@ -180,6 +185,13 @@ export class EventoDetailsComponent implements OnInit, AfterViewInit, OnDestroy 
 
     get pendenciasAbertas(): number {
         return this.contagem.abertas;
+    }
+
+    /** "João (Fotógrafo), Maria (Assistente)" para o aviso da faixa do assistente; vazio sem membros. */
+    get equipeDoRascunho(): string {
+        return (this.rascunhoAssistente?.Membros ?? [])
+            .map(m => `${m.MEM_NOME} (${FUNCAO_MEMBRO_ROTULO[m.MEM_FUNCAO] ?? ''})`)
+            .join(', ');
     }
 
     get cancelado(): boolean {
@@ -249,6 +261,7 @@ export class EventoDetailsComponent implements OnInit, AfterViewInit, OnDestroy 
             this.pendencias = d?.pendencias ?? [];
             this.linkItem = null;
             this.evento = d?.evento ?? null;
+            this.rascunhoAssistente = this.evento ? null : this.lerRascunhoAssistente();
             this.arquivos = [...(this.evento?.Arquivos ?? [])];
             this.preencher(this.evento ?? null);
             this._title.setTitle(this.evento ? `Evento: ${this.evento.EVE_NOME}` : 'Novo evento');
@@ -681,33 +694,44 @@ export class EventoDetailsComponent implements OnInit, AfterViewInit, OnDestroy 
         return 'Valor inválido.';
     }
 
+    /** Rascunho do assistente (plano 11) no estado da navegação; nunca vem da URL. Valida o formato antes de usar. */
+    private lerRascunhoAssistente(): { Evento: Evento; Membros: ChatRascunhoMembro[] } | null {
+        const estado = this._router.getCurrentNavigation()?.extras?.state ?? history.state;
+        const r = estado?.['rascunhoAssistente'];
+        if (!r || typeof r !== 'object' || !r.Evento || typeof r.Evento !== 'object') {
+            return null;
+        }
+        return { Evento: r.Evento as Evento, Membros: Array.isArray(r.Membros) ? r.Membros : [] };
+    }
+
     private preencher(e: Evento | null): void {
         const query = this._route.snapshot.queryParamMap.get('data');
-        // ?data= pré-preenche a data do evento novo (usado pela Visão do dia).
-        const data = parseDataIso(e?.EVE_DATA) ?? (e ? null : parseDataIso(query));
+        // Precedência: evento gravado > rascunho do assistente > ?data= (a Visão do dia e a Agenda pré-preenchem só a data).
+        const base: Evento | null = e ?? this.rascunhoAssistente?.Evento ?? null;
+        const data = parseDataIso(base?.EVE_DATA) ?? (base ? null : parseDataIso(query));
         this.form.reset({
-            EVE_NOME: e?.EVE_NOME ?? '',
-            EVE_TIPO_EVENTO_ID: e?.EVE_TIPO_EVENTO_ID ?? null,
+            EVE_NOME: base?.EVE_NOME ?? '',
+            EVE_TIPO_EVENTO_ID: base?.EVE_TIPO_EVENTO_ID ?? null,
             EVE_DATA: data,
-            EVE_HORA: horaDaApi(e?.EVE_HORA),
-            EVE_HORA_A_CONFIRMAR: !e?.EVE_HORA,
-            EVE_CIDADE: e?.EVE_CIDADE ?? '',
-            EVE_LOCAL: e?.EVE_LOCAL ?? '',
-            EVE_STATUS: e?.EVE_STATUS ?? StatusEvento.Pendente,
-            EVE_ORGANIZADOR_ID: e?.EVE_ORGANIZADOR_ID ?? null,
-            EVE_LARGADA_LOCAL: e?.EVE_LARGADA_LOCAL ?? '',
-            EVE_LARGADA_LINK: e?.EVE_LARGADA_LINK ?? '',
-            EVE_CHEGADA_LOCAL: e?.EVE_CHEGADA_LOCAL ?? '',
-            EVE_CHEGADA_LINK: e?.EVE_CHEGADA_LINK ?? '',
-            EVE_LINK_INSCRICAO: e?.EVE_LINK_INSCRICAO ?? '',
-            EVE_LINK_FOTOS: e?.EVE_LINK_FOTOS ?? '',
-            EVE_ROTA_LINK_MAPS: e?.EVE_ROTA_LINK_MAPS ?? '',
-            EVE_ROTA_LINK_STRAVA: e?.EVE_ROTA_LINK_STRAVA ?? '',
-            EVE_INFORMACOES: e?.EVE_INFORMACOES ?? '',
-            EVE_OBSERVACOES_EQUIPE: e?.EVE_OBSERVACOES_EQUIPE ?? '',
-            EVE_NOTAS_INTERNAS: e?.EVE_NOTAS_INTERNAS ?? '',
+            EVE_HORA: horaDaApi(base?.EVE_HORA),
+            EVE_HORA_A_CONFIRMAR: !base?.EVE_HORA,
+            EVE_CIDADE: base?.EVE_CIDADE ?? '',
+            EVE_LOCAL: base?.EVE_LOCAL ?? '',
+            EVE_STATUS: base?.EVE_STATUS ?? StatusEvento.Pendente,
+            EVE_ORGANIZADOR_ID: base?.EVE_ORGANIZADOR_ID ?? null,
+            EVE_LARGADA_LOCAL: base?.EVE_LARGADA_LOCAL ?? '',
+            EVE_LARGADA_LINK: base?.EVE_LARGADA_LINK ?? '',
+            EVE_CHEGADA_LOCAL: base?.EVE_CHEGADA_LOCAL ?? '',
+            EVE_CHEGADA_LINK: base?.EVE_CHEGADA_LINK ?? '',
+            EVE_LINK_INSCRICAO: base?.EVE_LINK_INSCRICAO ?? '',
+            EVE_LINK_FOTOS: base?.EVE_LINK_FOTOS ?? '',
+            EVE_ROTA_LINK_MAPS: base?.EVE_ROTA_LINK_MAPS ?? '',
+            EVE_ROTA_LINK_STRAVA: base?.EVE_ROTA_LINK_STRAVA ?? '',
+            EVE_INFORMACOES: base?.EVE_INFORMACOES ?? '',
+            EVE_OBSERVACOES_EQUIPE: base?.EVE_OBSERVACOES_EQUIPE ?? '',
+            EVE_NOTAS_INTERNAS: base?.EVE_NOTAS_INTERNAS ?? '',
         });
-        this.aplicarAConfirmar(!e?.EVE_HORA, false);
+        this.aplicarAConfirmar(!base?.EVE_HORA, false);
     }
 
     private aplicarAConfirmar(aConfirmar: boolean, limpar: boolean): void {

@@ -6,6 +6,7 @@ import { EventoDetailsComponent } from './evento-details/evento-details.componen
 // A antiga lista paginada saiu: `/assinante/eventos` redireciona para a Agenda.
 export default [
     { path: '', pathMatch: 'full', redirectTo: '/assinante/agenda' },
-    { path: 'novo', component: EventoDetailsComponent, resolve: { data: eventoFichaResolver } },
+    // runGuardsAndResolvers 'always': o assistente pode abrir o formulário já estando em /novo (ou /novo?data=); a ficha precisa reler o estado.
+    { path: 'novo', component: EventoDetailsComponent, runGuardsAndResolvers: 'always', resolve: { data: eventoFichaResolver } },
     { path: ':id', component: EventoDetailsComponent, resolve: { data: eventoFichaResolver } },
 ] as Routes;

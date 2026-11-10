@@ -105,6 +105,15 @@
 
         <div class="flex min-w-0 flex-col gap-8">
 
+            <!-- Preenchido pelo assistente (plano 11): só avisa quem escalar; a escala é manual depois de salvar -->
+            <div *ngIf="ehNovo && rascunhoAssistente" class="flex items-start gap-3 rounded-xl bg-primary-50 px-4 py-3 text-sm" role="status">
+                <mat-icon class="icon-size-5 shrink-0 text-primary-700" svgIcon="heroicons_outline:sparkles"></mat-icon>
+                <div class="flex min-w-0 flex-col gap-1">
+                    <span class="font-medium">Preenchido pelo assistente. Revise antes de salvar.</span>
+                    <span *ngIf="equipeDoRascunho" class="break-words">Depois de salvar, escale: {{ equipeDoRascunho }}</span>
+                </div>
+            </div>
+
             <form id="form-evento" class="flex flex-col gap-8" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
 
                 <!-- 1. Dados -->
