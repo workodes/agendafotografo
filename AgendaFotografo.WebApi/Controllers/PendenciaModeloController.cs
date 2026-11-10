@@ -43,8 +43,8 @@ public class PendenciaModeloController(
     private IActionResult SemVinculo() => StatusCode(StatusCodes.Status403Forbidden, AssinanteEscopo.MensagemSemVinculo);
 
     /// <summary>
-    /// Lista paginada. Situação: "ativos" (padrão), "inativos" ou "todos"; outro valor = 400. Na primeira abertura de um assinante
-    /// sem modelos, a lista inicial é criada antes de consultar. Ordem: todos os tipos primeiro, tipo, dias antes decrescente, título.
+    /// Lista paginada. Situação: "ativos" (padrão), "inativos" ou "todos"; outro valor = 400. O checklist nasce vazio: nada é criado
+    /// automaticamente (decisão do colaborador). Ordem: todos os tipos primeiro, tipo, dias antes decrescente, título.
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> Listar(CancellationToken cancellationToken, int page = 1, int pageSize = 25,

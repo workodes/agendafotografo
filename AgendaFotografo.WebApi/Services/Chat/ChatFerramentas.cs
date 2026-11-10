@@ -45,7 +45,7 @@ public class ChatFerramentas(
     private const int MaximoMembrosNoRascunho = 20;
     private const string MsgJaHaRascunho = "Já há um rascunho nesta resposta; proponha o próximo depois que o usuário confirmar.";
     private const string MsgDataInvalida = "Data inválida; use o formato yyyy-MM-dd.";
-    private const int MaximoEventosBusca = 20;
+    private const int MaximoEventosBusca = 10;
     private const int MaximoEventosCitados = 10;
     private const int MaximoEquipePorEvento = 15;
     private const int MaximoPalavrasBusca = 5;
@@ -88,8 +88,8 @@ public class ChatFerramentas(
             AIFunctionFactory.Create(ConsultarDiaAsync, "ConsultarDia",
                 "Resume um dia da agenda: eventos (nome, hora, cidade, status, equipe), membros livres e conflitos de escala."),
             AIFunctionFactory.Create(BuscarEventosAsync, "BuscarEventos",
-                "Consulta a agenda (só leitura). Devolve até 20 eventos do assinante, futuros primeiro e depois os passados, com data, hora, cidade, " +
-                "local, status, tipo, organizador (nome), equipe (nome, função e posição) e pendências feitas/total, mais o Total encontrado. " +
+                "Consulta a agenda (só leitura). Devolve até 10 eventos do assinante, futuros primeiro e depois os passados, uma linha por evento: " +
+                "data, dia, hora, nome, tipo, cidade/local, status, organizador, pendências feitas/total e, se pedida, a equipe; mais o Total encontrado. " +
                 "Sem datas: de hoje a hoje + 30 dias; com texto e sem datas: de 1 ano atrás a 1 ano à frente. Período máximo de 366 dias. " +
                 "Chame de novo a cada pergunta do usuário (não reaproveite resultado antigo)."),
             AIFunctionFactory.Create(ProporEventoAsync, "ProporEvento",
@@ -155,10 +155,6 @@ public class ChatFerramentas(
     private Task<string[]> ListarCidadesAsync(CancellationToken cancellationToken)
         => CidadesConsulta.ListarAsync(repEvento.SelectContext(), _assinanteId, cancellationToken);
 
-    private sealed record DiaEventoResumo(string Nome, string? Hora, string Cidade, string Status, List<string> Equipe);
-    private sealed record DiaConflitoResumo(string Membro, List<string> Eventos);
-    private sealed record DiaResumo(string Data, List<DiaEventoResumo> Eventos, List<string> Livres, List<DiaConflitoResumo> Conflitos);
-
     private async Task<object> ConsultarDiaAsync(
         [Description("Data no formato yyyy-MM-dd.")] string data,
         CancellationToken cancellationToken)
@@ -167,12 +163,24 @@ public class ChatFerramentas(
 
         var d = await escalaConsultas.ObterDiaAsync(_assinanteId, dia, cancellationToken);
         foreach (var e in d.Eventos) Coletar(e.Id, e.EVE_NOME, dia, e.EVE_HORA, e.EVE_CIDADE, e.EVE_LOCAL, e.EVE_STATUS);
-        return new DiaResumo(
-            dia.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-            [.. d.Eventos.Select(e => new DiaEventoResumo(e.EVE_NOME, e.EVE_HORA?.ToString("HH:mm", CultureInfo.InvariantCulture),
-                e.EVE_CIDADE, e.EVE_STATUS.ToString(), [.. e.Equipe.Select(m => m.MEM_NOME)]))],
-            [.. d.Livres.Select(m => $"{m.MEM_NOME} ({m.MEM_FUNCAO})")],
-            [.. d.Conflitos.Select(c => new DiaConflitoResumo(c.MEM_NOME, [.. c.Eventos.Select(e => e.EVE_NOME)]))]);
+
+        // Texto compacto (menos tokens que JSON)
+        var sb = new System.Text.StringBuilder();
+        sb.Append(CultureInfo.InvariantCulture, $"Dia {dia:yyyy-MM-dd} {ChatPrompt.DiaSemana(dia)}. Eventos: {d.Eventos.Count}.");
+        foreach (var e in d.Eventos)
+        {
+            sb.AppendLine();
+            sb.Append("- ").Append(e.EVE_HORA?.ToString("HH:mm", CultureInfo.InvariantCulture) ?? "hora a confirmar")
+              .Append(" | ").Append(e.EVE_NOME).Append(" | ").Append(e.EVE_CIDADE).Append(" | ").Append(e.EVE_STATUS)
+              .Append(" | equipe: ").Append(e.Equipe.Count == 0 ? "ninguém" : string.Join(", ", e.Equipe.Select(m => m.MEM_NOME)));
+        }
+        sb.AppendLine();
+        sb.Append("Livres: ").Append(d.Livres.Count == 0 ? "ninguém" : string.Join(", ", d.Livres.Select(m => $"{m.MEM_NOME} ({m.MEM_FUNCAO})")));
+        sb.AppendLine();
+        sb.Append("Conflitos: ").Append(d.Conflitos.Count == 0
+            ? "nenhum"
+            : string.Join("; ", d.Conflitos.Select(c => $"{c.MEM_NOME} em {string.Join(" e ", c.Eventos.Select(e => e.EVE_NOME))}")));
+        return sb.ToString();
     }
 
     private async Task<string> ProporEventoAsync(
@@ -341,10 +349,6 @@ public class ChatFerramentas(
         return resumo + " Agora responda ao usuário em poucas linhas, pedindo que confira e confirme.";
     }
 
-    private sealed record EquipeEvento(string Nome, string Funcao, string? Posicao);
-    private sealed record EventoConsultado(string Nome, string Data, string DiaSemana, string? Hora, string Cidade, string? Local,
-        string Status, string Tipo, string? Organizador, List<EquipeEvento> Equipe, int PendenciasFeitas, int PendenciasTotal);
-    private sealed record BuscaEventosResultado(int Total, int Exibidos, string Periodo, List<EventoConsultado> Eventos);
 
     /// <summary>Soma ao coletor de eventos citados (sem repetir Id, no máximo 10). Os ids ficam só no servidor, nunca vão ao modelo.</summary>
     private void Coletar(Guid id, string nome, DateOnly data, TimeOnly? hora, string cidade, string? local, StatusEvento status)
@@ -362,6 +366,7 @@ public class ChatFerramentas(
         [Description("Data final no formato yyyy-MM-dd (opcional).")] string? dataAte = null,
         [Description("Status: 1 Pendente, 2 Confirmado, 3 Realizado, 4 Cancelado. Use SOMENTE quando o usuário pedir um status explicitamente; caso contrário deixe nulo para trazer todos.")] int? status = null,
         [Description("Id do membro, devolvido por BuscarMembros: só eventos em que ele está escalado (opcional).")] string? membroId = null,
+        [Description("true só quando a pergunta for sobre a equipe/escala (\"quem está escalado?\"); caso contrário false.")] bool incluirEquipe = false,
         CancellationToken cancellationToken = default)
     {
         var hoje = DateOnly.FromDateTime(DateTime.Now);
@@ -425,9 +430,9 @@ public class ChatFerramentas(
 
         await agendaConsulta.PreencherPendenciasAsync(itens, _assinanteId, cancellationToken);
 
-        // Equipe (nome, função e posição) numa consulta única, até 15 por evento
+        // Equipe (nome, função e posição) numa consulta única, até 15 por evento; só quando pedida (economiza tokens)
         var ids = itens.Select(x => x.Id).ToList();
-        var escala = ids.Count == 0
+        var escala = ids.Count == 0 || !incluirEquipe
             ? []
             : await repEventoMembro.SelectContext().AsNoTracking()
                 .Where(x => x.EVM_ASSINANTE_ID == _assinanteId && ids.Contains(x.EVM_EVENTO_ID))
@@ -436,22 +441,32 @@ public class ChatFerramentas(
                 .ToListAsync(cancellationToken);
         var equipePorEvento = escala.ToLookup(x => x.EVM_EVENTO_ID);
 
-        var eventos = new List<EventoConsultado>();
+        // Resultado em texto compacto (uma linha por evento): bem menos tokens que JSON com o nome de cada campo
+        var sb = new System.Text.StringBuilder();
+        sb.Append(CultureInfo.InvariantCulture,
+            $"Total: {total} (mostrando {itens.Count}). Período {de:yyyy-MM-dd} a {ate:yyyy-MM-dd}.");
         foreach (var e in itens)
         {
             Coletar(e.Id, e.EVE_NOME, e.EVE_DATA, e.EVE_HORA, e.EVE_CIDADE, e.EVE_LOCAL, e.EVE_STATUS);
-            eventos.Add(new EventoConsultado(
-                e.EVE_NOME,
-                e.EVE_DATA.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                ChatPrompt.DiaSemana(e.EVE_DATA),
-                e.EVE_HORA?.ToString("HH:mm", CultureInfo.InvariantCulture),
-                e.EVE_CIDADE, e.EVE_LOCAL, e.EVE_STATUS.ToString(), e.TipoEventoNome, e.OrganizadorNome,
-                [.. equipePorEvento[e.Id].Take(MaximoEquipePorEvento).Select(m => new EquipeEvento(m.MEM_NOME, m.MEM_FUNCAO.ToString(), m.EVM_POSICAO))],
-                e.PendenciasTotal - e.PendenciasAbertas, e.PendenciasTotal));
+            sb.AppendLine();
+            sb.Append(CultureInfo.InvariantCulture, $"- {e.EVE_DATA:yyyy-MM-dd} {ChatPrompt.DiaSemana(e.EVE_DATA)} ");
+            sb.Append(e.EVE_HORA?.ToString("HH:mm", CultureInfo.InvariantCulture) ?? "hora a confirmar");
+            sb.Append(" | ").Append(e.EVE_NOME).Append(" | ").Append(e.TipoEventoNome);
+            sb.Append(" | ").Append(e.EVE_CIDADE);
+            if (!string.IsNullOrWhiteSpace(e.EVE_LOCAL)) sb.Append(", ").Append(e.EVE_LOCAL);
+            sb.Append(" | ").Append(e.EVE_STATUS);
+            if (!string.IsNullOrWhiteSpace(e.OrganizadorNome)) sb.Append(" | org: ").Append(e.OrganizadorNome);
+            if (e.PendenciasTotal > 0)
+                sb.Append(CultureInfo.InvariantCulture, $" | pendências {e.PendenciasTotal - e.PendenciasAbertas}/{e.PendenciasTotal}");
+            if (incluirEquipe)
+            {
+                var equipe = equipePorEvento[e.Id].Take(MaximoEquipePorEvento)
+                    .Select(m => string.IsNullOrWhiteSpace(m.EVM_POSICAO) ? $"{m.MEM_NOME} ({m.MEM_FUNCAO})" : $"{m.MEM_NOME} ({m.MEM_FUNCAO}, {m.EVM_POSICAO})")
+                    .ToList();
+                sb.Append(" | equipe: ").Append(equipe.Count == 0 ? "ninguém escalado" : string.Join("; ", equipe));
+            }
         }
-
-        return new BuscaEventosResultado(total, eventos.Count,
-            $"{de.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)} a {ate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}", eventos);
+        return sb.ToString();
     }
 
     /// <summary>Até 5 palavras de 3 ou mais letras, sem repetir.</summary>

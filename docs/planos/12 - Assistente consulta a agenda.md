@@ -2,7 +2,7 @@
 
 - Data: 09/11/2026
 - Commit de partida: b7eaa17 + alterações não commitadas do plano 11 (o colaborador decidiu construir sem commit; 11 e 12 vão juntos). Base de comparação do plano 12: cópia dos 42 arquivos alterados/novos do plano 11 feita antes da construção, em `C:\Users\EDUARD~1\AppData\Local\Temp\claude\855a1557dc9637df\25b11b86-d649-4629-889b-9790d9c3adac\scratchpad\base-plano12\arvore` (lista em `..\lista.txt`); arquivos fora dessa lista: comparar com b7eaa17.
-- Status: Concluído (pendência do teste ajustada no prompt; reteste manual recomendado)
+- Status: Concluído (pendência do teste ajustada no prompt; ajustes pós-teste e de economia de tokens conferidos pelo revisor em 10/11/2026; reteste manual recomendado)
 
 ## 1. Plano (engenheiro)
 
@@ -343,6 +343,43 @@ Não se aplica.
 **Observações fora do escopo**
 - Nenhuma
 
+### Conferência dos ajustes pós-teste (10/11/2026)
+
+Recorte: "Ajuste pós-teste (09/11/2026)", que já está no commit ec6ed04 e foi lido no código atual, e "Ajuste: economia de tokens (10/11/2026)", que é o `git diff` do working tree sobre ec6ed04. O resto da obra não foi revisado de novo.
+
+- Veredito: Aprovado, sem ajustes
+- Build: dotnet build OK (solução, `-p:OutDir` temporário, 0 avisos e 0 erros); npm run build OK
+
+1. Pendência do teste (status sem pedido e resposta copiada): RESOLVIDO no que dá para fazer em código (`ChatPrompt.cs:43-44`, `ChatFerramentas.cs:93` e a descrição do `status` em `:367`). O comportamento real do modelo só se confirma com reteste.
+2. Mensagens de espera / texto duplicado: RESOLVIDO no prompt (`ChatPrompt.cs:26`). Também depende de reteste.
+3. `accept` do anexo: RESOLVIDO e coerente (`assistente.component.html:113`). `reduzirImagem` (`utils/imagem.ts:19`) aceita qualquer `image/*` e sempre recodifica em JPEG, e o colar (`assistente.component.ts:171`) continua aceitando `image/*`. O servidor confere a assinatura. Placeholder curto em `:121`.
+4. `BuscarEventos` compacto: RESOLVIDO (`ChatFerramentas.cs:444-469`). O máximo agora é 10, igual ao coletor e ao "no máximo 10 eventos no texto" do prompt. A linha só leva data, dia, hora, nome, tipo, cidade/local, status, organizador (nome), pendências e, com `incluirEquipe`, nome/função/posição. Não vão notas internas, informações, observações, links, contatos nem ids. `Coletar` continua sendo chamado para cada item (`:450`). Multi-tenancy sem mudança: `Consultar(_assinanteId, …)` e escala com `EVM_ASSINANTE_ID` (`:437-438`). A consulta de escala é pulada quando `incluirEquipe` é falso.
+5. `ConsultarDia` compacto: RESOLVIDO (`ChatFerramentas.cs:158-184`). O coletor fica antes do texto (`:165`) e são os mesmos campos do JSON anterior (nome, hora, cidade, status, nomes da equipe, livres com função, conflitos).
+6. Recorte do histórico: RESOLVIDO (`ChatController.cs:118-145`). A última mensagem (do usuário, com a imagem) sempre fica dentro da janela, porque `inicio <= Count-1`. A imagem continua indo só nela (`:135`). O rascunho vigente (o front só manda o `Rascunho` do vigente) vai resumido logo depois do system quando fica fora da janela (`:120-122`), ou junto da própria mensagem quando está dentro dela (`:132`), sem duplicar. Não há mensagens de ferramenta no histórico, então o recorte não deixa `tool` órfão. Quando `Count - 10` cai numa mensagem do assistente, a sequência fica system → assistant → user, às vezes com dois assistant seguidos (resumo + mensagem). A OpenAI e a Azure OpenAI chat completions aceitam isso: não exigem alternância nem que a primeira depois do system seja do usuário. A validação de 20 mensagens e de 12.000 caracteres não mudou.
+7. Prompt com a data no fim: RESOLVIDO (`ChatPrompt.cs:59-61`). As regras de datas relativas (`:29`, `:47`) continuam funcionando com "hoje" declarado no fim.
+8. Contrato HTTP: sem mudança. `Models/Chat` e os DTOs do SPA estão fora do diff, e só mudou o formato interno do resultado das ferramentas.
+9. `PendenciaModeloController.cs:46-47` e `CLAUDE.md` da WebApi: só documentação, agora coerente com o código (o checklist nasce vazio).
+
+**Crítico**
+- Nenhum
+
+**Importante**
+- Nenhum
+
+**Menor**
+1. `ChatFerramentas.cs:462-468`: com `incluirEquipe=false`, a linha não diz que a equipe foi omitida. Se o modelo esquecer a flag numa pergunta de escala, pode concluir "ninguém escalado". Sugestão: acrescentar ao cabeçalho "(equipe não incluída; peça com incluirEquipe=true)" quando a flag for falsa.
+2. `ChatController.cs:119`: a janela pode começar numa mensagem do assistente. A OpenAI aceita, mas provedores "compatíveis" via `IA:Endpoint` (alguns exigem que a primeira mensagem depois do system seja do usuário) podem recusar. Isso cai no 400 genérico. Sugestão barata: se `Mensagens[inicio]` for do assistente, avançar `inicio` em 1 (o rascunho vigente continua coberto pelo resumo).
+3. `ChatFerramentas.cs:455-456` e `:174`: nome/cidade/local entram crus na linha com separador " | ". Um nome com quebra de linha ou "|" confunde o parsing do modelo. Só afeta dados do próprio assinante, sem risco entre assinantes. Opcional: trocar `\r\n|` por espaço.
+
+**Problemas novos da correção**
+- Nenhum
+
+**Pendências para o colaborador decidir**
+- Nenhuma de código. Recomendado: reiniciar a API e retestar "O que tenho pra acontecer?" (sem status), a pergunta repetida (deve trazer a lista de novo), "quem está escalado no X?" (equipe presente) e uma conversa com mais de 10 mensagens que termine com um refinamento do rascunho ("muda para 8h").
+
+**Observações fora do escopo**
+- `AgendaFotografo.WebApi/appsettings.json:24` (fora dos ajustes, modificado no working tree): o `IA:ApiKey` deixou de ser o placeholder do commit ec6ed04 e passou a ser uma chave real da OpenAI (`sk-proj-…`). O arquivo é versionado. Se for commitado e enviado ao GitHub, a chave vaza: a OpenAI costuma revogar chaves detectadas pelo secret scanning, e o histórico do git guarda a chave mesmo que ela seja removida depois. Antes do commit, mover a chave para User Secrets (`IA:ApiKey`) ou variável `IA__ApiKey` e voltar o placeholder no arquivo, ou o colaborador decide de forma explícita versionar a chave (como fez com a senha do banco). Se ela já foi exposta, rotacionar.
+
 ## 4. Testes (testador)
 
 ### Teste no navegador (09/11/2026)
@@ -391,3 +428,12 @@ Pedido do colaborador: ajustar a pendência do teste; tirar foto pela câmera n�
 - `ChatFerramentas.cs`: descrição do parâmetro `status` do `BuscarEventos` reforça "SOMENTE quando o usuário pedir"; descrição da ferramenta pede chamar de novo a cada pergunta.
 - `assistente.component.html`: `accept="image/jpeg,image/png,image/webp"` (antes `image/*`, que oferecia câmera no celular), placeholder curto "Pergunte ou anexe o flyer" (não quebra a 360 px) e texto do estado vazio "imagem do flyer".
 - `dotnet build` (OutDir temporário) e `npm run build`: ok. Não retestado no navegador: reiniciar a API para o prompt novo valer.
+
+### Ajuste: economia de tokens (sessão principal, 10/11/2026)
+Pedido do colaborador. Só back-end, contrato HTTP inalterado.
+- `BuscarEventos`: no máximo 10 eventos (era 20); resultado em texto compacto, uma linha por evento (era JSON); equipe só com o parâmetro novo `incluirEquipe=true` (perguntas sobre escala).
+- `ConsultarDia`: resultado em texto compacto.
+- `ChatController`: ao modelo vão só as últimas 10 mensagens (`MaximoMensagensAoModelo`); se o rascunho vigente ficou mais antigo, vai resumido. A validação de 20 mensagens do request não mudou.
+- `ChatPrompt`: data de hoje movida para o fim (começo fixo aproveita o cache de prompt); regra de `incluirEquipe`.
+- Correção de documentação: `PendenciaModeloController.Listar` e `CLAUDE.md` da WebApi diziam que o checklist cria uma lista inicial; o código não cria (checklist nasce vazio).
+- `dotnet build` ok. Não retestado no navegador (reiniciar a API).

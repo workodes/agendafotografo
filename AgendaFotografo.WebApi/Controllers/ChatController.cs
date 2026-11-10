@@ -40,6 +40,8 @@ public class ChatController(
     private readonly ILogger<ChatController> _logger = logger;
 
     private const int MaximoMensagens = 20;
+    /// <summary>Quantas das últimas mensagens vão ao modelo (as demais ficam só na tela); economiza tokens em conversas longas.</summary>
+    private const int MaximoMensagensAoModelo = 10;
     private const int MaximoTextoMensagem = 2000;
     private const int MaximoTextoTotal = 12000;
     private const int LimiteImagemBytes = 2 * 1024 * 1024;
@@ -112,7 +114,14 @@ public class ChatController(
                     $"Você atingiu o limite de {LimiteDiario} mensagens de hoje. Tente de novo amanhã.");
 
             var mensagens = new List<ChatMessage> { new(ChatRole.System, ChatPrompt.Montar(DateTime.Now)) };
-            for (var i = 0; i < model.Mensagens.Count; i++)
+
+            // Economia de tokens: ao modelo vão só as últimas mensagens; o rascunho vigente, se ficou mais antigo, vai resumido
+            var inicio = Math.Max(0, model.Mensagens.Count - MaximoMensagensAoModelo);
+            var ultimoRascunho = model.Mensagens.FindLastIndex(x => x.Papel == PapelChat.Assistente && x.Rascunho is not null);
+            if (ultimoRascunho >= 0 && ultimoRascunho < inicio)
+                mensagens.Add(new ChatMessage(ChatRole.Assistant, ResumirRascunho(model.Mensagens[ultimoRascunho].Rascunho!)));
+
+            for (var i = inicio; i < model.Mensagens.Count; i++)
             {
                 var m = model.Mensagens[i];
                 var texto = m.Texto.Trim();
