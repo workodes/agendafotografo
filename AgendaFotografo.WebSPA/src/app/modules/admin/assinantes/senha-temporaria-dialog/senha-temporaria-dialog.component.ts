@@ -77,7 +77,7 @@ export class SenhaTemporariaDialogComponent implements OnDestroy {
     // Texto pronto para colar no WhatsApp.
     copiarInstrucoes(): void {
         const texto =
-            `Seu acesso ao Agenda Fotógrafo:\n` +
+            `Seu acesso ao quemclica:\n` +
             `Endereço: ${window.location.origin}\n` +
             `Usuário: ${this.dados.email}\n` +
             `Senha temporária: ${this.dados.senha}\n` +

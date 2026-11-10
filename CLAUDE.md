@@ -1,8 +1,8 @@
 # AgendaFotografo
 
 Agenda de equipe para fotógrafos de eventos esportivos (corrida, treino, CrossFit, moto passeio etc.),
-vendida como SaaS para coordenadores de equipes de fotografia. Nome do produto ainda provisório
-(AGENDAFOTOGRAFO). Desenho aprovado: `docs/superpowers/specs/2026-11-05-agendafotografo-design.md`
+vendida como SaaS para coordenadores de equipes de fotografia. Nome comercial: **quemclica**
+(definido em 2026-11-10; substituiu o provisório AGENDAFOTOGRAFO. Só a marca mudou: projetos, namespaces e tabelas continuam `AgendaFotografo.*`, e as constantes de `LinkPublicoSegredos` não podem ser renomeadas, porque isso invalida os links públicos já enviados). Desenho aprovado: `docs/superpowers/specs/2026-11-05-agendafotografo-design.md`
 (leia antes de criar qualquer módulo de negócio).
 
 ## Regra de ouro: estrutura espelhada no Fartec.Portal
@@ -19,7 +19,7 @@ Antes de criar qualquer controller, model, validator, map ou migration, abra o e
 - SPA: **um SPA só, perfis separados por rota** (`/admin/...`, `/assinante/...`; decisão do colaborador). Não criar SPAs por perfil.
 - Modelo de acesso: Assinante + Administração (multi-tenant). Perfis **só `Admin` e `Assinante`**. O Assinante (coordenador) é o tenant e faz login no dia a dia; o Admin (criado pelo seed) cria, ativa e bloqueia assinantes. A equipe de fotógrafos NÃO faz login na v1. Não há `UsuarioAssinante`, permissões granulares nem planos.
 - Cor principal: #F97316 (paleta gerada: ver `tailwind.config.js` do SPA; apoio #6B4F3F)
-- Logo: ainda não existe; o SPA usa uma logo provisória única (ícone + texto) gerada por script, em `src/assets/images/logo/`
+- Logo (escolhida em 2026-11-10, opção "agenda que clica"): calendário laranja com argolas e faixa marrons, a lente no meio e o "click!" (três traços laranja) saindo do canto + texto "quem." / "clica" (o ponto é só da logo; nos textos o nome é "quemclica"), em `src/assets/images/logo/` do SPA; o mesmo ícone no favicon e no PWA. Cópias em `docs/marca/` (logo, logo branca e o ícone em 512 px)
 - Banco: **MySQL** (Pomelo.EntityFrameworkCore.MySql), servidor zeus.fartecsistemas.com.br, banco EduardoDbNaoApagar (credenciais no appsettings.json)
 - Financeiro: nunca (sem valor, pago, repasse ou cliente comercial)
 - Uso em celular e computador (telas responsivas); o link público é mobile-first

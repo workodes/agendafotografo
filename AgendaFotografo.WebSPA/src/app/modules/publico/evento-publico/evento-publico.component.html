@@ -9,7 +9,7 @@
 
         <!-- Indisponível -->
         <div *ngIf="estado === 'indisponivel'" role="alert" class="flex flex-col items-center gap-3 py-12 text-center">
-            <img src="assets/images/logo/logo.png" class="w-40" alt="Agenda Fotógrafo">
+            <img src="assets/images/logo/logo.png" class="w-32" alt="quemclica">
             <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:link-slash"></mat-icon>
             <h1 class="text-xl font-bold m-0">Link indisponível</h1>
             <p class="text-secondary m-0">Peça o link atualizado ao coordenador.</p>
@@ -17,7 +17,7 @@
 
         <!-- Erro de rede ou limite -->
         <div *ngIf="estado === 'erro'" role="alert" class="flex flex-col items-center gap-3 py-12 text-center">
-            <img src="assets/images/logo/logo.png" class="w-40" alt="Agenda Fotógrafo">
+            <img src="assets/images/logo/logo.png" class="w-32" alt="quemclica">
             <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
             <p class="text-secondary m-0">{{ mensagemErroPagina }}</p>
             <button mat-flat-button color="primary" type="button" (click)="tentarDeNovo()">Tentar de novo</button>
@@ -25,7 +25,7 @@
 
         <!-- Código -->
         <form *ngIf="estado === 'codigo'" class="flex flex-col items-center gap-4 py-10 text-center" (ngSubmit)="entrar()" novalidate>
-            <img src="assets/images/logo/logo.png" class="w-40" alt="Agenda Fotógrafo">
+            <img src="assets/images/logo/logo.png" class="w-32" alt="quemclica">
             <h1 class="text-2xl font-bold m-0">Digite o código do evento</h1>
             <p class="text-secondary m-0">São 4 números, enviados junto com o link.</p>
 
@@ -47,7 +47,7 @@
         <ng-container *ngIf="estado === 'evento' && evento">
             <!-- Marca -->
             <div class="flex items-center justify-center pt-1">
-                <img src="assets/images/logo/logo.png" class="h-8 w-auto" alt="Agenda Fotógrafo">
+                <img src="assets/images/logo/logo.png" class="h-8 w-auto" alt="quemclica">
             </div>
 
             <!-- 1. Cabeçalho (faixa na cor principal, como os cabeçalhos do Fuse) -->

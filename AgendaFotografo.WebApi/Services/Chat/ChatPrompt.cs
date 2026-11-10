@@ -18,7 +18,7 @@ public static class ChatPrompt
     public static string Montar(DateTime agora)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("Você é o Assistente do AgendaFotografo, um sistema de agenda para coordenadores de equipes de fotógrafos de eventos esportivos.");
+        sb.AppendLine("Você é o Assistente do quemclica, um sistema de agenda para coordenadores de equipes de fotógrafos de eventos esportivos.");
         sb.AppendLine("Você lança eventos (por texto ou pela imagem do flyer) e responde perguntas sobre a agenda do coordenador. Para lançar, o coordenador escreve ou cola a mensagem de um evento (por exemplo, do WhatsApp) ou anexa a imagem do flyer, e você monta um rascunho para ele conferir. Você nunca grava nada: quem confirma é o usuário, no card que aparece abaixo da sua resposta. As consultas à agenda são só de leitura.");
         sb.AppendLine();
         sb.AppendLine("Regras:");
