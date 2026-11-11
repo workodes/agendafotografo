@@ -10,11 +10,14 @@ const generatePalette = require(path.resolve(__dirname, ('src/@fuse/tailwind/uti
  * Tailwind-like color palettes automatically
  */
 const customPalettes = {
-    // Principal: laranja da marca (#F97316). Apoio: marrom-acinzentado mais escuro e menos saturado,
-    // derivado do laranja (usado em títulos e textos de destaque). O texto sobre a cor principal é
-    // escuro (on-primary é calculado pelo Fuse), pois branco sobre #F97316 não tem contraste suficiente.
-    principal: generatePalette({ 500: '#F97316' }),
-    apoio: generatePalette({ 500: '#6B4F3F' }),
+    // Principal: paleta orange do Tailwind (a mesma da landing), com DEFAULT = orange-700 (#C2410C): texto branco
+    // sobre ele tem 5,18:1 (AA). O laranja da marca (#F97316 = orange-500) fica so em elementos sem texto.
+    principal: {
+        ...colors.orange,
+        DEFAULT: colors.orange[700],
+    },
+    // Apoio: marrom da landing (#7C2D12 = orange-900) e #431407 (orange-950) no tom mais escuro.
+    apoio: generatePalette({ 500: '#7C2D12', 900: '#431407' }),
 };
 
 /**
@@ -82,7 +85,37 @@ const config = {
                 'spin-slow': 'spin 3s linear infinite'
             },
             colors: {
-                gray: colors.slate
+                gray: colors.stone
+            },
+            boxShadow: {
+                // Sombras quentes da landing
+                'sm': '0 1px 4px rgba(124, 45, 18, 0.14)',
+                'DEFAULT': '0 1px 4px rgba(124, 45, 18, 0.14)',
+                'lg': '0 10px 30px -10px rgba(67, 20, 7, 0.35)'
+            },
+            // Variaveis do Fuse (tema claro) com a paleta da landing; o plugin theming.js nao e editado.
+            fuse: {
+                customProps: {
+                    background: {
+                        light: {
+                            'bg-default': '#FFF7ED',
+                            'bg-hover': 'rgba(124, 45, 18, 0.06)',
+                            'bg-status-bar': '#FFEDD5'
+                        }
+                    },
+                    foreground: {
+                        light: {
+                            'text-default': '#44403C',
+                            'text-secondary': '#78716C',
+                            'text-hint': '#A8A29E',
+                            'text-disabled': '#A8A29E',
+                            'border': '#F0E2D6',
+                            'divider': '#F0E2D6',
+                            'icon': '#78716C',
+                            'mat-icon': '#78716C'
+                        }
+                    }
+                }
             },
             flex: {
                 '0': '0 0 auto'

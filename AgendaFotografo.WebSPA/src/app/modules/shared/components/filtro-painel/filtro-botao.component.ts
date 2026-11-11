@@ -13,7 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
         <button mat-icon-button type="button" class="relative" aria-label="Filtros" title="Filtros"
             (click)="clicado.emit()">
             <mat-icon svgIcon="heroicons_outline:adjustments-horizontal"></mat-icon>
-            <span *ngIf="ativo" class="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-white"></span>
+            <span *ngIf="ativo" class="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-primary-500 ring-2 ring-white"></span>
         </button>
     `,
 })

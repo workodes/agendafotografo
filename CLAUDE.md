@@ -18,7 +18,7 @@ Antes de criar qualquer controller, model, validator, map ou migration, abra o e
 - API: **uma API só, um controller base (`AgendaFotografoController`, rota `api/[controller]/[action]`)**; o perfil é controlado por `[Authorize(Roles = ...)]` em cada controller (como no Portal). Não existe prefixo `api/Admin`.
 - SPA: **um SPA só, perfis separados por rota** (`/admin/...`, `/assinante/...`; decisão do colaborador). Não criar SPAs por perfil.
 - Modelo de acesso: Assinante + Administração (multi-tenant). Perfis **só `Admin` e `Assinante`**. O Assinante (coordenador) é o tenant e faz login no dia a dia; o Admin (criado pelo seed) cria, ativa e bloqueia assinantes. A equipe de fotógrafos NÃO faz login na v1. Não há `UsuarioAssinante`, permissões granulares nem planos.
-- Cor principal: #F97316 (paleta gerada: ver `tailwind.config.js` do SPA; apoio #6B4F3F)
+- Cor principal: #F97316 (marca, só sem texto); primário de ação #C2410C (texto branco); apoio #7C2D12 (marrom). Paleta no `tailwind.config.js` do SPA (plano 16)
 - Logo (escolhida em 2026-11-10, opção "agenda que clica"): calendário laranja com argolas e faixa marrons, a lente no meio e o "click!" (três traços laranja) saindo do canto + texto "quem." / "clica" (o ponto é só da logo; nos textos o nome é "quemclica"), em `src/assets/images/logo/` do SPA; o mesmo ícone no favicon e no PWA. Cópias em `docs/marca/` (logo, logo branca e o ícone em 512 px)
 - Banco: **MySQL** (Pomelo.EntityFrameworkCore.MySql), servidor zeus.fartecsistemas.com.br, banco EduardoDbNaoApagar (credenciais no appsettings.json)
 - Financeiro: nunca (sem valor, pago, repasse ou cliente comercial)
@@ -89,6 +89,8 @@ Passo a passo e pontos de atenção em `docs/deploy.md`. Endpoint ou arquivo nov
 12. Assistente consulta a agenda e lê flyers: **pronto** (`docs/planos/12 - Assistente consulta a agenda.md`; ferramenta `BuscarEventos`, lista de eventos citados na resposta, aviso de duplicidade, imagem do flyer no `Chat/Enviar`; entregue junto com o 11)
 13. Landing page: **pronto** (`docs/planos/13 - Landing page.md`; página estática em `AgendaFotografo.WebSPA/src/landing/`, servida pelo Nginx em `/`)
 14. E-mail diário de lembretes (era o "Painel + e-mail", módulo 8, depois o 11, o 12 e o 13)
+15. Telas públicas/autenticação no estilo da landing (`docs/planos/15*`; `auth-shell.scss`)
+16. Cores da landing no sistema: **construído, aguarda revisão e testes** (`docs/planos/16 - Cores da landing no sistema.md`; paleta orange/stone/marrom, fundo creme, menu e gaveta; só front-end)
 9. Área admin de assinantes (criar, ativar, bloquear, redefinir acesso) em `AssinanteController` (`[Authorize(Roles = Admin)]`): **pronto, entregue antes do módulo 1** (`docs/planos/01 - Assinantes.md`)
 
 Nomes e perfis do domínio (do desenho): Equipe (membros: Fotógrafo/Editor/Assistente), Organizadores, Tipos de evento

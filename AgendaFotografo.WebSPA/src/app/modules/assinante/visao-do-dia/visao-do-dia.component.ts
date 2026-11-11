@@ -48,7 +48,7 @@ const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'o
     templateUrl: './visao-do-dia.component.html',
     host: { class: 'flex flex-col flex-auto w-full min-w-0 min-h-0' },
     styles: [`
-        .alvo-escala.cdk-drop-list-dragging { outline: 2px dashed var(--fuse-primary-500, #f97316); outline-offset: 2px; background-color: rgba(249, 115, 22, .06); }
+        .alvo-escala.cdk-drop-list-dragging { outline: 2px dashed var(--fuse-primary-500, #f97316); outline-offset: 2px; background-color: rgba(var(--fuse-primary-500-rgb, 249, 115, 22), .06); }
         .cdk-drag-preview { box-shadow: 0 6px 18px rgba(0,0,0,.18); border-radius: 9999px; }
         .cdk-drag-animating { transition: transform 200ms cubic-bezier(0, 0, .2, 1); }
     `],

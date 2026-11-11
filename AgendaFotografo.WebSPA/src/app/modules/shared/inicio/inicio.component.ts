@@ -9,7 +9,7 @@ import { UsuarioService } from 'app/core/services/usuario.service';
     template: `
         <div class="flex flex-col items-center justify-center w-full h-full p-8 gap-4 text-center">
             <img src="assets/images/logo/logo.png" class="w-48" alt="quemclica">
-            <h1 class="text-3xl font-bold text-primary">Bem-vindo{{ nome() ? ', ' + nome() : '' }}</h1>
+            <h1 class="text-3xl font-bold text-accent-900">Bem-vindo{{ nome() ? ', ' + nome() : '' }}</h1>
             <p class="text-secondary">Use o menu para navegar pelo sistema.</p>
         </div>
     `,

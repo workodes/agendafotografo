@@ -34,7 +34,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
                     [attr.aria-valuetext]="feitas + ' de ' + total + ' pendências feitas'">
                     <div
                         class="h-full rounded-full"
-                        [class.bg-primary]="!todasFeitas"
+                        [class.bg-primary-500]="!todasFeitas"
                         [class.bg-green-600]="todasFeitas"
                         [style.width.%]="percentual"></div>
                 </div>

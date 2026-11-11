@@ -1,7 +1,7 @@
 <!-- Card do rascunho de evento (a IA só propõe; quem grava é o Confirmar) -->
 <div class="w-full rounded-2xl border bg-card p-3 shadow-sm" [formGroup]="form" role="group" aria-label="Rascunho do evento">
     <div class="mb-2 flex items-center gap-2">
-        <mat-icon class="icon-size-5 text-primary-600" svgIcon="heroicons_outline:calendar-days"></mat-icon>
+        <mat-icon class="icon-size-5 text-primary-700" svgIcon="heroicons_outline:calendar-days"></mat-icon>
         <span class="text-sm font-semibold">Rascunho do evento</span>
         <span *ngIf="substituido" class="ml-auto inline-flex items-center rounded-full bg-gray-200 px-2 py-0.5 text-xs font-semibold text-gray-600">Substituído</span>
         <span *ngIf="lancado" class="ml-auto inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">

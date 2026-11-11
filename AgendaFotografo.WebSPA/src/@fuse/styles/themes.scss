@@ -5,62 +5,62 @@
 /* Set the base colors for light themes */
 $light-base: (
     foreground: (base: #000000,
-        divider: #E2E8F0,
-        /* slate.200 */
-        dividers: #E2E8F0,
-        /* slate.200 */
-        disabled: #94A3B8,
-        /* slate.400 */
-        disabled-button: #94A3B8,
-        /* slate.400 */
-        disabled-text: #94A3B8,
-        /* slate.400 */
+        divider: #F0E2D6,
+        /* borda quente da landing */
+        dividers: #F0E2D6,
+        /* borda quente da landing */
+        disabled: #A8A29E,
+        /* stone.400 */
+        disabled-button: #A8A29E,
+        /* stone.400 */
+        disabled-text: #A8A29E,
+        /* stone.400 */
         elevation: #000000,
-        hint-text: #94A3B8,
-        /* slate.400 */
-        secondary-text: #64748B,
-        /* slate.500 */
-        icon: #64748B,
-        /* slate.500 */
-        icons: #64748B,
-        /* slate.500 */
-        mat-icon: #64748B,
-        /* slate.500 */
-        text: #1E293B,
-        /* slate.800 */
-        slider-min: #1E293B,
-        /* slate.800 */
-        slider-off: #CBD5E1,
-        /* slate.300 */
-        slider-off-active: #94A3B8
-        /* slate.400 */
+        hint-text: #A8A29E,
+        /* stone.400 */
+        secondary-text: #78716C,
+        /* stone.500 */
+        icon: #78716C,
+        /* stone.500 */
+        icons: #78716C,
+        /* stone.500 */
+        mat-icon: #78716C,
+        /* stone.500 */
+        text: #44403C,
+        /* stone.700 */
+        slider-min: #44403C,
+        /* stone.700 */
+        slider-off: #D6D3D1,
+        /* stone.300 */
+        slider-off-active: #A8A29E
+        /* stone.400 */
     ),
-    background: (status-bar: #CBD5E1,
-        /* slate.300 */
+    background: (status-bar: #FFEDD5,
+        /* orange.100 */
         app-bar: #FFFFFF,
-        background: #F1F5F9,
-        /* slate.100 */
-        hover: rgba(148, 163, 184, 0.12),
-        /* slate.400 + opacity */
+        background: #FFF7ED,
+        /* orange.50 (creme da landing) */
+        hover: rgba(124, 45, 18, 0.06),
+        /* marrom translucido */
         card: #FFFFFF,
         dialog: #FFFFFF,
-        disabled-button: rgba(148, 163, 184, 0.38),
-        /* slate.400 + opacity */
+        disabled-button: rgba(168, 162, 158, 0.38),
+        /* stone.400 + opacity */
         raised-button: #FFFFFF,
-        focused-button: #64748B,
-        /* slate.500 */
-        selected-button: #E2E8F0,
-        /* slate.200 */
-        selected-disabled-button: #E2E8F0,
-        /* slate.200 */
-        disabled-button-toggle: #CBD5E1,
-        /* slate.300 */
-        unselected-chip: #E2E8F0,
-        /* slate.200 */
-        disabled-list-option: #CBD5E1,
-        /* slate.300 */
-        tooltip: #1E293B
-        /* slate.800 */
+        focused-button: #78716C,
+        /* stone.500 */
+        selected-button: #FFEDD5,
+        /* orange.100 */
+        selected-disabled-button: #E7E5E4,
+        /* stone.200 */
+        disabled-button-toggle: #D6D3D1,
+        /* stone.300 */
+        unselected-chip: #E7E5E4,
+        /* stone.200 */
+        disabled-list-option: #D6D3D1,
+        /* stone.300 */
+        tooltip: #431407
+        /* orange.950 */
     )
 );
 

@@ -88,7 +88,7 @@
                         <h2 class="text-lg font-bold">{{ g.titulo }}</h2>
                         <span *ngIf="g.data === hoje" class="leading-none rounded-full px-2 py-1 text-xs font-semibold bg-primary-100 text-primary-800">Hoje</span>
                     </div>
-                    <a class="text-sm underline text-primary-500 max-sm:inline-flex max-sm:items-center max-sm:min-h-10 max-sm:min-w-10 max-sm:justify-center max-sm:-mr-2" [routerLink]="['/assinante/visao-do-dia']" [queryParams]="{ data: g.data, visao: 'dia' }">Visão do dia</a>
+                    <a class="text-sm underline text-primary max-sm:inline-flex max-sm:items-center max-sm:min-h-10 max-sm:min-w-10 max-sm:justify-center max-sm:-mr-2" [routerLink]="['/assinante/visao-do-dia']" [queryParams]="{ data: g.data, visao: 'dia' }">Visão do dia</a>
                 </div>
                 <!-- Celular: cards -->
                 <div class="grid grid-cols-1 gap-3 md:hidden">

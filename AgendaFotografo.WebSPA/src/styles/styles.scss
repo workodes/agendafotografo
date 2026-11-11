@@ -134,7 +134,7 @@ div.carousel__previous {
  * escuro da paleta (`--fuse-primary-700`), porque laranja puro sobre branco não tem contraste suficiente.
  */
 .menu-topo {
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--fuse-border);
 }
 
 fuse-horizontal-navigation.menu-horizontal {
@@ -152,7 +152,7 @@ fuse-horizontal-navigation.menu-horizontal {
                     padding: 0 14px;
                     font-size: 14px;
                     font-weight: 500;
-                    color: #374151;
+                    color: var(--fuse-text-default);
 
                     .fuse-horizontal-navigation-item-icon {
                         width: 20px;
@@ -160,19 +160,22 @@ fuse-horizontal-navigation.menu-horizontal {
                         min-width: 20px;
                         min-height: 20px;
                         margin-right: 10px;
-                        color: #4b5563;
+                        color: var(--fuse-text-secondary);
                     }
                 }
             }
 
             &:hover .fuse-horizontal-navigation-item-wrapper {
-                background-color: rgba(var(--fuse-primary-rgb), 0.07);
+                background-color: var(--fuse-primary-50);
             }
         }
 
         fuse-horizontal-navigation-basic-item .fuse-horizontal-navigation-item-active,
         fuse-horizontal-navigation-basic-item .fuse-horizontal-navigation-item-active-forced {
-            .fuse-horizontal-navigation-item-title,
+            .fuse-horizontal-navigation-item-title {
+                color: var(--fuse-primary-800) !important;
+            }
+
             .fuse-horizontal-navigation-item-icon {
                 color: var(--fuse-primary-700) !important;
             }
@@ -182,11 +185,11 @@ fuse-horizontal-navigation.menu-horizontal {
         fuse-horizontal-navigation-basic-item:has(.fuse-horizontal-navigation-item-active-forced) .fuse-horizontal-navigation-item-wrapper,
         fuse-horizontal-navigation-branch-item .fuse-horizontal-navigation-menu-active .fuse-horizontal-navigation-item-wrapper,
         fuse-horizontal-navigation-branch-item .fuse-horizontal-navigation-menu-active-forced .fuse-horizontal-navigation-item-wrapper {
-            background-color: rgba(var(--fuse-primary-rgb), 0.12);
+            background-color: var(--fuse-primary-100);
         }
 
         fuse-horizontal-navigation-branch-item .fuse-horizontal-navigation-menu-active-forced .fuse-horizontal-navigation-item {
-            color: var(--fuse-primary-700);
+            color: var(--fuse-primary-800);
 
             .fuse-horizontal-navigation-item-icon {
                 color: var(--fuse-primary-700);
@@ -198,9 +201,12 @@ fuse-horizontal-navigation.menu-horizontal {
 /* Item pai (ex.: Cadastros) destacado quando uma rota filha dele está ativa (classe `pai-ativo-item`, definida pelo modern.component só no pai ativo). */
 fuse-horizontal-navigation.menu-horizontal fuse-horizontal-navigation-branch-item {
     .fuse-horizontal-navigation-item-wrapper.pai-ativo-item {
-        background-color: rgba(var(--fuse-primary-rgb), 0.12);
+        background-color: var(--fuse-primary-100);
 
-        .fuse-horizontal-navigation-item,
+        .fuse-horizontal-navigation-item {
+            color: var(--fuse-primary-800);
+        }
+
         .fuse-horizontal-navigation-item .fuse-horizontal-navigation-item-icon {
             color: var(--fuse-primary-700);
         }
@@ -213,7 +219,7 @@ fuse-horizontal-navigation.menu-horizontal fuse-horizontal-navigation-branch-ite
     min-width: 200px;
     border-radius: 12px;
     background-color: #ffffff;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+    box-shadow: 0 10px 30px -10px rgba(67, 20, 7, 0.35);
 
     .mat-mdc-menu-content {
         padding: 6px;
@@ -225,14 +231,14 @@ fuse-horizontal-navigation.menu-horizontal fuse-horizontal-navigation-branch-ite
         border-radius: 8px;
 
         &:hover {
-            background-color: rgba(var(--fuse-primary-rgb), 0.07);
+            background-color: var(--fuse-primary-50);
         }
 
         .fuse-horizontal-navigation-item {
             min-height: 40px;
             font-size: 14px;
             font-weight: 500;
-            color: #374151;
+            color: var(--fuse-text-default);
 
             .fuse-horizontal-navigation-item-icon {
                 width: 20px;
@@ -240,14 +246,17 @@ fuse-horizontal-navigation.menu-horizontal fuse-horizontal-navigation-branch-ite
                 min-width: 20px;
                 min-height: 20px;
                 margin-right: 10px;
-                color: #4b5563;
+                color: var(--fuse-text-secondary);
             }
         }
 
         &:has(.fuse-horizontal-navigation-item-active) {
-            background-color: rgba(var(--fuse-primary-rgb), 0.12);
+            background-color: var(--fuse-primary-100);
 
-            .fuse-horizontal-navigation-item,
+            .fuse-horizontal-navigation-item {
+                color: var(--fuse-primary-800);
+            }
+
             .fuse-horizontal-navigation-item .fuse-horizontal-navigation-item-icon {
                 color: var(--fuse-primary-700);
             }
@@ -267,7 +276,7 @@ fuse-horizontal-navigation.menu-horizontal fuse-horizontal-navigation-branch-ite
     max-width: 320px;
     border-radius: 12px;
     background-color: #ffffff;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+    box-shadow: 0 10px 30px -10px rgba(67, 20, 7, 0.35);
 
     .mat-mdc-menu-content {
         padding: 6px;
@@ -280,7 +289,7 @@ fuse-horizontal-navigation.menu-horizontal fuse-horizontal-navigation-branch-ite
         margin-bottom: 6px;
         padding: 10px 12px;
         border-radius: 8px;
-        background-color: rgba(var(--fuse-primary-rgb), 0.1);
+        background-color: var(--fuse-primary-100);
         font-size: 14px;
     }
 
@@ -314,18 +323,18 @@ fuse-horizontal-navigation.menu-horizontal fuse-horizontal-navigation-branch-ite
         border-radius: 8px;
         font-size: 14px;
         font-weight: 500;
-        color: #374151;
+        color: var(--fuse-text-default);
 
         .mat-icon {
             width: 20px;
             height: 20px;
             margin-right: 10px;
-            color: #4b5563;
+            color: var(--fuse-text-secondary);
         }
 
         &:hover {
-            background-color: rgba(var(--fuse-primary-rgb), 0.12);
-            color: var(--fuse-primary-700);
+            background-color: var(--fuse-primary-100);
+            color: var(--fuse-primary-800);
 
             .mat-icon {
                 color: var(--fuse-primary-700);
@@ -334,7 +343,7 @@ fuse-horizontal-navigation.menu-horizontal fuse-horizontal-navigation-branch-ite
 
         &.menu-usuario-sair {
             margin-top: 4px;
-            border-top: 1px solid #e5e7eb;
+            border-top: 1px solid var(--fuse-border);
             border-radius: 0 0 8px 8px;
 
             &:hover {
@@ -458,5 +467,67 @@ busca-global input[type='search']::-webkit-search-cancel-button {
     :root textarea,
     :root select {
         font-size: 16px !important;
+    }
+}
+
+/* Contorno dos campos de formulário (plano 16, etapa 2): o app usa appearance fill e o contorno real vem de
+   angular-material.scss (border-gray-300 !important, #D6D3D1, contraste < 3:1). Aqui fica em stone #8A817C (>= 3:1 sobre
+   branco e creme). Em foco e em erro o contorno não é alterado (cor primária / warn). */
+.mat-mdc-form-field.mat-form-field-appearance-fill:not(.mat-focused):not(.mat-form-field-invalid) .mat-mdc-text-field-wrapper {
+    border-color: #8a817c !important;
+}
+
+/*
+ * Gaveta do menu no celular: marrom #431407 (accent-900). Regras restritas à classe `gaveta-marrom`.
+ * O host tem a classe `dark` e o Fuse aplica `.dark { background-color: var(--fuse-bg-default) !important }`;
+ * por isso as variáveis são sobrescritas aqui (e o fundo também vai com !important).
+ * Itens #FFEDD5 (sobre #431407: ~14:1); hover branco translúcido; ativo com barra laranja à esquerda, fundo laranja 8%
+ * e texto/ícone #F97316 (fundo efetivo ~#511C08; contraste ~5,0:1, mínimo exigido 4,5:1).
+ */
+fuse-vertical-navigation.gaveta-marrom {
+    --fuse-bg-default: #431407;
+    --fuse-bg-default-rgb: 67, 20, 7;
+    --fuse-bg-card: #431407;
+    --fuse-bg-card-rgb: 67, 20, 7;
+    background-color: #431407 !important;
+
+    .fuse-vertical-navigation-wrapper {
+        box-shadow: none;
+        background-color: #431407 !important;
+    }
+
+    .fuse-vertical-navigation-item-wrapper .fuse-vertical-navigation-item {
+        color: #ffedd5 !important;
+        transition: background-color 150ms ease;
+
+        .fuse-vertical-navigation-item-icon,
+        .fuse-vertical-navigation-item-arrow,
+        .fuse-vertical-navigation-item-title,
+        .fuse-vertical-navigation-item-subtitle {
+            color: #ffedd5 !important;
+        }
+
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        &:focus-visible {
+            outline: 2px solid #ffedd5;
+            outline-offset: -2px;
+        }
+    }
+
+    .fuse-vertical-navigation-item-wrapper .fuse-vertical-navigation-item.fuse-vertical-navigation-item-active,
+    .fuse-vertical-navigation-item-wrapper .fuse-vertical-navigation-item.fuse-vertical-navigation-item-active-forced {
+        background-color: rgba(249, 115, 22, 0.08) !important;
+        box-shadow: inset 4px 0 0 #f97316;
+        color: #f97316 !important;
+
+        .fuse-vertical-navigation-item-icon,
+        .fuse-vertical-navigation-item-arrow,
+        .fuse-vertical-navigation-item-title,
+        .fuse-vertical-navigation-item-subtitle {
+            color: #f97316 !important;
+        }
     }
 }

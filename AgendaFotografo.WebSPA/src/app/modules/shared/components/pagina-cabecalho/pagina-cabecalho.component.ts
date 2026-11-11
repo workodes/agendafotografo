@@ -11,10 +11,10 @@ import { Component, Input } from '@angular/core';
         <div class="flex flex-col items-start gap-4 border-b bg-card p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6 md:px-8">
             <div class="flex min-w-0 flex-col gap-1">
             <div class="flex min-w-0 items-center gap-3">
-                <h1 class="text-3xl font-extrabold leading-none tracking-tight sm:text-4xl">{{ titulo }}</h1>
+                <h1 class="text-3xl font-extrabold leading-none tracking-tight text-accent-900 sm:text-4xl">{{ titulo }}</h1>
                 @if (contador !== null && contador !== undefined) {
                     <div
-                        class="flex h-6 min-w-6 items-center justify-center rounded-full bg-gray-300 px-2 text-sm font-semibold text-secondary"
+                        class="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary-100 px-2 text-sm font-semibold text-primary-800"
                         aria-label="Total de registros">
                         {{ contador }}
                     </div>
