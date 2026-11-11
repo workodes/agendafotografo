@@ -24,7 +24,7 @@ Não há testes automatizados no padrão. Para logar é preciso a API no ar (`do
 - `environment.prod.ts` (como o Portal): `baseUrl = '/api'`, **URL relativa**, porque a WebApi serve o SPA pelo `wwwroot` (fallback `index.html` no `Program.cs`).
   O build escreve em `dist/wwwroot` (`outputPath`, igual ao Portal). **Deploy atual (Dokploy)**: `Dockerfile` + `nginx.conf` desta pasta; o Nginx serve o
   `dist/wwwroot` e faz proxy de `/api/` para o container da API, então a URL relativa continua valendo (mesma origem, sem CORS). O `wwwroot` da WebApi
-  segue como alternativa (IIS). Se um dia o SPA for hospedado em outra origem, trocar o `baseUrl` e configurar `Cors:Origins` na API. Ver `docs/deploy.md`.
+  segue como alternativa (IIS), **sem a landing page** (ela só existe no Nginx; ver a seção "Landing page (plano 13)"). Se um dia o SPA for hospedado em outra origem, trocar o `baseUrl` e configurar `Cors:Origins` na API. Ver `docs/deploy.md`.
 - Controllers seguem o nome das tabelas (`api/<Controller>/<Action>`, sem prefixo `api/Admin`); o service do front tem o mesmo nome do controller.
   Todo endpoint novo entra nos dois arquivos de environment, com a mesma chave (objeto por controller, chaves em camelCase: `Auth.login`, `Auth.alterarSenha`).
   JSON com nomes C# exatos (nunca camelCase).
@@ -44,6 +44,7 @@ Não há testes automatizados no padrão. Para logar é preciso a API no ar (`do
   3. Bloco autenticado (`initialDataResolver` = só o menu): `/sign-out` (qualquer role) e um bloco por role com `AuthGuard` + `data.requiredRoles`:
      `/admin` (`rotasAdmin`) e `/assinante` (`rotasAssinante`). O Admin parte de `rotasComuns` (hoje só o `inicio` placeholder); o Assinante tem o próprio `inicio` (`modules/assinante/inicio`, plano 08).
   4. `404-not-found` e `**`.
+- A rota `''` (redireciona para `sign-in`) só vale na navegação interna do Angular. Em produção, quem abre `/` direto é o Nginx, que entrega a landing page (plano 13) e nunca chega ao SPA; em `npm start`, `/` continua indo para o login.
 - Rota nova entra no array da(s) role(s) que a acessa **e** no menu da role em `core/navigation/menu.data.ts`.
 - **Redirecionamento por perfil**: `AuthService.getRotaInicial()` = `/<role em minúsculas>/inicio`. O `sign-in` navega para `redirectURL` ou para essa rota;
   `NoAuthGuard` (logado em `/sign-in` ou `/`) e `AuthGuard` (role fora da área) também. Cada perfil que tenta entrar na área do outro volta para a própria.
@@ -194,7 +195,7 @@ Cada evento tem um link `/e/<token>` com código de 4 números. O coordenador co
   400 limpa o campo e mostra o texto; 429 desabilita o campo. Mostra só o que a API devolve (imagem do percurso por blob/`createObjectURL`; o flyer não é mais exibido nem enviado pela ficha do evento, mas o tipo 1 continua no contrato; GPX por blob, Maps com busca quando só há texto, Strava, "Ver fotos", equipe se `Equipe` não é nula, observações, rodapé com a validade).
   Segurança: só interpolação (nunca `innerHTML`), links externos só http/https com `rel="noopener noreferrer"`, `meta` robots `noindex, nofollow` e referrer `no-referrer` enquanto aberta (removidos no `ngOnDestroy`), blobs revogados ao sair.
   O interceptor ignora 401 sem token e a API nunca devolve 401 nessas rotas, então um coordenador logado que erra o código continua logado.
-- Nginx (`nginx.conf`) tem `location /e/` própria com `try_files`, `no-store` e `X-Robots-Tag`.
+- Nginx (`nginx.conf`) tem `location /e/` própria que serve o `index.html` dentro dela (`rewrite ^ /index.html break;`, sem redirecionamento interno, para os `add_header` valerem), com `no-store`, `no-referrer`, `X-Robots-Tag` e os cabeçalhos de segurança repetidos.
 
 ## Mapa do trajeto GPX
 `modules/shared/components/mapa-gpx/` (`app-mapa-gpx`, Leaflet 1.9.4 fixo + `@types/leaflet`; CSS importado no `.scss` do componente). Leitura só no front (`mapa-gpx.util.ts`: DOMParser, `trkseg/trkpt`, fallback `rtept` e `wpt`, descarta coordenada inválida; distância por haversine).
@@ -315,3 +316,32 @@ Painel de chat com IA (provedor configurável na API, `IA:*`; o SPA só fala com
   **Nada de base64 no `sessionStorage`**: `ChatMensagem` guarda só `TemImagem`; a miniatura é um object URL num mapa em memória do `ChatService` (revogado em `Limpar`, sign-out e `ngOnDestroy`). Depois do F5 a bolha mostra o chip "Imagem enviada". Bolha do usuário: miniatura clicável (amplia no painel) e o texto embaixo. No histórico, a mensagem anterior com imagem vai só com o texto + marcador "[imagem do flyer enviada]", sem `Imagem`. Em erro de envio, a imagem volta para a pré-visualização junto com o texto. **O flyer não é anexado ao evento** (serve só para a IA ler).
 - **Só o último rascunho confirmável**: `ChatService.RascunhoVigente(m)` (sem `Lancamento` e sem resposta posterior do assistente com rascunho); o card não vigente mostra "Substituído", sem Confirmar nem "Abrir no formulário" e com os campos desabilitados (`ngDoCheck` reaplica o estado). `Historico()` envia só o rascunho vigente.
 - **"Nova conversa" bloqueado durante o Confirmar**: contador `ChatService.confirmando` (`IniciarConfirmacao`/`EncerrarConfirmacao`, controlado pelo card, inclusive em erro e `ngOnDestroy`). Abaixo de `sm` o botão vira só ícone (`aria-label`/`title`). Linha Hora + "A confirmar" ocupa as duas colunas do card (`sm:col-span-2`), com o campo Hora de largura fixa (`w-40`).
+
+## Landing page (plano 13)
+Página pública de apresentação em `https://quemclica.com.br/`, HTML estático **fora do Angular**. Todos os botões levam a `/sign-in`. Desenho: `docs/superpowers/specs/2026-11-10-landing-page-design.md`.
+- **Onde mora**: `src/landing/` = `index.html` (página inteira, com CSS, SVGs, JSON-LD e os dois scripts inline), `fontes/` (três `woff2` e `OFL.txt`) e `compartilhar.png` (1200x630). O `angular.json` (`build.options.assets`)
+  copia `src/landing` para `/landing` no `dist/wwwroot`, e `src/robots.txt` e `src/sitemap.xml` para a raiz. O `index.html` da raiz do `dist` continua sendo o do Angular. Todo endereço dentro da landing é absoluto
+  (`/landing/...`, `/assets/...`, `/sign-in`); logo, favicon e ícones são os de `/assets/images/`, sem cópia. O `src/_redirects` (Netlify, vinha do template) foi removido.
+- **Nginx** (`nginx.conf`; só ele entrega a landing em `/`):
+  - `location = /` serve `/landing/index.html` por `try_files`, com 200 e sem redirecionar. `/landing/` e `/landing/index.html` respondem 301 para `/` (sem conteúdo duplicado); o resto de `/landing/` (`location ^~`) só entrega arquivo existente e dá 404, sem cair no SPA.
+  - Os locations da landing **não têm `add_header` próprio** de propósito: `add_header` dentro de um location anula os do `server`, e assim herdam cache, segurança e `X-Robots-Tag`. O `/e/` tem os seus e por isso os repete.
+  - **Cache** (`map $uri $cache_control`): a landing em `/` sai `no-cache` (dentro do `location = /` o `$uri` vira `/landing/index.html`); fontes e imagem em `/landing/` e `/assets/`, 7 dias; bundles com hash, 1 ano; `robots.txt` e `sitemap.xml`, `no-cache`.
+  - **`noindex` só no HTML do SPA** (`map $uri $x_robots`): só `/index.html` recebe `X-Robots-Tag: noindex, nofollow` (toda rota do Angular cai nele); a landing, `/landing/*`, `/assets/*`, robots, sitemap e bundles ficam sem o cabeçalho. O `/e/` tem o seu.
+  - `robots.txt` bloqueia `/api/`, `/e/`, `/admin`, `/assinante` e `/sign-out`, e traz `Sitemap: https://quemclica.com.br/sitemap.xml`; **não** bloqueia `/sign-in` (o Google só respeita o `noindex` de página que consegue visitar). O `sitemap.xml` tem só `/`.
+  - `www.quemclica.com.br`: `server` próprio no fim do arquivo, 301 para `https://quemclica.com.br$request_uri` (mantém caminho e query). O `server` principal tem `default_server` e `absolute_redirect off` (os 301 saem com endereço relativo atrás do Traefik).
+  - O `Dockerfile` roda `nginx -t` logo depois de copiar o `nginx.conf`: erro de configuração falha o build em vez de derrubar o site.
+- **Ver no `npm start`**: `http://localhost:4200/landing/index.html` (o `ng serve` entrega o arquivo). Em desenvolvimento `/` continua indo para o login; só o Nginx entrega a landing em `/`. A landing não precisa da API.
+- **Fontes**: Baloo 2 (800), Caveat (700) e Inter (variável, 400 a 700), só subconjunto latino em `woff2`, baixadas uma vez do Google Fonts (bloco `/* latin */` e `unicode-range` copiados para os `@font-face`, com `font-display: swap`; `preload` só do Baloo 2).
+  Sem pacote npm. Licença OFL 1.1, com o copyright das três em `src/landing/fontes/OFL.txt` (nenhuma declara "Reserved Font Name"). Não reaproveitar o "Inter var" do SPA (`assets/fontes/inter`, ~228 KB, todos os alfabetos).
+- **Imagem de compartilhamento**: a composição fica em `docs/marca/compartilhar.html` (1200x630, sem requisição externa; usa a logo da mesma pasta e as fontes da landing por caminho relativo) e é capturada com o Playwright em 1200x630
+  para `src/landing/compartilhar.png` (subir um servidor estático só em 127.0.0.1 na raiz do repositório, abrir o HTML, esperar carregar, capturar; conferir com `sips`: 1200x630 e até 300 KB). **Se a imagem mudar depois de publicada, trocar o nome do arquivo** (e o endereço no `og:image`/`twitter:image`), porque as redes guardam a prévia pelo endereço.
+- **PWA** (`src/manifest.webmanifest`): `start_url` = `/sign-in`, `"id": "/"`, `scope` `/`. A landing não liga o manifesto nem registra o service worker (liga favicon, ícone de 192 px e `apple-touch-icon`). **Desvio do app instalado**: se a landing abrir como app instalado
+  (`display-mode: standalone` ou `navigator.standalone`), um script no `<head>` faz `location.replace('/sign-in')`. Isso cobre o iPhone e instalações antigas, cujo `start_url` ainda era `/`.
+- **Outros pontos**: o texto copiado na janela de senha temporária (Admin > Assinantes) aponta para `<origem>/sign-in`, para o assinante novo não cair na landing. Contraste dos botões `#EA580C` (branco dá 3,6:1) aceito pelo colaborador; se o PageSpeed no celular der Acessibilidade abaixo de 90,
+  passar botões, texto da chamada final e textos pequenos das prévias para `#C2410C` (hover `#7C2D12`).
+- **Regras ao mexer na landing**:
+  - **Nunca espelhar o mascote** (sem escala negativa nem rotação em Y, nem no `#cabeca` nem no SVG de uma pose). Só o tênis espelhado dentro de `#pernas` é parte do desenho.
+  - O traço (rabisco) é `#7C2D12`, de 20 px, com pontas redondas.
+  - **Textos só sobre o que o sistema faz**: ao mudar uma funcionalidade citada na landing, revisar a página.
+  - O JSON-LD (`@graph` com WebSite, WebApplication e FAQPage) tem o FAQ **igual** ao texto da seção Dúvidas; mudou um, muda o outro. Sem `offers` (não há preço) nem avaliações.
+  - Sem framework e **sem requisição externa** (fontes locais; o único domínio citado é `https://quemclica.com.br` nas metas e no JSON-LD). Só os dois scripts inline (app instalado e o × da faixa). Sem cor fora da paleta da página.

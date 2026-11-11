@@ -41,11 +41,9 @@
                             "src/assets",
                             { "glob": "manifest.webmanifest", "input": "src", "output": "/" },
                             { "glob": "sw.js", "input": "src", "output": "/" },
-                            {
-                                "glob": "_redirects",
-                                "input": "src",
-                                "output": "/"
-                            }
+                            { "glob": "robots.txt", "input": "src", "output": "/" },
+                            { "glob": "sitemap.xml", "input": "src", "output": "/" },
+                            { "glob": "**/*", "input": "src/landing", "output": "/landing" }
                         ],
                         "stylePreprocessorOptions": {
                             "includePaths": [

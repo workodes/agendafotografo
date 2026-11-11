@@ -1,6 +1,6 @@
 # Landing page do quemclica
 
-Desenho aprovado em 2026-11-10. Rascunho visual aprovado: `2026-11-10-landing-page-rascunho.html` (nesta pasta; abra no navegador).
+Desenho aprovado em 2026-11-10. Referência visual: a própria landing, `AgendaFotografo.WebSPA/src/landing/index.html` (construída no plano 13, `docs/planos/13 - Landing page.md`). O rascunho aprovado foi incorporado a ela e apagado.
 Referência de estilo: o `DESIGN.md` do Tracky ("doodled planner on warm paper") que o colaborador anexou, adaptado como descrito abaixo.
 
 ## Intenção
@@ -50,7 +50,7 @@ só começa quando o autocadastro e o teste grátis estiverem prontos.
 4. **Teste grátis de 15 dias** pode ser citado.
 5. **Os botões levam ao login** (`/sign-in`): "Entrar", "Já tenho conta", "Começar grátis" e "Começar 15 dias grátis".
 6. **Melhor possível para o Google** (por isso HTML estático, fora do Angular).
-7. **O rascunho aprovado vale como referência** de seções, textos, cores, fontes e poses ("ficou ótimo desse jeito").
+7. **O rascunho aprovado vale como referência** de seções, textos, cores, fontes e poses ("ficou ótimo desse jeito"). Ele foi incorporado à landing (`AgendaFotografo.WebSPA/src/landing/index.html`), que passou a ser a referência, e depois apagado.
 
 ## Decisões tomadas na conversa (calls do Claude, aceitas no rascunho)
 
@@ -77,7 +77,7 @@ só começa quando o autocadastro e o teste grátis estiverem prontos.
 
 ## A página, seção por seção
 
-O rascunho tem todos os textos; abaixo, o papel de cada seção. Os dados das prévias (Corrida da Ponte 10K, Bruno, código 4821 etc.) são
+A landing tem todos os textos; abaixo, o papel de cada seção. Os dados das prévias (Corrida da Ponte 10K, Bruno, código 4821 etc.) são
 **exemplos fictícios** de tela, não depoimentos, e podem ficar.
 
 1. **Faixa de aviso** (pêssego, largura total): "Novo: mande o flyer da prova e o Assistente com IA cadastra o evento para você. Ver como
@@ -110,7 +110,7 @@ vertical entre seções reduzido (~64 px).
 ## Mascote
 
 - Desenhado em **SVG inline** (sem imagem), reaproveitando o ícone da logo redesenhado em vetor (cores medidas no `icone-512.png`:
-  `#F97316` e `#7C2D12`). O rascunho já tem o `symbol` da cabeça, as pernas e o tênis prontos para copiar.
+  `#F97316` e `#7C2D12`). A landing tem o `symbol` da cabeça, as pernas e o tênis prontos para reaproveitar.
 - Poses: **acenando** (topo), **apontando** (passos), **comemorando** (chamada final). Poses novas seguem o mesmo traço (marrom `#7C2D12`,
   20 px, pontas redondas).
 - Nunca espelhar o desenho. Um ilustrador pode refinar depois sem mudar a página.
@@ -153,7 +153,7 @@ vertical entre seções reduzido (~64 px).
 
 - Pasta e nomes dos arquivos da landing dentro do `AgendaFotografo.WebSPA`, e como ela entra no build (cópia simples ou `assets` do
   `angular.json`).
-- CSS puro com os tokens do rascunho **ou** Tailwind compilado à parte. Recomendação: CSS puro (o rascunho já está pronto, sem etapa de build).
+- CSS puro com os tokens do rascunho **ou** Tailwind compilado à parte. Recomendação: CSS puro, sem etapa de build (foi o escolhido; os tokens estão na landing).
 - Fontes pelo Google Fonts ou hospedadas junto com a página (recomendado: hospedar, mais rápido e sem chamada a terceiros).
 - Detalhes finos de espaçamento e responsividade, desde que fiel ao rascunho.
 

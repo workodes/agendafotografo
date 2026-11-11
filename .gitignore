@@ -21,3 +21,6 @@ Thumbs.db
 coverage/
 TestResults/
 publish/
+
+# Rascunhos do brainstorming (superpowers)
+.superpowers/

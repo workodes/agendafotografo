@@ -53,6 +53,7 @@ Swagger fica em `/swagger` (somente Development). Não existem testes automatiza
 ## Deploy (Dokploy, VM Hostinger)
 Docker Compose na raiz (`docker-compose.yml`): `agenda-web` (Nginx com o build do Angular, proxy de `/api/` para a API; único serviço com domínio),
 `agenda-api` (`Dockerfile` da raiz, `ASPNETCORE_ENVIRONMENT=Production`) e `agenda-mysql` (MySQL 8.0, banco `agenda_fotografo`, sem porta publicada).
+A landing page (plano 13, HTML estático em `AgendaFotografo.WebSPA/src/landing/`) é entregue pelo mesmo Nginx em `/`; o domínio é `quemclica.com.br` e o `www.quemclica.com.br` redireciona (301) para ele no próprio Nginx.
 Há **um só** `appsettings.json`, sempre no zeus (o `fartec:testador` bloqueia se qualquer connection string dos appsettings não for o zeus): **não criar
 `appsettings.Production.json`**. Produção sobrescreve por variáveis de ambiente do `agenda-api` no compose (`ConnectionStrings__DefaultConection` para o banco do
 container, `Arquivos__Pasta=/app/dados/arquivos`, num volume). Exceção decidida pelo colaborador: as credenciais do MySQL de produção ficam no `docker-compose.yml`.
@@ -86,7 +87,8 @@ Passo a passo e pontos de atenção em `docs/deploy.md`. Endpoint ou arquivo nov
 10. Agenda, ficha do evento e cadastros no estilo Fuse: **pronto, aguardando revisão/testes** (`docs/planos/10 - Agenda, ficha do evento e cadastros no estilo Fuse.md`; progresso de pendências na Agenda e Visão do dia, ficha com navegação lateral e selos, cabeçalho compartilhado nos cadastros)
 11. Chat com IA (Assistente) para lançar eventos: **pronto** (`docs/planos/11 - Chat com IA para lançar eventos.md`; `ChatController` com `GET Status` e `POST Enviar`, provedor configurável em `IA:*` (OpenAI ou Azure OpenAI), painel lateral "Assistente" no layout do assinante, sem rota nem item de menu)
 12. Assistente consulta a agenda e lê flyers: **pronto** (`docs/planos/12 - Assistente consulta a agenda.md`; ferramenta `BuscarEventos`, lista de eventos citados na resposta, aviso de duplicidade, imagem do flyer no `Chat/Enviar`; entregue junto com o 11)
-13. E-mail diário de lembretes (era o "Painel + e-mail", módulo 8, depois o 11, o 12 e o 13)
+13. Landing page: **pronto** (`docs/planos/13 - Landing page.md`; página estática em `AgendaFotografo.WebSPA/src/landing/`, servida pelo Nginx em `/`)
+14. E-mail diário de lembretes (era o "Painel + e-mail", módulo 8, depois o 11, o 12 e o 13)
 9. Área admin de assinantes (criar, ativar, bloquear, redefinir acesso) em `AssinanteController` (`[Authorize(Roles = Admin)]`): **pronto, entregue antes do módulo 1** (`docs/planos/01 - Assinantes.md`)
 
 Nomes e perfis do domínio (do desenho): Equipe (membros: Fotógrafo/Editor/Assistente), Organizadores, Tipos de evento
@@ -99,4 +101,4 @@ Nomes de tabela/entidade/controller sugeridos: ver `AgendaFotografo.WebApi/CLAUD
 
 ## Subagents
 `fartec:backend` (API), `fartec:frontend` (SPA), `fartec:engenheiro` (planos), `fartec:revisor`, `fartec:testador`.
-Somente o colaborador faz commit/branch/worktree. A base da API e a do SPA (ambas alinhadas ao Portal, com o contrato de Auth novo) estão prontas, assim como os planos 01 (Assinantes), 02 (módulo 1), 03 (módulos 2 e 3) e 04 (módulo 4, Agenda); os planos 05 (Link público), 06 (Pendências), 07 (Pendências padrão do evento) 08 (Avisos e novo layout) 09 (Pendências no estilo Fuse) e 10 (Agenda, ficha do evento e cadastros no estilo Fuse, back-end e front-end) estão construídos (aguardam revisão e testes); o plano 11 (Chat com IA, Assistente) está pronto e o plano 12 (Assistente consulta a agenda e lê flyers) também, back-end e front-end; o próximo é o módulo 13 (e-mail diário de lembretes). A Recorrência está em "Melhorias futuras".
+Somente o colaborador faz commit/branch/worktree. A base da API e a do SPA (ambas alinhadas ao Portal, com o contrato de Auth novo) estão prontas, assim como os planos 01 (Assinantes), 02 (módulo 1), 03 (módulos 2 e 3) e 04 (módulo 4, Agenda); os planos 05 (Link público), 06 (Pendências), 07 (Pendências padrão do evento) 08 (Avisos e novo layout) 09 (Pendências no estilo Fuse) e 10 (Agenda, ficha do evento e cadastros no estilo Fuse, back-end e front-end) estão construídos (aguardam revisão e testes); o plano 11 (Chat com IA, Assistente) está pronto e o plano 12 (Assistente consulta a agenda e lê flyers) também, back-end e front-end; o plano 13 (Landing page) está construído (aguarda revisão e testes); o próximo é o módulo 14 (e-mail diário de lembretes). A Recorrência está em "Melhorias futuras".

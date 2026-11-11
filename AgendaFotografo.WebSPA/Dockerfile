@@ -17,6 +17,8 @@ FROM nginx:1.27-alpine
 ENV TZ=America/Sao_Paulo
 RUN rm -f /etc/nginx/conf.d/default.conf
 COPY nginx.conf /etc/nginx/conf.d/agendafotografo.conf
+# Valida a configuração no build (o proxy_pass usa variável + resolver, então o -t não precisa resolver o agenda-api).
+RUN nginx -t
 COPY --from=build /app/dist/wwwroot /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

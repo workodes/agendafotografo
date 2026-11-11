@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /api/
+Disallow: /e/
+Disallow: /admin
+Disallow: /assinante
+Disallow: /sign-out
+
+Sitemap: https://quemclica.com.br/sitemap.xml

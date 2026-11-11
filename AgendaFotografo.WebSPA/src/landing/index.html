@@ -4,10 +4,115 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Agenda Fotógrafos | QuemClica</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="description" content="Agenda para fotógrafos e equipes de fotografia esportiva: escala de fotógrafos, quem está livre e o link de cada prova para a equipe. Teste 15 dias grátis.">
+<meta name="robots" content="max-image-preview:large">
+<link rel="canonical" href="https://quemclica.com.br/">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:site_name" content="QuemClica">
+<meta property="og:title" content="Agenda Fotógrafos | QuemClica">
+<meta property="og:description" content="Agenda para fotógrafos e equipes de fotografia esportiva: escala de fotógrafos, quem está livre e o link de cada prova para a equipe. Teste 15 dias grátis.">
+<meta property="og:url" content="https://quemclica.com.br/">
+<meta property="og:image" content="https://quemclica.com.br/landing/compartilhar.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="quemclica, agenda para fotógrafos: calendário laranja com lente de câmera">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Agenda Fotógrafos | QuemClica">
+<meta name="twitter:description" content="Agenda para fotógrafos e equipes de fotografia esportiva: escala de fotógrafos, quem está livre e o link de cada prova para a equipe. Teste 15 dias grátis.">
+<meta name="twitter:image" content="https://quemclica.com.br/landing/compartilhar.png">
+<meta name="twitter:image:alt" content="quemclica, agenda para fotógrafos: calendário laranja com lente de câmera">
+<link rel="icon" type="image/x-icon" href="/assets/images/favicon/favicon.ico">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/images/pwa/icon-192.png">
+<link rel="apple-touch-icon" href="/assets/images/pwa/apple-touch-icon.png">
+<script>
+  // App instalado (PWA): vai direto para o login. No navegador comum, a página abre normalmente.
+  if ((window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone) { location.replace('/sign-in'); }
+</script>
+<link rel="preload" href="/landing/fontes/baloo2-800-latin.woff2" as="font" type="font/woff2" crossorigin>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://quemclica.com.br/#site",
+      "name": "QuemClica",
+      "url": "https://quemclica.com.br/",
+      "inLanguage": "pt-BR"
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://quemclica.com.br/#app",
+      "name": "QuemClica",
+      "url": "https://quemclica.com.br/",
+      "description": "Agenda para fotógrafos e equipes de fotografia esportiva: escala de fotógrafos, quem está livre e o link de cada prova para a equipe. Teste 15 dias grátis.",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "inLanguage": "pt-BR",
+      "image": "https://quemclica.com.br/landing/compartilhar.png",
+      "featureList": [
+        "Agenda em lista e calendário",
+        "Quem está livre em cada dia",
+        "Alerta de fotógrafo escalado em duas provas",
+        "Link do evento para a equipe, com código de 4 números",
+        "Assistente com IA que cadastra o evento a partir do flyer",
+        "Pendências e checklist por evento"
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://quemclica.com.br/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "A minha equipe precisa instalar app ou criar login?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Não. Só você, que coordena, entra no sistema. A equipe recebe o link do evento e o código de 4 números e abre direto no celular."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Funciona no celular?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sim. Tudo funciona no celular e no computador, e o link da equipe foi pensado primeiro para o celular."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Como funciona o teste grátis?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Você cria a conta e usa tudo por 15 dias com a sua equipe."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Serve para outros tipos de evento?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sim. Corrida, treino, CrossFit, moto passeio, casamento e academia já vêm prontos, e você pode criar os seus."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Outras equipes conseguem ver a minha agenda?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Não. Cada conta enxerga só os próprios eventos, equipe e organizadores."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
 <style>
+  @font-face{font-family:'Baloo 2';font-style:normal;font-weight:800;font-display:swap;src:url(/landing/fontes/baloo2-800-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+  @font-face{font-family:'Caveat';font-style:normal;font-weight:700;font-display:swap;src:url(/landing/fontes/caveat-700-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+  @font-face{font-family:'Inter';font-style:normal;font-weight:400 700;font-display:swap;src:url(/landing/fontes/inter-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
   :root{
     --laranja:#F97316;          /* cor da marca (logo) */
     --laranja-acao:#EA580C;     /* botões e texto laranja sobre branco (contraste) */
@@ -27,9 +132,10 @@
     --fonte-mao:'Caveat', cursive;
   }
   *{box-sizing:border-box;margin:0}
-  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
   body{font-family:var(--fonte-ui);color:var(--texto);background:var(--branco);letter-spacing:-.01em;line-height:1.55}
   a{color:inherit;text-decoration:none}
+  a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--marrom);outline-offset:2px}
   .wrap{max-width:1200px;margin:0 auto;padding:0 24px}
   h1,h2,h3{font-family:var(--fonte-display);color:var(--marrom-fundo);letter-spacing:.01em;line-height:1.05}
   .destaque{color:var(--laranja-acao);position:relative;white-space:nowrap}
@@ -43,14 +149,16 @@
   .btn-inverso{background:#fff;color:var(--marrom-fundo)}
 
   /* Faixa de aviso */
-  .aviso{background:var(--pessego);color:var(--marrom-fundo);font-size:14px;font-weight:500;text-align:center;padding:10px 40px;position:relative}
+  .aviso{background:var(--pessego);color:var(--marrom-fundo);font-size:14px;font-weight:500;text-align:center;padding:10px 48px 10px 40px;position:relative}
+  .aviso[hidden]{display:none}
   .aviso a{color:var(--laranja-acao-hover);font-weight:700}
-  .aviso .fechar{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:18px;opacity:.6}
+  .aviso .fechar{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:32px;height:32px;display:grid;place-items:center;font-size:18px;line-height:1;color:inherit;background:none;border:0;border-radius:8px;cursor:pointer;opacity:.6;font-family:var(--fonte-ui)}
+  .aviso .fechar:hover{opacity:1}
 
   /* Cabeçalho */
   header{padding:18px 0}
   header .wrap{display:flex;align-items:center;gap:28px}
-  header img{height:38px;display:block}
+  header img{height:38px;width:auto;display:block}
   header nav{display:flex;gap:24px;font-weight:500;font-size:15px;color:var(--texto);margin-left:auto}
   header .acoes{display:flex;gap:10px;align-items:center}
   header .btn-primario{padding:9px 16px;font-size:15px}
@@ -82,6 +190,7 @@
   .titulo-secao p{font-size:18px;color:var(--texto-suave);margin-top:14px}
   .cartao-escuro{position:relative;background:var(--marrom-fundo);color:#fff;border-radius:28px;padding:56px;display:grid;grid-template-columns:1fr 1.1fr;gap:40px;align-items:center;box-shadow:var(--sombra);margin-bottom:40px;overflow:visible}
   .cartao-escuro.invertido{grid-template-columns:1.1fr 1fr}
+  .cartao-escuro>*{min-width:0}
   .cartao-escuro.invertido .texto{order:2}
   .cartao-escuro .num{font-family:var(--fonte-display);font-weight:800;color:var(--laranja);font-size:20px}
   .cartao-escuro h3{color:#fff;font-size:42px;font-weight:800;margin:6px 0 14px}
@@ -109,7 +218,7 @@
   .livres{margin-top:10px;font-size:13px;color:var(--texto-suave)}
   .livres b{color:var(--marrom-fundo)}
 
-  .celular{width:270px;margin:0 auto;background:#fff;border-radius:34px;padding:12px;box-shadow:var(--sombra-media);transform:rotate(4deg);border:6px solid #2b0d04}
+  .celular{width:270px;max-width:100%;margin:0 auto;background:#fff;border-radius:34px;padding:12px;box-shadow:var(--sombra-media);transform:rotate(4deg);border:6px solid #2b0d04}
   .celular .tela{border-radius:22px;background:var(--creme);padding:16px 14px;font-size:12px;color:var(--texto)}
   .celular .marca{display:flex;align-items:center;gap:6px;font-weight:700;color:var(--marrom);font-size:11px;margin-bottom:10px}
   .celular h4{font-family:var(--fonte-display);font-size:19px;color:var(--marrom-fundo);line-height:1.1}
@@ -117,7 +226,7 @@
   .linha{background:#fff;border-radius:10px;padding:8px 10px;margin-bottom:6px;display:flex;justify-content:space-between;gap:6px;align-items:center}
   .linha small{display:block;color:var(--texto-suave);font-size:10px}
   .linha b{color:var(--marrom-fundo);font-size:12px}
-  .linha a{font-size:10px;font-weight:700;color:#fff;background:var(--laranja-acao);border-radius:6px;padding:4px 7px;white-space:nowrap}
+  .linha .bt{font-size:10px;font-weight:700;color:#fff;background:var(--laranja-acao);border-radius:6px;padding:4px 7px;white-space:nowrap}
   .bolha{position:absolute;background:#fff;border-radius:14px 14px 14px 4px;box-shadow:var(--sombra-media);padding:10px 14px;font-size:13px;color:var(--marrom-fundo);font-weight:500;transform:rotate(-3deg)}
   .bolha b{color:var(--laranja-acao-hover)}
 
@@ -128,7 +237,7 @@
   .chat .ia{background:#fff;border:1px solid var(--borda);border-radius:14px 14px 14px 4px;padding:10px 12px;max-width:88%;font-size:13px}
   .chat .ia .mini{margin-top:8px;border:1px solid var(--borda);border-radius:10px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;font-size:12px}
   .chat .ia .mini b{color:var(--marrom-fundo)}
-  .chat .ia .mini a{color:var(--laranja-acao);font-weight:700}
+  .chat .ia .mini .bt{color:var(--laranja-acao);font-weight:700}
 
   /* E ainda */
   .ainda{padding:24px 0 96px;background:var(--creme)}
@@ -146,7 +255,7 @@
   .lista-passos{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
   .passo{border:1.5px dashed #E8C9B3;border-radius:16px;padding:20px}
   .passo .n{width:36px;height:36px;border-radius:50%;background:var(--marrom-fundo);color:#fff;display:grid;place-items:center;font-family:var(--fonte-display);font-weight:800;font-size:18px;margin-bottom:12px}
-  .passo h4{color:var(--marrom-fundo);font-size:17px;margin-bottom:4px}
+  .passo h3{font-family:var(--fonte-ui);color:var(--marrom-fundo);font-size:17px;font-weight:700;letter-spacing:-.01em;line-height:1.55;margin-bottom:4px}
   .passo p{font-size:14px;color:var(--texto-suave)}
 
   /* Dúvidas */
@@ -155,6 +264,7 @@
   .duvidas h2{font-size:48px;font-weight:800;text-align:center;margin-bottom:36px}
   details{background:#fff;border-radius:14px;box-shadow:var(--sombra);padding:18px 22px;margin-bottom:12px}
   summary{cursor:pointer;font-weight:600;color:var(--marrom-fundo);font-size:17px;list-style:none;display:flex;justify-content:space-between;gap:12px}
+  summary::-webkit-details-marker{display:none}
   summary::after{content:"+";color:var(--laranja-acao);font-size:22px;line-height:1}
   details[open] summary::after{content:"–"}
   details p{margin-top:10px;color:var(--texto-suave)}
@@ -167,8 +277,14 @@
 
   footer{border-top:1px solid var(--borda);padding:32px 0 40px;font-size:14px;color:var(--texto-suave)}
   footer .wrap{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
-  footer img{height:30px}
+  footer img{height:30px;width:auto}
   footer nav{display:flex;gap:18px;margin-left:auto;flex-wrap:wrap}
+
+  /* Entre 901 e 1319 px a prévia não pode passar da borda da janela: avanço menor sobre o padding do cartão */
+  @media (min-width:901px) and (max-width:1319px){
+    .previa{margin-right:-40px}
+    .invertido .previa{margin-right:0;margin-left:-40px}
+  }
 
   /* Celular */
   @media (max-width:900px){
@@ -178,6 +294,8 @@
     header .btn{padding:8px 12px;font-size:14px;white-space:nowrap}
     header img{height:32px}
     .hero{padding-top:24px}
+    .hero .arte{flex-direction:column;align-items:center;padding-bottom:0}
+    .widget-hero{position:static;order:1;transform:rotate(-2deg);margin-top:8px}
     .hero .arte svg{max-width:240px}
     .titulo-secao h2,.passos h2,.duvidas h2,.faixa-final h2{font-size:34px}
     .cartao-escuro,.cartao-escuro.invertido{grid-template-columns:1fr;padding:32px 22px}
@@ -199,7 +317,15 @@
     .faixa-final>svg{order:-1;justify-self:center;max-width:170px!important;margin-bottom:-8px}
     .bolha{display:none}
   }
-  @media (max-width:560px){.grade4{grid-template-columns:1fr}}
+  @media (max-width:560px){
+    .grade4{grid-template-columns:1fr}
+    header .wrap{gap:12px;padding:0 16px}
+    header .acoes{margin-left:auto;gap:6px}
+    header .btn{padding:8px 10px;font-size:13px}
+    header img{height:28px}
+    .widget-hero{white-space:normal;max-width:96%;font-size:13px;padding:6px 12px 6px 6px}
+    .widget .bola{width:26px;height:26px;flex:0 0 26px;font-size:13px}
+  }
 </style>
 </head>
 <body>
@@ -231,35 +357,36 @@
 </svg>
 
 <!-- 0. Faixa de aviso -->
-<div class="aviso">Novo: mande o flyer da prova e o Assistente com IA cadastra o evento para você. <a href="#recurso-3">Ver como funciona →</a><span class="fechar">×</span></div>
+<div class="aviso" id="aviso">Novo: mande o flyer da prova e o Assistente com IA cadastra o evento para você. <a href="#recurso-3">Ver como funciona →</a><button type="button" class="fechar" id="fechar-aviso" aria-label="Fechar aviso">×</button></div>
 
 <!-- 1. Cabeçalho -->
 <header>
   <div class="wrap">
-    <a href="#"><img src="../../marca/logo.png" alt="quemclica"></a>
-    <nav><a href="#recursos">Recursos</a><a href="#como-comecar">Como começar</a><a href="#duvidas">Dúvidas</a></nav>
-    <div class="acoes"><a class="btn btn-fantasma" href="#">Entrar</a><a class="btn btn-primario" href="#">Começar grátis</a></div>
+    <a href="/"><img src="/assets/images/logo/logo.png" width="347" height="134" alt="quemclica, agenda para fotógrafos"></a>
+    <nav aria-label="Principal"><a href="#recursos">Recursos</a><a href="#como-comecar">Como começar</a><a href="#duvidas">Dúvidas</a></nav>
+    <div class="acoes"><a class="btn btn-fantasma" href="/sign-in">Entrar</a><a class="btn btn-primario" href="/sign-in">Começar grátis</a></div>
   </div>
 </header>
 
+<main>
 <!-- 2. Hero -->
 <section class="hero">
   <div class="wrap">
     <div>
-      <span class="selo">📸 Para quem coordena equipes de fotografia esportiva</span>
+      <span class="selo"><span aria-hidden="true">📸</span> Para quem coordena equipes de fotografia esportiva</span>
       <h1>Saiba quem clica onde, em <span class="destaque">cada prova<svg class="rabisco" viewBox="0 0 300 20" preserveAspectRatio="none"><path d="M4 14 C60 4 120 18 180 9 S270 6 296 12" fill="none" stroke="#F97316" stroke-width="5" stroke-linecap="round"/></svg></span>.</h1>
-      <p class="sub">Agenda, escala da equipe e o link de cada evento num lugar só. Feito para quem coordena fotógrafos de corrida, treino, CrossFit, moto passeio e o que mais aparecer.</p>
+      <p class="sub">Agenda, escala de fotógrafos e o link de cada evento num lugar só. Feito para quem coordena fotógrafos de corrida, treino, CrossFit, moto passeio e o que mais aparecer.</p>
       <div class="ctas">
-        <a class="btn btn-primario" href="#">Começar 15 dias grátis →</a>
-        <a class="btn btn-fantasma" href="#">Já tenho conta</a>
+        <a class="btn btn-primario" href="/sign-in">Começar 15 dias grátis →</a>
+        <a class="btn btn-fantasma" href="/sign-in">Já tenho conta</a>
       </div>
       <p class="micro">15 dias para testar com a sua equipe, com tudo liberado.</p>
       <div class="tipos"><span>Corrida</span><span>Treino</span><span>CrossFit</span><span>Moto passeio</span><span>Casamento</span><span>Academia</span></div>
     </div>
     <div class="arte">
       <span class="nota-mao">oi! eu cuido da<br>agenda da equipe ↘</span>
-      <span class="widget widget-hero"><span class="bola">✓</span>Sáb, 14/03 · 3 provas <small>· 7 fotógrafos</small></span>
-      <svg viewBox="0 0 560 700" role="img" aria-label="Mascote do quemclica acenando">
+      <span class="widget widget-hero"><span class="bola" aria-hidden="true">✓</span>Sáb, 14/03 · 3 provas <small>· 7 fotógrafos</small></span>
+      <svg viewBox="0 0 560 700" role="img" aria-label="Mascote do quemclica, a agenda para fotógrafos, acenando">
         <g fill="none" stroke="#F97316" stroke-width="7" stroke-linecap="round"><path d="M28 232 q-12 16 0 32"/><path d="M12 220 q-20 28 0 56"/></g>
         <use href="#pernas"/>
         <g fill="none" stroke="#7C2D12" stroke-width="20" stroke-linecap="round"><path d="M96 340 Q44 320 52 252"/><path d="M440 352 Q494 384 488 444"/></g>
@@ -294,7 +421,7 @@
           <div class="evento"><strong>Treino 3F</strong>7h · São José<div class="quem"><span>Carla</span></div><span class="chip ok">Confirmado</span></div>
           <div class="evento"><strong>Moto Passeio da Serra</strong>8h · Urubici<div class="quem"><span class="conflito">Bruno</span><span>Gui</span></div><span class="chip pend">Pendente</span></div>
         </div>
-        <div class="alerta">⚠ Bruno está escalado em 2 provas no mesmo dia</div>
+        <div class="alerta"><span aria-hidden="true">⚠</span> Bruno está escalado em 2 provas no mesmo dia</div>
         <div class="livres">Livres no sábado: <b>Diego · Eva · Fábio</b></div>
       </div>
     </div>
@@ -314,9 +441,9 @@
             <div class="marca"><svg width="16" height="16"><use href="#cabeca"/></svg>quemclica</div>
             <h4>Corrida da Ponte 10K</h4>
             <div class="data">Sábado, 14/03 · 6h30</div>
-            <div class="linha"><div><small>Largada</small><b>Av. Beira-Mar Norte</b></div><a>Abrir no Maps</a></div>
-            <div class="linha"><div><small>Chegada</small><b>Trapiche</b></div><a>Abrir no Maps</a></div>
-            <div class="linha"><div><small>Rota</small><b>Percurso 10K</b></div><a>Baixar GPX</a></div>
+            <div class="linha"><div><small>Largada</small><b>Av. Beira-Mar Norte</b></div><span class="bt">Abrir no Maps</span></div>
+            <div class="linha"><div><small>Chegada</small><b>Trapiche</b></div><span class="bt">Abrir no Maps</span></div>
+            <div class="linha"><div><small>Rota</small><b>Percurso 10K</b></div><span class="bt">Baixar GPX</span></div>
             <div class="linha"><div><small>Sua posição</small><b>Km 5 (retorno)</b></div></div>
             <div class="linha"><div><small>Observações</small><b>Chegar 5h45. Foco nos pelotões.</b></div></div>
           </div>
@@ -338,7 +465,7 @@
         <div class="chat">
           <div class="eu"><div class="flyer">CORRIDA NOTURNA 5K<small>21/03 · 19h · Palhoça</small></div>cadastra essa pra mim</div>
           <div class="ia">Pronto! Lancei a <b>Corrida Noturna 5K</b> no sábado, 21/03, às 19h, em Palhoça. Conferi a agenda: não há outro evento igual.
-            <div class="mini"><span><b>Corrida Noturna 5K</b> · 21/03 · Pendente</span><a>Abrir evento</a></div>
+            <div class="mini"><span><b>Corrida Noturna 5K</b> · 21/03 · Pendente</span><span class="bt">Abrir evento</span></div>
           </div>
           <div class="eu">o que tem no fim de semana?</div>
         </div>
@@ -352,10 +479,10 @@
   <div class="wrap">
     <h3 class="rotulo">e ainda…</h3>
     <div class="grade4">
-      <div class="mini-cartao"><div class="ico">✅</div><h4>Pendências e checklist</h4><p>Cada evento já nasce com a lista do que precisa ser feito.</p></div>
-      <div class="mini-cartao"><div class="ico">🏁</div><h4>Organizadores</h4><p>Histórico de cada organizador e de quem fotografou cada prova.</p></div>
-      <div class="mini-cartao"><div class="ico">🔔</div><h4>Avisos do dia</h4><p>Ao abrir, você vê o que precisa da sua atenção hoje.</p></div>
-      <div class="mini-cartao"><div class="ico">📱</div><h4>Celular e computador</h4><p>Use de onde estiver, até no meio do percurso.</p></div>
+      <div class="mini-cartao"><div class="ico" aria-hidden="true">✅</div><h4>Pendências e checklist</h4><p>Cada evento já nasce com a lista do que precisa ser feito.</p></div>
+      <div class="mini-cartao"><div class="ico" aria-hidden="true">🏁</div><h4>Organizadores</h4><p>Histórico de cada organizador e de quem fotografou cada prova.</p></div>
+      <div class="mini-cartao"><div class="ico" aria-hidden="true">🔔</div><h4>Avisos do dia</h4><p>Ao abrir, você vê o que precisa da sua atenção hoje.</p></div>
+      <div class="mini-cartao"><div class="ico" aria-hidden="true">📱</div><h4>Celular e computador</h4><p>Use de onde estiver, até no meio do percurso.</p></div>
     </div>
   </div>
 </section>
@@ -366,9 +493,9 @@
     <div>
       <h2>Comece em <span class="destaque">3 passos</span></h2>
       <div class="lista-passos">
-        <div class="passo"><div class="n">1</div><h4>Crie sua conta</h4><p>São 15 dias grátis para testar com a sua equipe.</p></div>
-        <div class="passo"><div class="n">2</div><h4>Cadastre a equipe</h4><p>Fotógrafos, editores e assistentes, com o @ do Instagram.</p></div>
-        <div class="passo"><div class="n">3</div><h4>Lance o primeiro evento</h4><p>Escale quem vai e mande o link para a equipe.</p></div>
+        <div class="passo"><div class="n">1</div><h3>Crie sua conta</h3><p>São 15 dias grátis para testar com a sua equipe.</p></div>
+        <div class="passo"><div class="n">2</div><h3>Cadastre a equipe</h3><p>Fotógrafos, editores e assistentes, com o @ do Instagram.</p></div>
+        <div class="passo"><div class="n">3</div><h3>Lance o primeiro evento</h3><p>Escale quem vai e mande o link para a equipe.</p></div>
       </div>
     </div>
     <svg viewBox="-50 0 610 700" role="img" aria-label="Mascote apontando para os passos" style="width:100%;max-width:260px">
@@ -401,7 +528,7 @@
       <div>
         <h2>Sua próxima prova já começa organizada.</h2>
         <p>Crie sua conta, cadastre a equipe e mande o primeiro link hoje mesmo.</p>
-        <a class="btn btn-inverso" href="#">Começar 15 dias grátis →</a>
+        <a class="btn btn-inverso" href="/sign-in">Começar 15 dias grátis →</a>
       </div>
       <svg viewBox="0 0 560 700" role="img" aria-label="Mascote comemorando" style="width:100%;max-width:240px">
         <g fill="#fff"><rect x="20" y="120" width="18" height="10" rx="3" transform="rotate(-20 29 125)"/><circle cx="520" cy="110" r="8"/><rect x="40" y="60" width="14" height="14" rx="3" fill="#FFEDD5"/><rect x="500" y="30" width="18" height="10" rx="3" fill="#FFEDD5" transform="rotate(25 509 35)"/><circle cx="12" cy="300" r="6" fill="#FFEDD5"/></g>
@@ -415,14 +542,22 @@
   </div>
 </section>
 
+</main>
+
 <!-- 8. Rodapé -->
 <footer>
   <div class="wrap">
-    <img src="../../marca/logo.png" alt="quemclica">
+    <img src="/assets/images/logo/logo.png" width="347" height="134" alt="quemclica">
     <span>© 2026 quemclica</span>
-    <nav><a href="#">Entrar</a><a href="#duvidas">Dúvidas</a></nav>
+    <nav aria-label="Rodapé"><a href="/sign-in">Entrar</a><a href="#duvidas">Dúvidas</a></nav>
   </div>
 </footer>
 
+<script>
+  // Fecha a faixa de aviso só nesta visita (nada fica gravado no navegador).
+  document.getElementById('fechar-aviso').addEventListener('click', function () {
+    document.getElementById('aviso').hidden = true;
+  });
+</script>
 </body>
 </html>

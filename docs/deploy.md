@@ -6,13 +6,15 @@ Credenciais de produção: só no `docker-compose.yml` (serviço do MySQL e conn
 ## Arquitetura
 
 ```
-Internet ─HTTPS─> Traefik (Dokploy) ─> agenda-web (Nginx :80) ─┬─ /            -> Angular (dist/wwwroot)
+Internet ─HTTPS─> Traefik (Dokploy) ─> agenda-web (Nginx :80) ─┬─ / (exato)    -> landing page estática (/landing/index.html)
+                                                               ├─ demais rotas -> Angular (dist/wwwroot)
+                                                               ├─ www.*        -> 301 para quemclica.com.br
                                                                └─ /api/*       -> agenda-api (:8080) -> agenda-mysql (:3306)
 ```
 
 | Serviço | Origem | Papel |
 |---|---|---|
-| `agenda-web` | `AgendaFotografo.WebSPA/Dockerfile` + `nginx.conf` | Build do Angular (Node 22) servido por Nginx; proxy de `/api/` para a API (mesma origem, sem CORS); fallback de rotas do SPA para o `index.html`; gzip, cache dos bundles com hash, upload até 12 MB. **Único serviço com domínio.** |
+| `agenda-web` | `AgendaFotografo.WebSPA/Dockerfile` + `nginx.conf` | Build do Angular (Node 22) servido por Nginx; entrega a landing page em `/` (exato); proxy de `/api/` para a API (mesma origem, sem CORS); fallback de rotas do SPA para o `index.html` (com `noindex`); 301 do `www` para o domínio sem `www`; `nginx -t` no build da imagem; gzip, cache dos bundles com hash, upload até 12 MB. **Único serviço com domínio.** |
 | `agenda-api` | `Dockerfile` (raiz) | `AgendaFotografo.WebApi` em `ASPNETCORE_ENVIRONMENT=Production`; banco e pasta de arquivos vêm das variáveis do compose. Roda sem root. Ao subir aplica as migrations e o seed. |
 | `agenda-mysql` | `mysql:8.0` | Banco `agenda_fotografo`. Sem porta publicada; só a API o enxerga (rede `interna`). |
 
@@ -24,7 +26,8 @@ Por que a rede `interna`: na `dokploy-network` todos os projetos da VM se enxerg
 ## Configuração no Dokploy (uma vez)
 
 1. **Create Service → Compose**, provider GitHub, repositório e branch; *Compose Path* `./docker-compose.yml`.
-2. **Domains**: adicionar o domínio no serviço **`agenda-web`**, porta **80**, HTTPS com Let's Encrypt. (Não publicar `agenda-api` nem `agenda-mysql`.)
+2. **Domains**: adicionar no serviço **`agenda-web`**, porta **80**, HTTPS com Let's Encrypt, os dois domínios: `quemclica.com.br` e `www.quemclica.com.br`
+   (o `www` só redireciona, pelo Nginx). No DNS, um registro para cada um (`quemclica.com.br` e `www.quemclica.com.br`) apontando para o IP da VM. (Não publicar `agenda-api` nem `agenda-mysql`.)
 3. **Deployments / Auto Deploy**: ligado (webhook do GitHub).
 4. Primeiro deploy: o MySQL inicializa o volume (até ~40 s); a API espera o *healthcheck* dele, aplica as migrations e cria o admin do seed
    (`admin@agendafotografo.com.br`, com troca de senha obrigatória no primeiro acesso fora do Development).
@@ -69,9 +72,11 @@ bucket fica em torno de 4 × o tamanho de cada volume. Medir o volume de arquivo
 
 ## Link público (`/e/<token>`)
 
-- **Rota**: `/e/<token>` é rota do SPA, anônima. O `nginx.conf` tem um `location /e/` próprio (`try_files` para o `index.html`, então F5 não dá 404),
+- **Rota**: `/e/<token>` é rota do SPA, anônima. O `nginx.conf` tem um `location /e/` próprio que serve o `index.html` dentro dele mesmo (`rewrite ^ /index.html break;`, então F5 não dá 404),
   com `Cache-Control: no-store`, `Referrer-Policy: no-referrer` e `X-Robots-Tag: noindex, nofollow`. As chamadas `api/LinkPublico/*` passam pelo
   mesmo proxy de `/api/`. Nenhuma porta, volume ou tamanho de upload muda.
+- **Correção do plano 13**: antes o `/e/` usava `try_files $uri /index.html`, cujo fallback faz um redirecionamento interno para o `location /` e **perdia** os `add_header` do `/e/` (`no-store`, `no-referrer`, `noindex`).
+  Agora o `index.html` sai de dentro do próprio `/e/`. Conferir com `curl -I https://quemclica.com.br/e/abc` (ver a lista da seção "Landing page").
 - **IP real (PENDENTE: confirmar a faixa de rede)**: o limite de tentativas por IP e o rate limit (60 req/min por IP) dependem de a API enxergar o IP
   do visitante. Cadeia: Traefik -> Nginx (`agenda-web`) -> API.
   - Nginx: `set_real_ip_from` + `real_ip_header X-Forwarded-For` + `real_ip_recursive on` resolvem o IP real a partir do Traefik, e o `/api/` entrega
@@ -97,3 +102,36 @@ bucket fica em torno de 4 × o tamanho de cada volume. Medir o volume de arquivo
   do Dokploy. Sem elas o chat fica desligado e o resto do sistema funciona. **Nenhum valor real vai para o compose nem para o git.**
 - Passo a passo (conta e chave na OpenAI, créditos, limite de gasto, modelo, testes e alternativa Azure OpenAI): [`ia.md`](ia.md). Os dados das mensagens são processados fora do Brasil.
 - O limite diário fica em memória: manter **uma só instância** da API. O `/api/` do `nginx.conf` tem `proxy_read_timeout 120s`, acima do timeout de 60 s da chamada ao modelo.
+
+## Landing page (`/`)
+
+- **O que é**: página estática (`AgendaFotografo.WebSPA/src/landing/`, plano 13) que o próprio Nginx do `agenda-web` entrega em `https://quemclica.com.br/`, com 200 e sem redirecionar. Os botões levam a `/sign-in`. Não precisa de API, banco, volume nem variável nova.
+- **Como o Nginx a serve**:
+  - `location = /` entrega `/landing/index.html`; `/landing/` e `/landing/index.html` respondem 301 para `/`; o resto de `/landing/` (fontes e `compartilhar.png`) só entrega arquivo existente (404 se não houver, sem cair no SPA).
+  - Cache: a landing em `/`, `no-cache`; `/landing/*` e `/assets/*`, 7 dias; `robots.txt` e `sitemap.xml`, `no-cache`.
+  - `X-Robots-Tag: noindex, nofollow` só no `index.html` do SPA (`/sign-in`, `/admin/*`, `/assinante/*` e demais rotas) e no `/e/`; a landing, `/landing/*`, `/assets/*`, robots e sitemap ficam sem ele.
+  - `robots.txt` bloqueia `/api/`, `/e/`, `/admin`, `/assinante` e `/sign-out`, e aponta para o `sitemap.xml` (só com `/`).
+  - `www.quemclica.com.br` responde 301 para `https://quemclica.com.br` com caminho e query.
+  - O `Dockerfile` do SPA roda `nginx -t` depois de copiar o `nginx.conf`: se a configuração estiver errada, o build da imagem falha (e o site antigo continua no ar).
+- **Hospedagem alternativa (IIS, `wwwroot` da WebApi)**: **não tem a landing**. Nesse modo `/` abre o SPA, que redireciona para o login, e não há `noindex` nem `www`. A landing só existe com o Nginx do `agenda-web`.
+- **Se a imagem de compartilhamento mudar** (`landing/compartilhar.png`), trocar o nome do arquivo e o endereço no `og:image`/`twitter:image`, porque o WhatsApp e as redes guardam a prévia pelo endereço.
+
+### Conferir depois do deploy
+
+1. **Cabeçalhos (`curl -I`)** em:
+   - `https://quemclica.com.br/`: 200, `Cache-Control: no-cache`, sem `X-Robots-Tag`;
+   - `/landing/` e `/landing/index.html`: 301 com `Location: /`;
+   - uma fonte, por exemplo `/landing/fontes/baloo2-800-latin.woff2`: 200, `Content-Type: font/woff2` e cache de 7 dias;
+   - um arquivo inexistente em `/landing/` (ex.: `/landing/nao-existe`): 404, e não o HTML do SPA;
+   - `/sign-in`: 200 com `X-Robots-Tag: noindex, nofollow`;
+   - `/e/abc`: 200 com `Cache-Control: no-store`, `Referrer-Policy: no-referrer` e `X-Robots-Tag: noindex, nofollow` (correção do `/e/`; compare com o resultado antes do deploy);
+   - `/robots.txt` e `/sitemap.xml`: 200, sem `X-Robots-Tag`;
+   - `https://www.quemclica.com.br/x?y=1`: 301 para `https://quemclica.com.br/x?y=1`.
+
+   `/` e `/sign-in` também devem trazer `X-Content-Type-Options`, `X-Frame-Options` e `Referrer-Policy`.
+2. **HTML entregue**: o `curl` de `/` traz o `h1` e as perguntas (a página não depende de JavaScript).
+3. **PageSpeed Insights (celular)**: Desempenho >= 90, SEO 100 e Acessibilidade >= 90; registrar as notas na seção 4 do plano. Se a Acessibilidade ficar abaixo de 90, passar os botões, o texto da chamada final e os textos pequenos das prévias de `#EA580C` para `#C2410C` (hover `#7C2D12`).
+4. **Dados estruturados**: o Teste de pesquisa aprimorada do Google e o validator.schema.org não mostram erro (o aviso sobre `offers` é esperado, não há preço).
+5. **Prévia de compartilhamento**: no WhatsApp e no Sharing Debugger do Facebook aparecem imagem, título e descrição.
+6. **Search Console**: criar a propriedade de **domínio** (verificação por registro TXT no DNS) e enviar `https://quemclica.com.br/sitemap.xml`.
+7. **App instalado, se houver**: no Android abre em `/sign-in`; no iPhone o app antigo abre a landing e segue para `/sign-in`.

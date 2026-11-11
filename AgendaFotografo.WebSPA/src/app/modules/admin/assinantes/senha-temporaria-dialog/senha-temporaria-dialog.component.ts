@@ -78,7 +78,7 @@ export class SenhaTemporariaDialogComponent implements OnDestroy {
     copiarInstrucoes(): void {
         const texto =
             `Seu acesso ao quemclica:\n` +
-            `Endereço: ${window.location.origin}\n` +
+            `Endereço: ${window.location.origin}/sign-in\n` +
             `Usuário: ${this.dados.email}\n` +
             `Senha temporária: ${this.dados.senha}\n` +
             `No primeiro acesso você precisará criar uma nova senha.`;

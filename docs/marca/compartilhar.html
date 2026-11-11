@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>quemclica: imagem de compartilhamento (1200x630)</title>
+<!-- Composição da imagem de compartilhamento. Capturar em 1200x630 para
+     AgendaFotografo.WebSPA/src/landing/compartilhar.png. Margem segura de 60 px. -->
+<style>
+  @font-face{font-family:'Baloo 2';font-style:normal;font-weight:800;src:url(../../AgendaFotografo.WebSPA/src/landing/fontes/baloo2-800-latin.woff2) format('woff2')}
+  @font-face{font-family:'Caveat';font-style:normal;font-weight:700;src:url(../../AgendaFotografo.WebSPA/src/landing/fontes/caveat-700-latin.woff2) format('woff2')}
+  @font-face{font-family:'Inter';font-style:normal;font-weight:400 700;src:url(../../AgendaFotografo.WebSPA/src/landing/fontes/inter-latin.woff2) format('woff2')}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:1200px;height:630px;overflow:hidden;margin:0}
+  body{position:relative;background:#FFF7ED;font-family:'Inter',system-ui,sans-serif}
+  .logo{position:absolute;left:60px;top:60px;width:260px;height:auto}
+  h1{position:absolute;left:60px;top:200px;width:640px;font-family:'Baloo 2',system-ui,sans-serif;font-weight:800;font-size:72px;line-height:1.05;letter-spacing:.01em;color:#431407}
+  .destaque{color:#EA580C;position:relative;white-space:nowrap}
+  .rabisco{position:absolute;left:0;right:0;bottom:-.02em;width:100%;height:.22em}
+  .mascote{position:absolute;left:732px;top:60px;width:408px;height:510px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="cabeca" viewBox="0 0 512 512">
+      <rect x="0" y="85" width="450" height="420" rx="80" fill="#F97316"/>
+      <rect x="84" y="40" width="42" height="100" rx="21" fill="#7C2D12"/>
+      <rect x="330" y="40" width="42" height="100" rx="21" fill="#7C2D12"/>
+      <rect x="0" y="180" width="450" height="20" fill="#7C2D12"/>
+      <circle cx="225" cy="345" r="118" fill="#fff"/>
+      <circle cx="228" cy="348" r="64" fill="#7C2D12"/>
+      <circle cx="256" cy="322" r="18" fill="#fff"/>
+      <g stroke="#F97316" stroke-width="20" stroke-linecap="round" fill="none">
+        <path d="M440 16 L442 60"/><path d="M488 38 L452 64"/><path d="M456 80 L504 88"/>
+      </g>
+    </symbol>
+    <g id="tenis">
+      <path d="M-16 10 V-6 Q-16 -18 -2 -18 H8 Q42 -12 50 6 V10 Z" fill="#fff" stroke="#7C2D12" stroke-width="8" stroke-linejoin="round"/>
+      <path d="M-18 14 H52" stroke="#F97316" stroke-width="8" stroke-linecap="round"/>
+    </g>
+    <g id="pernas">
+      <g fill="none" stroke="#7C2D12" stroke-width="20" stroke-linecap="round"><path d="M214 470 L210 610"/><path d="M322 470 L328 610"/></g>
+      <use href="#tenis" transform="translate(210 614) scale(-1 1)"/>
+      <use href="#tenis" transform="translate(328 614)"/>
+    </g>
+  </defs>
+</svg>
+
+<img class="logo" src="logo.png" alt="quemclica">
+<h1>Saiba quem clica onde, em <span class="destaque">cada prova<svg class="rabisco" viewBox="0 0 300 20" preserveAspectRatio="none"><path d="M4 14 C60 4 120 18 180 9 S270 6 296 12" fill="none" stroke="#F97316" stroke-width="5" stroke-linecap="round"/></svg></span>.</h1>
+
+<svg class="mascote" viewBox="0 0 560 700" aria-hidden="true">
+  <g fill="none" stroke="#F97316" stroke-width="7" stroke-linecap="round"><path d="M28 232 q-12 16 0 32"/><path d="M12 220 q-20 28 0 56"/></g>
+  <use href="#pernas"/>
+  <g fill="none" stroke="#7C2D12" stroke-width="20" stroke-linecap="round"><path d="M96 340 Q44 320 52 252"/><path d="M440 352 Q494 384 488 444"/></g>
+  <use href="#cabeca" x="90" y="80" width="400" height="400"/>
+  <circle cx="52" cy="244" r="16" fill="#fff" stroke="#7C2D12" stroke-width="7"/>
+  <circle cx="488" cy="452" r="16" fill="#fff" stroke="#7C2D12" stroke-width="7"/>
+</svg>
+</body>
+</html>
