@@ -88,6 +88,7 @@ Passo a passo e pontos de atenção em `docs/deploy.md`. Endpoint ou arquivo nov
 11. Chat com IA (Assistente) para lançar eventos: **pronto** (`docs/planos/11 - Chat com IA para lançar eventos.md`; `ChatController` com `GET Status` e `POST Enviar`, provedor configurável em `IA:*` (OpenAI ou Azure OpenAI), painel lateral "Assistente" no layout do assinante, sem rota nem item de menu)
 12. Assistente consulta a agenda e lê flyers: **pronto** (`docs/planos/12 - Assistente consulta a agenda.md`; ferramenta `BuscarEventos`, lista de eventos citados na resposta, aviso de duplicidade, imagem do flyer no `Chat/Enviar`; entregue junto com o 11)
 13. Landing page: **pronto** (`docs/planos/13 - Landing page.md`; página estática em `AgendaFotografo.WebSPA/src/landing/`, servida pelo Nginx em `/`)
+17. Dashboard do Início: **pronto, aguardando revisão/testes** (`docs/planos/17 - Dashboard do Início.md`; `DashboardController` com `GET Resumo`, Início do assinante com cartões, 2 gráficos ApexCharts e listas, sem pendências nem avisos; o `apexcharts.min.js` global saiu do `angular.json`)
 14. E-mail diário de lembretes (era o "Painel + e-mail", módulo 8, depois o 11, o 12 e o 13)
 15. Telas públicas/autenticação no estilo da landing (`docs/planos/15*`; `auth-shell.scss`)
 16. Cores da landing no sistema: **construído, aguarda revisão e testes** (`docs/planos/16 - Cores da landing no sistema.md`; paleta orange/stone/marrom, fundo creme, menu e gaveta; só front-end)

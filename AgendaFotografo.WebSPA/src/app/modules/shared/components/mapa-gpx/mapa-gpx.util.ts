@@ -29,6 +29,28 @@ export function distanciaHaversineKm(a: PontoGpx, b: PontoGpx): number {
     return 6371.0088 * 2 * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
+// Menor distância (km) de um ponto até a linha do trajeto: projeção em cada trecho num plano local (equirretangular), que é preciso para
+// as distâncias curtas de um percurso; o resultado final usa haversine até o ponto projetado.
+export function distanciaAoTrajetoKm(p: PontoGpx, segmentos: PontoGpx[][]): number {
+    const rad = Math.PI / 180;
+    const kx = Math.cos(p[0] * rad);
+    let melhor = Infinity;
+    for (const s of segmentos) {
+        for (let i = 1; i < s.length; i++) {
+            const a = s[i - 1];
+            const b = s[i];
+            const ax = (a[1] - p[1]) * kx, ay = a[0] - p[0];
+            const bx = (b[1] - p[1]) * kx, by = b[0] - p[0];
+            const dx = bx - ax, dy = by - ay;
+            const len2 = dx * dx + dy * dy;
+            const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, -(ax * dx + ay * dy) / len2));
+            const proj: PontoGpx = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+            melhor = Math.min(melhor, distanciaHaversineKm(p, proj));
+        }
+    }
+    return melhor;
+}
+
 // Devolve null quando o texto não é um GPX com ao menos 2 coordenadas válidas.
 export function lerGpx(texto: string): TrajetoGpx | null {
     const doc = new DOMParser().parseFromString(texto, 'application/xml');

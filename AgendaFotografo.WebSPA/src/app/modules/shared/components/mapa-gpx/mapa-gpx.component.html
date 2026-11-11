@@ -13,10 +13,38 @@
     </div>
 
     <div [class.hidden]="estado !== 'pronto'" class="flex flex-col gap-2 min-w-0">
-        <div #mapa class="w-full h-[300px] rounded-lg border overflow-hidden relative z-0" role="img" aria-label="Mapa do trajeto"></div>
+        <div #quadro class="mapa-gpx-quadro relative" [class.mapa-gpx-tela-cheia]="telaCheia">
+            <div #mapa class="mapa-gpx-mapa w-full h-[300px] rounded-lg border overflow-hidden relative z-0" role="img" aria-label="Mapa do trajeto"></div>
+
+            <!-- Botões sobre o mapa (fora do contêiner do Leaflet para não disputar o toque/arrasto) -->
+            <div class="absolute top-2.5 right-2.5 z-10 flex flex-col gap-2">
+                <button type="button" class="mapa-gpx-botao" (click)="alternarTelaCheia()"
+                    [attr.aria-label]="telaCheia ? 'Sair da tela cheia' : 'Ver o mapa em tela cheia'"
+                    [matTooltip]="telaCheia ? 'Sair da tela cheia' : 'Tela cheia'" matTooltipPosition="left">
+                    <mat-icon class="icon-size-5" [svgIcon]="telaCheia ? 'heroicons_outline:arrows-pointing-in' : 'heroicons_outline:arrows-pointing-out'"></mat-icon>
+                </button>
+                <button *ngIf="localizacao && geolocalizacaoDisponivel" type="button" class="mapa-gpx-botao"
+                    [class.mapa-gpx-botao-ativo]="estadoLocalizacao !== 'desligada'" (click)="alternarLocalizacao()"
+                    [attr.aria-pressed]="estadoLocalizacao !== 'desligada'"
+                    [attr.aria-label]="estadoLocalizacao === 'desligada' ? 'Mostrar minha localização no mapa' : 'Parar de mostrar minha localização'"
+                    [matTooltip]="estadoLocalizacao === 'desligada' ? 'Minha localização' : 'Parar de mostrar minha localização'" matTooltipPosition="left">
+                    <mat-progress-spinner *ngIf="estadoLocalizacao === 'buscando'" diameter="18" mode="indeterminate"></mat-progress-spinner>
+                    <mat-icon *ngIf="estadoLocalizacao !== 'buscando'" class="icon-size-5" svgIcon="heroicons_outline:map-pin"></mat-icon>
+                </button>
+            </div>
+
+            <!-- Situação da localização sobre o mapa (vale também na tela cheia) -->
+            <div *ngIf="textoLocalizacao || erroLocalizacao || estadoLocalizacao === 'buscando'" aria-live="polite"
+                class="absolute bottom-6 left-2.5 right-14 z-10 flex">
+                <span class="mapa-gpx-aviso" [class.text-red-700]="!!erroLocalizacao">
+                    {{ erroLocalizacao || textoLocalizacao || 'Buscando sua localização...' }}
+                </span>
+            </div>
+        </div>
         <div class="text-sm text-secondary">Distância do trajeto: <strong>{{ distanciaTexto }}</strong>
             <span class="ml-2"><span class="inline-block w-2.5 h-2.5 rounded-full align-middle" style="background:#16a34a"></span> largada</span>
             <span class="ml-2"><span class="inline-block w-2.5 h-2.5 rounded-full align-middle" style="background:#dc2626"></span> chegada</span>
+            <span *ngIf="estadoLocalizacao === 'ligada'" class="ml-2"><span class="inline-block w-2.5 h-2.5 rounded-full align-middle" style="background:#2563eb"></span> você</span>
         </div>
     </div>
 </div>

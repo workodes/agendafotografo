@@ -6,3 +6,62 @@ app-mapa-gpx .leaflet-container .leaflet-tile {
     max-width: none !important;
     max-height: none !important;
 }
+
+// Botões sobre o mapa, no mesmo visual dos controles do Leaflet (alvo de toque de 40 px).
+app-mapa-gpx .mapa-gpx-botao {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #44403c;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 4px rgba(124, 45, 18, 0.14);
+    cursor: pointer;
+
+    &:hover {
+        background: #fff7ed;
+    }
+
+    &:focus-visible {
+        outline: 2px solid #c2410c;
+        outline-offset: 2px;
+    }
+
+    &.mapa-gpx-botao-ativo {
+        color: #2563eb;
+        border-color: #2563eb;
+    }
+}
+
+app-mapa-gpx .mapa-gpx-aviso {
+    max-width: 100%;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    font-size: 13px;
+    line-height: 1.35;
+    color: #44403c;
+}
+
+// Tela cheia: o contêiner cobre a tela (iPhone não tem a API de tela cheia; nos demais ela também é pedida).
+app-mapa-gpx .mapa-gpx-tela-cheia {
+    position: fixed;
+    inset: 0;
+    z-index: 999; // abaixo do cdk-overlay (1000), acima do cabeçalho do layout
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    background: #ffffff;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+
+    .mapa-gpx-mapa {
+        height: 100% !important;
+        border: 0;
+        border-radius: 0;
+    }
+}

@@ -99,6 +99,9 @@ export const environment = {
     Aviso: {
         listar: `${baseUrl}/Aviso/Listar`,
     },
+    Dashboard: {
+        resumo: `${baseUrl}/Dashboard/Resumo`,
+    },
     Local: {
         buscar: `${baseUrl}/Local/Buscar`,
     },

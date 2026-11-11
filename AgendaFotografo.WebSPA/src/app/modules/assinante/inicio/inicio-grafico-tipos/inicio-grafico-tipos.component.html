@@ -1,0 +1,31 @@
+<div class="flex flex-col h-full justify-center min-w-0">
+    <div *ngIf="vazio" class="flex flex-1 items-center justify-center px-4 py-8 text-center text-secondary">Nenhum evento neste mês.</div>
+
+    <div *ngIf="!vazio" class="min-w-0" role="img" [attr.aria-label]="descricao">
+        <div class="min-w-0" aria-hidden="true">
+            <apx-chart
+                [series]="series"
+                [chart]="chart"
+                [colors]="colors"
+                [plotOptions]="plotOptions"
+                [dataLabels]="dataLabels"
+                [xaxis]="xaxis"
+                [yaxis]="yaxis"
+                [grid]="grid"
+                [legend]="legend"
+                [tooltip]="tooltip"
+                [responsive]="responsive"></apx-chart>
+        </div>
+    </div>
+
+    <!-- Alternativa por teclado e leitor de tela: um link por tipo (visível só no foco) -->
+    <ul *ngIf="!vazio" class="flex flex-wrap gap-2 list-none m-0 p-0 focus-within:mt-2" aria-label="Eventos do mês por tipo">
+        <li *ngFor="let b of barras">
+            <a class="sr-only focus:not-sr-only inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-sm bg-card hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+               routerLink="/assinante/agenda" [queryParams]="queryTipo(b)">
+                <span class="break-words">{{ b.nome }}</span>
+                <span class="font-semibold tabular-nums">{{ b.quantidade }}</span>
+            </a>
+        </li>
+    </ul>
+</div>

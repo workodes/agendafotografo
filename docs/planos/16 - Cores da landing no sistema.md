@@ -2,7 +2,7 @@
 
 - Data: 11/11/2026
 - Commit de partida: c52d81a
-- Status: Revisado (rodada 1): precisa de ajustes
+- Status: Concluído com pendências (revisão aprovada após 1 rodada de ajuste em 11/11/2026; testes no navegador dispensados pelo colaborador)
 
 ## 1. Plano (engenheiro)
 
@@ -327,4 +327,31 @@ Nenhum.
 - Foco visível no menu do topo (desktop): não houve mudança, e o outline padrão do navegador não foi conferido. Confirmar com Tab no navegador.
 - Checkbox, radio e toggle em marrom: o accent está em `#7c2d12` no tema, mas não confirmei que nenhum componente usa `color="primary"` neles. Confirmar visualmente.
 
+### Conferência do ajuste (11/11/2026)
+
+Build: `npm run build` OK (sem erro nem aviso de budget). Conferido no CSS compilado (`dist/wwwroot/styles.*.css`) e nas regras do Fuse compiladas no `main.*.js`.
+
+1. Gaveta marrom vencendo o `.dark` do Fuse: RESOLVIDO (`src/styles/styles.scss:487-497`). No host, `fuse-vertical-navigation.gaveta-marrom` (0,1,1) sobrescreve as variáveis `--fuse-bg-default`/`-rgb` e `--fuse-bg-card`/`-rgb` do `.dark` (0,1,0) e aplica `background-color: #431407 !important`. Isso vence o `.dark { background-color: … !important }` por especificidade. O `.fuse-vertical-navigation-wrapper` também recebe `#431407 !important`. As regras saíram assim no CSS compilado.
+2. Regras da gaveta vencendo o Fuse e ativo `#F97316` com 4,5:1 ou mais: RESOLVIDO (`src/styles/styles.scss:499-532`).
+   - As regras de item, hover e ativo do Fuse (`default.scss:470-595`) saem **sem** `!important` no bundle (o `@apply` não herda o `important: true`). As cores, o hover e o fundo do ativo com `!important` em `styles.scss` vencem inclusive o `:is(.dark …)` de especificidade maior.
+   - Os seletores são descendentes (`.fuse-vertical-navigation-item-wrapper .fuse-vertical-navigation-item`), não presos a `fuse-vertical-navigation-basic-item >`. Por isso valem também para o item collapsable "Cadastros" e para os filhos dele (`core/navigation/menu.data.ts:58`). O menu não tem item `group` nem `aside`, então o `text-primary-400` do título de grupo do Fuse não aparece. Mesmo que apareça, a regra de título com `!important` venceria.
+   - Ativo: fundo efetivo `#431407` + laranja a 8% dá cerca de `#521C08`. Com o texto `#F97316`, o contraste calculado é de cerca de 4,9:1 (≥ 4,5:1). O título do ativo fica com opacidade 1 pela regra do Fuse. O `:hover` (branco a 10%) tem a mesma especificidade que o ativo, mas vem antes no arquivo, então não sobrepõe o ativo.
+   - Itens não ativos: `#FFEDD5` com a opacidade .8 do Fuse no título, bem acima de 4,5:1. O ícone tem opacidade .6 e passa de 3:1. Foco visível mantido (`:focus-visible`, `styles.scss:514-517`).
+3. Contorno dos campos fill com `#8A817C` e remoção da regra `--mdc-outlined-*`: RESOLVIDO (`src/styles/styles.scss:473-478`).
+   - A regra `.mat-mdc-form-field.mat-form-field-appearance-fill:not(.mat-focused):not(.mat-form-field-invalid) .mat-mdc-text-field-wrapper { border-color: #8a817c !important }` está no CSS compilado. Ela tem especificidade maior que a do `border-gray-300 !important` do `angular-material.scss`.
+   - Contraste: cerca de 3,8:1 sobre branco e cerca de 3,6:1 sobre `#FFF7ED`. Foco e erro continuam com as cores do Fuse.
+   - Não restou nenhum `--mdc-outlined-*` em `styles.scss`.
+   - `AgendaFotografo.WebSPA/CLAUDE.md:115` foi corrigido: descreve o appearance fill, a regra e o motivo.
+
+**Problemas novos da correção**
+- Nenhum.
+
+**Pendências para o colaborador decidir**
+- Nenhuma. Os itens Menores da rodada 1 (comentários sem acento, hover `primary-50` sutil no menu do topo, selos Cancelado/Baixa iguais) não disparam ajuste. Resta o teste no navegador pelo testador: gaveta a 390 px (fundo, itens, ativo e "Cadastros" expandido), contorno dos campos e foco no menu do topo.
+
+**Observações fora do escopo**
+- Nenhuma. O `AgendaFotografo.WebApi/appsettings.json` alterado é local do colaborador e foi ignorado.
+
 ## 4. Testes (testador)
+
+Não executados: o colaborador dispensou os testes no navegador em 11/11/2026. Ficam sem verificação visual: gaveta do celular a 390 px (fundo #431407, itens, ativo e "Cadastros" expandido), contorno dos campos, foco no menu do topo e checkbox/radio/toggle em marrom.
