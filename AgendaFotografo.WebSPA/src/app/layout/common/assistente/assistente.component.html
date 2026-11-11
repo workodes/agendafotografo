@@ -5,11 +5,11 @@
     <span class="text-sm font-medium tracking-wide text-secondary [writing-mode:vertical-rl]">Assistente</span>
 </button>
 
-<!-- Botão flutuante (abaixo de lg), escondido enquanto o painel está aberto -->
+<!-- Botão flutuante (abaixo de lg): o mascote inteiro; escondido enquanto o painel está aberto -->
 <button *ngIf="!aberto" type="button" (click)="abrir()" aria-label="Abrir o assistente" title="Assistente"
-    class="lg:hidden fixed bottom-4 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full border-2 border-primary bg-card shadow-lg print:hidden">
-    <!-- O mascote é laranja: o botão fica claro com borda na cor principal para ele aparecer. -->
-    <app-mascote tamanho="pequeno" class="assistente-mascote-botao" />
+    class="assistente-botao-mascote lg:hidden fixed bottom-3 right-3 z-40 rounded-2xl p-1 print:hidden">
+    <!-- O próprio mascote, de corpo inteiro, é o botão (sem a bolinha). -->
+    <app-mascote tamanho="medio" class="assistente-mascote-botao" />
 </button>
 
 <!-- Painel (tela cheia abaixo de sm, cerca de 30 rem a partir de sm) -->

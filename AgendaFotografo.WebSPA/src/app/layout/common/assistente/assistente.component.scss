@@ -18,7 +18,22 @@ fuse-drawer.assistente-drawer {
 
 /* Mascote como rosto do Assistente: o SVG vem com largura fixa; aqui cada lugar define a sua. */
 .assistente-mascote-faixa svg { width: 32px; height: auto; }
-.assistente-mascote-botao svg { width: 32px; height: auto; }
 .assistente-mascote-cabecalho svg { width: 28px; height: auto; }
 .assistente-mascote-digitando svg { width: 28px; height: auto; }
 .assistente-mascote-vazio svg { width: 96px; height: auto; }
+
+/* Botão flutuante = o mascote de corpo inteiro (cerca de 64 x 80 px), com sombra no contorno dele e um pulinho ao tocar. */
+.assistente-botao-mascote {
+    background: transparent;
+    filter: drop-shadow(0 4px 6px rgb(0 0 0 / 0.25));
+    transition: transform 150ms ease;
+
+    &:hover { transform: translateY(-2px); }
+    &:active { transform: scale(0.94); }
+    &:focus-visible { outline: 2px solid var(--fuse-primary); outline-offset: 2px; }
+}
+.assistente-mascote-botao svg { width: 64px; height: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+    .assistente-botao-mascote { transition: none; &:hover, &:active { transform: none; } }
+}
