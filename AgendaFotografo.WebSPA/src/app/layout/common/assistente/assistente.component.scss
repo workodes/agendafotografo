@@ -15,3 +15,10 @@ fuse-drawer.assistente-drawer {
         --fuse-drawer-width: 30rem;
     }
 }
+
+/* Mascote como rosto do Assistente: o SVG vem com largura fixa; aqui cada lugar define a sua. */
+.assistente-mascote-faixa svg { width: 32px; height: auto; }
+.assistente-mascote-botao svg { width: 32px; height: auto; }
+.assistente-mascote-cabecalho svg { width: 28px; height: auto; }
+.assistente-mascote-digitando svg { width: 28px; height: auto; }
+.assistente-mascote-vazio svg { width: 96px; height: auto; }

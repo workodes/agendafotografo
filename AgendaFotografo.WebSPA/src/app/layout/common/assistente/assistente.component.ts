@@ -11,6 +11,7 @@ import { EventoResumo } from 'app/models/DTOs/responses/EventoResumo';
 import { ChatStatus } from 'app/models/DTOs/responses/ChatStatus';
 import { ChatMensagem } from 'app/models/entities/ChatMensagem';
 import { PapelChat } from 'app/models/enums/PapelChat';
+import { MascoteComponent } from 'app/shared/auth-shell/mascote.component';
 import { FecharComEscDirective } from 'app/modules/shared/directives/fechar-com-esc.directive';
 import { ChatService, LIMITE_TEXTO } from 'app/services/chat.service';
 import { STATUS_EVENTO_COR, STATUS_EVENTO_ROTULO } from 'app/models/enums/StatusEvento';
@@ -24,7 +25,8 @@ import { AssistenteRascunhoComponent } from './assistente-rascunho/assistente-ra
 // Assistente com IA do Assinante: painel lateral no estilo do "Team Chat" (quick chat) do Fuse, sem contatos, sobre o FuseDrawer.
 // A partir de `lg` há uma faixa fixa à direita (o layout reserva o espaço com lg:pr-16); abaixo disso, um botão flutuante abre o
 // painel (tela cheia abaixo de `sm`). Sem rota, sem item de menu e sem atalho no cabeçalho. O texto do chat é sempre interpolado
-// (nunca innerHTML). A IA só propõe: quem grava é o card do rascunho.
+// (nunca innerHTML). A IA só propõe: quem grava é o card do rascunho. O mascote do quemclica é o rosto do Assistente
+// (faixa, botão flutuante, cabeçalho, apresentação e "digitando..."); nunca espelhado.
 @Component({
     selector: 'assistente',
     templateUrl: './assistente.component.html',
@@ -33,7 +35,7 @@ import { AssistenteRascunhoComponent } from './assistente-rascunho/assistente-ra
     standalone: true,
     imports: [
         NgClass, NgFor, NgIf, FormsModule, TextFieldModule, MatButtonModule, MatIconModule,
-        FuseDrawerComponent, FecharComEscDirective, AssistenteRascunhoComponent,
+        FuseDrawerComponent, FecharComEscDirective, AssistenteRascunhoComponent, MascoteComponent,
     ],
 })
 export class AssistenteComponent implements OnInit, OnDestroy {
