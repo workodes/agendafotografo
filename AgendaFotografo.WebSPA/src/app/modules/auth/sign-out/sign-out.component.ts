@@ -2,6 +2,8 @@ import { I18nPluralPipe, NgIf } from '@angular/common';
 import { Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from 'app/core/auth/auth.service';
+import { MascoteComponent } from 'app/shared/auth-shell/mascote.component';
+import { QcAuthShellComponent } from 'app/shared/auth-shell/qc-auth-shell.component';
 import { finalize, Subject, takeUntil, takeWhile, tap, timer } from 'rxjs';
 
 @Component({
@@ -9,7 +11,7 @@ import { finalize, Subject, takeUntil, takeWhile, tap, timer } from 'rxjs';
     templateUrl  : './sign-out.component.html',
     encapsulation: ViewEncapsulation.None,
     standalone   : true,
-    imports      : [NgIf, RouterLink, I18nPluralPipe],
+    imports      : [NgIf, RouterLink, I18nPluralPipe, QcAuthShellComponent, MascoteComponent],
 })
 export class AuthSignOutComponent implements OnInit, OnDestroy
 {

@@ -1,0 +1,82 @@
+<!-- Um único ng-content: o Angular só projeta no último ng-content do template, mesmo dentro de @if. -->
+<ng-template #conteudo><ng-content></ng-content></ng-template>
+
+@if (layout === 'dividido') {
+    <div class="qc-shell relative flex min-h-screen w-full overflow-hidden">
+        <!-- Manchas decorativas -->
+        <span class="qc-mancha qc-mancha-1" aria-hidden="true"></span>
+        <span class="qc-mancha qc-mancha-2" aria-hidden="true"></span>
+
+        <div class="relative mx-auto grid min-h-screen w-full max-w-[1200px] grid-cols-1 content-center items-center justify-items-center gap-6 px-4 py-8 sm:px-6 md:grid-cols-2 md:justify-items-stretch md:gap-10 md:px-10">
+            <!-- Arte do celular (abaixo de md): logo, nota, título e o mascote em pé na borda do cartão, como o hero da landing no celular.
+                 Tem o próprio h1; o h1 da arte do desktop fica display:none aqui (um h1 por tela). -->
+            <div class="qc-arte-celular md:hidden w-full max-w-[440px]">
+                <img class="w-[128px]" src="assets/images/logo/logo.png" alt="quemclica" />
+                <div class="mt-6 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-x-2">
+                    <!-- No celular o título fica só para leitores de tela (decisão do colaborador); aparecem a nota e o mascote. -->
+                    <h1 class="sr-only">{{ tituloArte }} {{ destaqueArte }}.</h1>
+                    <div class="pb-9">
+                        @if (notaArte) {
+                            <span class="qc-nota-mao qc-nota-celular" aria-hidden="true">{{ notaArte }}</span>
+                        }
+                    </div>
+                    <app-mascote tamanho="medio" class="qc-mascote-celular" />
+                </div>
+            </div>
+
+            <!-- Arte do desktop: a partir de md, coluna à esquerda. -->
+            <div class="hidden md:flex min-w-0 md:flex-col md:items-start">
+                <img class="w-[200px]" src="assets/images/logo/logo.png" alt="quemclica" />
+
+                <h1 class="mt-8 text-5xl lg:text-6xl">
+                    {{ tituloArte }}
+                    <span class="qc-destaque">{{ destaqueArte }}<svg class="qc-rabisco" viewBox="0 0 300 20" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M4 14 C60 4 120 18 180 9 S270 6 296 12" fill="none" stroke="#F97316" stroke-width="5" stroke-linecap="round" /></svg></span>.
+                </h1>
+
+                <div class="relative mt-8 flex w-full flex-col items-center pb-12">
+                    @if (notaArte) {
+                        <span class="qc-nota-mao md:absolute md:left-0 md:top-0" aria-hidden="true">{{ notaArte }}</span>
+                    }
+                    <app-mascote tamanho="grande" />
+                    @if (widgetArte) {
+                        <span class="qc-widget mt-3 hidden md:inline-flex md:absolute md:bottom-0 md:left-1/2" aria-hidden="true">
+                            <span class="qc-bola">✓</span>{{ widgetArte }}
+                            @if (widgetDetalheArte) { <small>· {{ widgetDetalheArte }}</small> }
+                        </span>
+                    }
+                </div>
+            </div>
+
+            <!-- Cartão do formulário -->
+            <main class="qc-cartao w-full max-w-[440px] justify-self-center px-6 py-8 sm:px-10 sm:py-10 md:justify-self-end">
+                @if (titulo) {
+                    <h2 class="text-center text-3xl sm:text-4xl">{{ titulo }}</h2>
+                }
+                @if (subtitulo) {
+                    <p class="qc-suave mt-2 text-center">{{ subtitulo }}</p>
+                }
+                <div class="mt-6 text-left">
+                    <ng-container [ngTemplateOutlet]="conteudo"></ng-container>
+                </div>
+            </main>
+        </div>
+    </div>
+} @else {
+    <div class="qc-shell flex min-h-screen w-full items-center justify-center px-4 py-8 sm:px-6">
+        <main class="qc-cartao w-full max-w-[440px] px-6 py-8 text-center sm:px-10 sm:py-10">
+            <img class="mx-auto mb-4 w-[160px]" src="assets/images/logo/logo.png" alt="quemclica" />
+            @if (mostrarMascote) {
+                <app-mascote tamanho="pequeno" class="mb-2" />
+            }
+            @if (titulo) {
+                <h1 class="text-3xl sm:text-4xl">{{ titulo }}</h1>
+            }
+            @if (subtitulo) {
+                <p class="qc-suave mt-2">{{ subtitulo }}</p>
+            }
+            <div class="mt-6 text-left">
+                <ng-container [ngTemplateOutlet]="conteudo"></ng-container>
+            </div>
+        </main>
+    </div>
+}

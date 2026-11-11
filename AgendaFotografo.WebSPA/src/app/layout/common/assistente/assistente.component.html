@@ -33,7 +33,7 @@
         <!-- Conversa -->
         <div #lista class="flex min-h-0 flex-auto flex-col gap-3 overflow-y-auto px-4 py-4">
 
-            <!-- Sem conversa: apresentação com exemplos -->
+            <!-- Sem conversa: apresentação -->
             <div *ngIf="!mensagens.length" class="flex flex-col gap-4 py-2">
                 <div class="flex h-14 w-14 items-center justify-center rounded-full bg-primary-100">
                     <mat-icon class="text-primary-700" svgIcon="heroicons_outline:sparkles"></mat-icon>
@@ -41,11 +41,6 @@
                 <div class="flex flex-col gap-1">
                     <div class="text-lg font-semibold">Olá, eu sou o Assistente.</div>
                     <div class="text-secondary">Eu lanço eventos (pela mensagem ou pela imagem do flyer) e respondo perguntas sobre a sua agenda.</div>
-                </div>
-                <div class="flex flex-col gap-2">
-                    <div class="text-xs font-semibold uppercase tracking-wider text-secondary">Por exemplo</div>
-                    <button *ngFor="let ex of exemplos" type="button" (click)="usarExemplo(ex)"
-                        class="rounded-xl border px-3 py-2 text-left text-sm hover:bg-hover">{{ ex }}</button>
                 </div>
             </div>
 

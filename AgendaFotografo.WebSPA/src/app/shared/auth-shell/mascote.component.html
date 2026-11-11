@@ -1,0 +1,44 @@
+<svg
+    [attr.width]="largura"
+    [attr.viewBox]="tamanho === 'pequeno' ? '0 0 512 512' : '0 0 560 700'"
+    focusable="false"
+    aria-hidden="true"
+>
+    <defs>
+        <symbol [attr.id]="id + '-cabeca'" viewBox="0 0 512 512">
+            <rect x="0" y="85" width="450" height="420" rx="80" fill="#F97316" />
+            <rect x="84" y="40" width="42" height="100" rx="21" fill="#7C2D12" />
+            <rect x="330" y="40" width="42" height="100" rx="21" fill="#7C2D12" />
+            <rect x="0" y="180" width="450" height="20" fill="#7C2D12" />
+            <circle cx="225" cy="345" r="118" fill="#fff" />
+            <circle cx="228" cy="348" r="64" fill="#7C2D12" />
+            <circle cx="256" cy="322" r="18" fill="#fff" />
+            <g stroke="#F97316" stroke-width="20" stroke-linecap="round" fill="none">
+                <path d="M440 16 L442 60" />
+                <path d="M488 38 L452 64" />
+                <path d="M456 80 L504 88" />
+            </g>
+        </symbol>
+        <g [attr.id]="id + '-tenis'">
+            <path d="M-16 10 V-6 Q-16 -18 -2 -18 H8 Q42 -12 50 6 V10 Z" fill="#fff" stroke="#7C2D12" stroke-width="8" stroke-linejoin="round" />
+            <path d="M-18 14 H52" stroke="#F97316" stroke-width="8" stroke-linecap="round" />
+        </g>
+    </defs>
+    @if (tamanho === 'pequeno') {
+        <use [attr.href]="'#' + id + '-cabeca'" x="0" y="0" width="512" height="512" />
+    } @else {
+        <g fill="none" stroke="#7C2D12" stroke-width="20" stroke-linecap="round">
+            <path d="M214 470 L210 610" />
+            <path d="M322 470 L328 610" />
+        </g>
+        <use [attr.href]="'#' + id + '-tenis'" transform="translate(210 614) scale(-1 1)" />
+        <use [attr.href]="'#' + id + '-tenis'" transform="translate(328 614)" />
+        <g fill="none" stroke="#7C2D12" stroke-width="20" stroke-linecap="round">
+            <path d="M96 340 Q44 320 52 252" />
+            <path d="M440 352 Q494 384 488 444" />
+        </g>
+        <use [attr.href]="'#' + id + '-cabeca'" x="90" y="80" width="400" height="400" />
+        <circle cx="52" cy="244" r="16" fill="#fff" stroke="#7C2D12" stroke-width="7" />
+        <circle cx="488" cy="452" r="16" fill="#fff" stroke="#7C2D12" stroke-width="7" />
+    }
+</svg>

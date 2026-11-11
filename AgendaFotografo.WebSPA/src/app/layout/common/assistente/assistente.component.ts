@@ -45,11 +45,6 @@ export class AssistenteComponent implements OnInit, OnDestroy {
     readonly statusRotulo = STATUS_EVENTO_ROTULO;
     readonly statusCor = STATUS_EVENTO_COR;
     readonly linhaResumo = linhaEventoResumo;
-    readonly exemplos = [
-        'Corrida de rua dia 15 em Joinville às 7h, escala o João e a Maria',
-        'O que tenho neste sábado?',
-        'Quem está livre dia 20?',
-    ];
 
     aberto = false;
     texto = '';
@@ -133,12 +128,6 @@ export class AssistenteComponent implements OnInit, OnDestroy {
         this.ampliadas.clear();
         this._chat.Limpar();
         this.texto = '';
-        this.aviso = '';
-        this._campo?.nativeElement.focus();
-    }
-
-    usarExemplo(exemplo: string): void {
-        this.texto = exemplo;
         this.aviso = '';
         this._campo?.nativeElement.focus();
     }

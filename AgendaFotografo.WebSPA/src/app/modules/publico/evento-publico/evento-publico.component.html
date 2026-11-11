@@ -1,4 +1,4 @@
-<div class="min-h-screen w-full bg-gray-100 flex flex-col items-center px-4 py-6 overflow-x-hidden">
+<div class="qc-shell min-h-screen w-full flex flex-col items-center px-4 py-6 overflow-x-hidden">
     <div class="w-full max-w-2xl flex flex-col gap-4 min-w-0">
 
         <!-- Carregando -->
@@ -20,7 +20,7 @@
             <img src="assets/images/logo/logo.png" class="w-32" alt="quemclica">
             <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
             <p class="text-secondary m-0">{{ mensagemErroPagina }}</p>
-            <button mat-flat-button color="primary" type="button" (click)="tentarDeNovo()">Tentar de novo</button>
+            <button class="qc-btn qc-btn-primario" type="button" (click)="tentarDeNovo()">Tentar de novo</button>
         </div>
 
         <!-- Código -->
@@ -33,12 +33,12 @@
 
             <input #campoCodigo name="codigo" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="4" pattern="[0-9]*"
                 aria-label="Código do evento" placeholder="0000" autocapitalize="off" autocorrect="off" spellcheck="false"
-                class="w-48 rounded-lg border-2 bg-white px-3 py-3 text-center text-4xl font-bold tracking-[0.4em] disabled:opacity-50"
+                class="qc-campo w-48 min-h-[56px] text-center text-4xl font-bold tracking-[0.4em] disabled:opacity-50" [attr.aria-invalid]="!!mensagemCodigo"
                 [disabled]="bloqueado || verificando" [value]="codigo" (input)="aoDigitar(campoCodigo)">
 
-            <div *ngIf="mensagemCodigo" role="alert" class="text-sm font-medium text-red-700">{{ mensagemCodigo }}</div>
+            <div *ngIf="mensagemCodigo" role="alert" class="qc-erro"><mat-icon class="icon-size-5 shrink-0" svgIcon="heroicons_solid:exclamation-circle"></mat-icon><span>{{ mensagemCodigo }}</span></div>
 
-            <button mat-flat-button color="primary" type="submit" class="w-48" [disabled]="bloqueado || verificando || codigo.length !== 4">
+            <button type="submit" class="qc-btn qc-btn-primario w-48" [disabled]="bloqueado || verificando || codigo.length !== 4">
                 {{ verificando ? 'Verificando...' : 'Entrar' }}
             </button>
         </form>
@@ -51,11 +51,11 @@
             </div>
 
             <!-- 1. Cabeçalho (faixa na cor principal, como os cabeçalhos do Fuse) -->
-            <header class="rounded-2xl bg-card shadow overflow-hidden">
+            <header class="qc-cartao overflow-hidden">
                 <div *ngIf="evento.Cancelado" role="alert" class="bg-red-600 text-white text-center font-bold py-2 px-3">Evento cancelado</div>
-                <div class="bg-gradient-to-br from-primary-500 to-primary-700 text-white px-5 pt-5 pb-6 flex flex-col gap-3">
-                    <div class="text-xs font-semibold uppercase tracking-widest text-white/80">Escala do evento</div>
-                    <h1 class="text-3xl font-extrabold leading-tight tracking-tight m-0 break-words" [class.line-through]="evento.Cancelado">{{ evento.EVE_NOME }}</h1>
+                <div class="bg-gradient-to-br from-[#7c2d12] to-[#431407] border-b-4 border-[#f97316] text-white px-5 pt-5 pb-6 flex flex-col gap-3">
+                    <div class="text-xs font-semibold uppercase tracking-widest text-[#fed7aa]">Escala do evento</div>
+                    <h1 class="text-3xl leading-tight m-0 break-words text-white" style="color:#fff" [class.line-through]="evento.Cancelado">{{ evento.EVE_NOME }}</h1>
                     <div class="flex flex-wrap gap-2">
                         <span class="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-sm font-medium">
                             <mat-icon class="icon-size-4 text-white" svgIcon="heroicons_outline:calendar"></mat-icon>{{ tituloData }}
@@ -100,7 +100,7 @@
             </header>
 
             <!-- 2. Onde fica: mapa do Google incorporado (Local, Largada, Chegada) -->
-            <section *ngIf="pontoAtual" class="rounded-2xl bg-card shadow overflow-hidden">
+            <section *ngIf="pontoAtual" class="qc-cartao overflow-hidden">
                 <div class="flex flex-wrap items-center justify-between gap-3 px-5 pt-5 pb-3">
                     <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:map-pin', titulo: 'Onde fica', cor: 'bg-primary-100 text-primary-700' }"></ng-container>
                     <mat-button-toggle-group *ngIf="pontos.length > 1" [value]="pontoAtual.id" (change)="selecionarPonto($event.value)"
@@ -115,14 +115,14 @@
                         <div class="text-xs font-semibold uppercase tracking-wide text-secondary">{{ pontoAtual.rotulo }}</div>
                         <div class="font-medium break-words">{{ pontoAtual.texto || evento.EVE_CIDADE }}</div>
                     </div>
-                    <a *ngIf="pontoAtual.abrir" mat-flat-button color="primary" [href]="pontoAtual.abrir" target="_blank" rel="noopener noreferrer">
+                    <a *ngIf="pontoAtual.abrir" class="qc-btn qc-btn-primario" [href]="pontoAtual.abrir" target="_blank" rel="noopener noreferrer">
                         <mat-icon svgIcon="heroicons_outline:arrow-top-right-on-square"></mat-icon><span class="ml-2">Abrir no Google Maps</span>
                     </a>
                 </div>
             </section>
 
             <!-- 3. Rota: trajeto do GPX já desenhado, My Maps incorporado e imagem -->
-            <section *ngIf="temRota" id="sec-rota" class="rounded-2xl bg-card shadow p-5 flex flex-col gap-4 scroll-mt-4">
+            <section *ngIf="temRota" id="sec-rota" class="qc-cartao p-5 flex flex-col gap-4 scroll-mt-4">
                 <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:map', titulo: 'Rota', cor: 'bg-blue-100 text-blue-700' }"></ng-container>
                 <app-mapa-gpx *ngIf="evento.GpxNome" [carregar]="carregarGpx" [automatico]="true"></app-mapa-gpx>
                 <iframe *ngIf="rotaEmbed" [src]="rotaEmbed" class="block w-full h-[360px] rounded-xl border-0 bg-gray-100" loading="lazy"
@@ -132,13 +132,13 @@
                     <img *ngIf="rotaUrl" [src]="rotaUrl" alt="Imagem do percurso" class="w-full h-auto rounded-xl">
                 </ng-container>
                 <div class="flex flex-wrap gap-2">
-                    <a *ngIf="linkRotaMaps" mat-stroked-button [href]="linkRotaMaps" target="_blank" rel="noopener noreferrer">
+                    <a *ngIf="linkRotaMaps" class="qc-btn qc-btn-fantasma" [href]="linkRotaMaps" target="_blank" rel="noopener noreferrer">
                         <mat-icon svgIcon="heroicons_outline:arrow-top-right-on-square"></mat-icon><span class="ml-2">Abrir no Maps</span>
                     </a>
-                    <a *ngIf="linkStrava" mat-stroked-button [href]="linkStrava" target="_blank" rel="noopener noreferrer">
+                    <a *ngIf="linkStrava" class="qc-btn qc-btn-fantasma" [href]="linkStrava" target="_blank" rel="noopener noreferrer">
                         <mat-icon svgIcon="heroicons_outline:arrow-top-right-on-square"></mat-icon><span class="ml-2">Strava</span>
                     </a>
-                    <button *ngIf="evento.GpxNome" mat-button type="button" [disabled]="baixandoGpx" (click)="baixarGpx()">
+                    <button *ngIf="evento.GpxNome" class="qc-btn qc-btn-fantasma" type="button" [disabled]="baixandoGpx" (click)="baixarGpx()">
                         <mat-icon svgIcon="heroicons_outline:arrow-down-tray"></mat-icon><span class="ml-2">Baixar GPX</span>
                     </button>
                 </div>
@@ -146,19 +146,19 @@
             </section>
 
             <!-- 4. Informações da prova -->
-            <section *ngIf="evento.EVE_INFORMACOES" class="rounded-2xl bg-card shadow p-5 flex flex-col gap-3">
+            <section *ngIf="evento.EVE_INFORMACOES" class="qc-cartao p-5 flex flex-col gap-3">
                 <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:information-circle', titulo: 'Informações da prova', cor: 'bg-blue-100 text-blue-700' }"></ng-container>
                 <div class="whitespace-pre-line break-words leading-relaxed">{{ evento.EVE_INFORMACOES }}</div>
             </section>
 
             <!-- 5. Observações para a equipe -->
-            <section *ngIf="evento.EVE_OBSERVACOES_EQUIPE" class="rounded-2xl bg-card shadow p-5 flex flex-col gap-3 border-l-4 border-amber-400">
+            <section *ngIf="evento.EVE_OBSERVACOES_EQUIPE" class="qc-cartao p-5 flex flex-col gap-3 border-l-4 border-amber-400">
                 <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:chat-bubble-left-ellipsis', titulo: 'Observações para a equipe', cor: 'bg-amber-100 text-amber-700' }"></ng-container>
                 <div class="whitespace-pre-line break-words leading-relaxed">{{ evento.EVE_OBSERVACOES_EQUIPE }}</div>
             </section>
 
             <!-- 6. Equipe (só quando o coordenador liga) -->
-            <section *ngIf="evento.Equipe" id="sec-equipe" class="rounded-2xl bg-card shadow p-5 flex flex-col gap-3 scroll-mt-4">
+            <section *ngIf="evento.Equipe" id="sec-equipe" class="qc-cartao p-5 flex flex-col gap-3 scroll-mt-4">
                 <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:user-group', titulo: 'Equipe', cor: 'bg-green-100 text-green-700' }"></ng-container>
                 <div *ngIf="evento.Equipe.length === 0" class="text-secondary">Equipe ainda não definida.</div>
                 <ul *ngIf="evento.Equipe.length" class="list-none p-0 m-0 flex flex-col divide-y">
@@ -173,9 +173,9 @@
             </section>
 
             <!-- 7. Fotos -->
-            <section *ngIf="linkFotos" class="rounded-2xl bg-card shadow p-5 flex flex-wrap items-center justify-between gap-3">
+            <section *ngIf="linkFotos" class="qc-cartao p-5 flex flex-wrap items-center justify-between gap-3">
                 <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:photo', titulo: 'Fotos do evento', cor: 'bg-purple-100 text-purple-700' }"></ng-container>
-                <a mat-flat-button color="primary" [href]="linkFotos" target="_blank" rel="noopener noreferrer">
+                <a class="qc-btn qc-btn-primario" [href]="linkFotos" target="_blank" rel="noopener noreferrer">
                     <mat-icon svgIcon="heroicons_outline:photo"></mat-icon><span class="ml-2">Ver fotos</span>
                 </a>
             </section>
@@ -192,5 +192,10 @@
                 <h2 class="text-lg font-bold m-0">{{ titulo }}</h2>
             </div>
         </ng-template>
+    
+        <!-- Rodapé discreto (link completo para a landing; fora do roteador do SPA) -->
+        <p class="qc-suave pb-4 text-center text-xs">
+            <a href="/" class="qc-link">feito com quemclica</a>
+        </p>
     </div>
 </div>

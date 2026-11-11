@@ -5,6 +5,7 @@
 /* Definindo classes de estilo do Material Design */
 @import "primeng/resources/themes/lara-light-blue/theme.css";
 @import "primeng/resources/primeng.css";
+@import "./auth-shell.scss";
 
 .mat-snackbar-primary {
     background-color: #2196f3;
@@ -446,4 +447,16 @@ busca-global input[type='search']::-webkit-search-cancel-button {
 /* Seletor do tamanho da página com o canto arredondado dos demais campos. */
 .mat-mdc-paginator .mat-mdc-paginator-page-size-select .mat-mdc-text-field-wrapper {
     border-radius: 20px;
+}
+
+/* Celular/tablet (toque): o Safari do iPhone dá zoom ao focar campo com fonte abaixo de 16 px e não volta sozinho
+   (site e app instalado). Campos com 16 px no toque evitam o zoom sem travar o zoom de pinça (por isso não se usa
+   maximum-scale no viewport). O :root dá especificidade para vencer as classes text-* do Tailwind (important: true),
+   como o text-sm da caixa do Assistente. O mat-select não é campo nativo e não provoca o zoom. */
+@media (hover: none) and (pointer: coarse) {
+    :root input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+    :root textarea,
+    :root select {
+        font-size: 16px !important;
+    }
 }

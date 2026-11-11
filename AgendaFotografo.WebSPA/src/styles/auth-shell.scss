@@ -1,0 +1,202 @@
+/* Telas públicas (login, logout, erros, link público): visual da landing.
+   Tudo sob .qc-shell; nada global. Fontes copiadas da landing (consolidar depois). */
+@font-face { font-family: 'Baloo 2'; font-style: normal; font-weight: 800; font-display: swap; src: url('/assets/fonts/qc/baloo2-800-latin.woff2') format('woff2'); unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'Caveat'; font-style: normal; font-weight: 700; font-display: swap; src: url('/assets/fonts/qc/caveat-700-latin.woff2') format('woff2'); unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: 'QC Inter'; font-style: normal; font-weight: 400 700; font-display: swap; src: url('/assets/fonts/qc/inter-latin.woff2') format('woff2'); unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+
+.qc-shell {
+    --qc-laranja: #f97316;
+    --qc-laranja-acao: #ea580c;
+    --qc-botao: #c2410c;
+    --qc-botao-hover: #9a3412;
+    --qc-marrom: #7c2d12;
+    --qc-marrom-fundo: #431407;
+    --qc-creme: #fff7ed;
+    --qc-pessego: #ffedd5;
+    --qc-branco: #ffffff;
+    --qc-texto: #44403c;
+    --qc-texto-suave: #78716c;
+    --qc-borda: #f0e2d6;
+    --qc-erro: #b91c1c;
+    --qc-sombra: 0 1px 4px rgba(124, 45, 18, 0.14);
+    --qc-sombra-media: 0 10px 30px -10px rgba(67, 20, 7, 0.35);
+    --qc-fonte-display: 'Baloo 2', system-ui, sans-serif;
+    --qc-fonte-ui: 'QC Inter', 'Inter', system-ui, sans-serif;
+    --qc-fonte-mao: 'Caveat', cursive;
+
+    background: var(--qc-creme);
+    color: var(--qc-texto);
+    font-family: var(--qc-fonte-ui);
+    letter-spacing: -0.01em;
+    line-height: 1.55;
+
+    h1, h2, h3 {
+        font-family: var(--qc-fonte-display);
+        color: var(--qc-marrom-fundo);
+        letter-spacing: 0.01em;
+        line-height: 1.1;
+    }
+
+    .qc-mao { font-family: var(--qc-fonte-mao); color: var(--qc-marrom); }
+    .qc-suave { color: var(--qc-texto-suave); }
+
+    .qc-cartao {
+        background: var(--qc-branco);
+        border: 1px solid var(--qc-borda);
+        border-radius: 20px;
+        box-shadow: var(--qc-sombra-media);
+    }
+
+    /* Botões (classes próprias; servem para <button> e <a>) */
+    .qc-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 48px;
+        padding: 12px 22px;
+        border: 0;
+        border-radius: 10px;
+        font-family: var(--qc-fonte-ui);
+        font-size: 16px;
+        font-weight: 700;
+        line-height: 1.2;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background-color 0.15s;
+    }
+    .qc-btn-primario {
+        background: var(--qc-botao);
+        color: #fff;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+        &:hover:not(:disabled) { background: var(--qc-botao-hover); }
+    }
+    .qc-btn-fantasma {
+        background: #fff;
+        color: var(--qc-marrom-fundo);
+        border: 1px solid var(--qc-borda);
+        font-weight: 600;
+        &:hover:not(:disabled) { background: var(--qc-pessego); }
+    }
+    .qc-btn:disabled, .qc-btn[aria-disabled='true'] { opacity: 0.6; cursor: not-allowed; }
+    .qc-btn-bloco { width: 100%; }
+
+    /* Link de texto */
+    .qc-link {
+        color: var(--qc-botao);
+        font-weight: 600;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        &:hover { color: var(--qc-botao-hover); }
+    }
+
+    /* Campos (<label class="qc-rotulo">, <input class="qc-campo">) */
+    .qc-rotulo {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--qc-marrom-fundo);
+        font-size: 14px;
+        font-weight: 600;
+    }
+    .qc-campo {
+        display: block;
+        width: 100%;
+        min-height: 48px;
+        padding: 10px 14px;
+        border: 1.5px solid #d6c7ba;
+        border-radius: 10px;
+        background: #fff;
+        color: var(--qc-marrom-fundo);
+        font-family: var(--qc-fonte-ui);
+        font-size: 16px;
+        &::placeholder { color: var(--qc-texto-suave); }
+        &:hover { border-color: var(--qc-marrom); }
+        &[aria-invalid='true'] { border-color: var(--qc-erro); }
+    }
+    .qc-erro {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin-top: 6px;
+        color: var(--qc-erro);
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    /* Arte do login (copiada do hero da landing) */
+    .qc-destaque { color: var(--qc-laranja-acao); position: relative; white-space: nowrap; }
+    .qc-rabisco { position: absolute; left: 0; right: 0; bottom: -0.02em; width: 100%; height: 0.22em; }
+    .qc-nota-mao {
+        display: block;
+        font-family: var(--qc-fonte-mao);
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--qc-marrom);
+        line-height: 1;
+        text-align: center;
+        transform: rotate(-4deg);
+    }
+    .qc-widget {
+        align-items: center;
+        gap: 10px;
+        background: #fff;
+        border: 1px solid var(--qc-borda);
+        box-shadow: var(--qc-sombra);
+        border-radius: 12px;
+        padding: 8px 14px 8px 8px;
+        font-weight: 600;
+        font-size: 15px;
+        color: var(--qc-marrom-fundo);
+        white-space: nowrap;
+        transform: translateX(-50%) rotate(-2deg);
+        small { color: var(--qc-texto-suave); font-weight: 500; }
+    }
+    .qc-bola {
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--qc-laranja);
+        color: #fff;
+        font-size: 15px;
+    }
+    /* Arte do login no celular: nota alinhada à esquerda e mascote em pé na borda do cartão
+       (o tênis encosta 4 px no cartão: gap de 24 px da grade + ~14 px vazios no pé do SVG). */
+    .qc-nota-celular { font-size: 28px; line-height: 1.05; text-align: left; transform: rotate(-4deg); transform-origin: left center; }
+    @media (max-width: 359px) { .qc-nota-celular { font-size: 24px; } }
+    .qc-mascote-celular {
+        position: relative;
+        z-index: 1;
+        margin-bottom: -42px;
+        margin-right: -4px;
+        svg { width: 112px; height: auto; }
+    }
+    @media (max-width: 359px) {
+        .qc-mascote-celular { margin-bottom: -38px; svg { width: 92px; } }
+    }
+
+    .qc-mancha { position: absolute; border-radius: 50%; background: var(--qc-pessego); pointer-events: none; }
+    .qc-mancha-1 { width: 420px; height: 420px; left: -140px; top: -120px; opacity: 0.7; }
+    .qc-mancha-2 { width: 320px; height: 320px; right: -100px; bottom: -110px; opacity: 0.8; }
+
+    /* Foco visível (substitui qualquer outline removido) */
+    a:focus-visible,
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible,
+    [tabindex]:focus-visible {
+        outline: 3px solid var(--qc-marrom) !important;
+        outline-offset: 2px !important;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.001ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.001ms !important;
+            scroll-behavior: auto !important;
+        }
+    }
+}

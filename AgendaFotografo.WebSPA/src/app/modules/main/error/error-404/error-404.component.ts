@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, ViewEncapsulation } from '@angular/core';
-import {Router, RouterLink, RouterModule} from '@angular/router';
+import { RouterModule } from '@angular/router';
+import { MascoteComponent } from 'app/shared/auth-shell/mascote.component';
+import { QcAuthShellComponent } from 'app/shared/auth-shell/qc-auth-shell.component';
 
 @Component({
     selector       : 'error-404',
@@ -7,7 +9,7 @@ import {Router, RouterLink, RouterModule} from '@angular/router';
     standalone: true,
     encapsulation  : ViewEncapsulation.None,
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [RouterModule]
+    imports: [RouterModule, QcAuthShellComponent, MascoteComponent]
 })
 export class Error404Component
 {
