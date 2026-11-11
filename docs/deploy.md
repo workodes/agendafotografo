@@ -29,6 +29,31 @@ Por que a rede `interna`: na `dokploy-network` todos os projetos da VM se enxerg
 4. Primeiro deploy: o MySQL inicializa o volume (até ~40 s); a API espera o *healthcheck* dele, aplica as migrations e cria o admin do seed
    (`admin@agendafotografo.com.br`, com troca de senha obrigatória no primeiro acesso fora do Development).
 
+## Backup (Volume Backups do Dokploy)
+
+Decisão: backup **diário** dos dois volumes, guardando as **4 cópias mais recentes** de cada um. Cada cópia é o volume inteiro, então o espaço no
+bucket fica em torno de 4 × o tamanho de cada volume. Medir o volume de arquivos no terminal do `agenda-api`: `du -sh /app/dados/arquivos`.
+
+1. **Settings → Destinations**: cadastrar o bucket S3 (o Dokploy só envia backup para destino compatível com S3; nunca guardar na própria VM).
+2. No serviço Compose, aba **Volume Backups**, criar:
+
+| Campo | Arquivos | Banco |
+|---|---|---|
+| Name | `agenda-arquivos` | `agenda-mysql` |
+| Service Name | `agenda-api` | `agenda-mysql` |
+| Volume Name | automático (`<app>_agenda-arquivos`) | automático (`<app>_agenda-mysql-data`) |
+| Schedule | `0 3 * * *` | `30 3 * * *` |
+| Backup Prefix | `agenda/arquivos` | `agenda/mysql` |
+| Turn Off Container During Backup | **desmarcado** (API no ar) | **marcado** (para o MySQL) |
+| Keep Latest Backups | `4` | `4` |
+
+- **Retenção**: feita pelo próprio Dokploy no campo *Keep Latest Backups* (vazio = nunca apaga). Não precisa de regra de ciclo de vida no bucket.
+- **Container OFF no banco**: copiar a pasta do MySQL com ele rodando pode gerar backup inconsistente; a API fica sem banco por alguns instantes
+  às 3h30. Os arquivos são gravados uma vez e nunca alterados, então copiam com a API no ar.
+- Se a aba **Backups** do Compose permitir escolher o `agenda-mysql` como banco MySQL (dump), preferir o dump ao volume do banco (sem parar o
+  container), com a mesma retenção de 4.
+- Depois do primeiro backup, **testar a restauração** uma vez (baixar do bucket e conferir imagens e pasta do MySQL).
+
 ## Pontos de atenção
 
 - **Um só `appsettings.json`, apontando para o zeus** (desenvolvimento e testes). O container sobrescreve por variáveis de ambiente

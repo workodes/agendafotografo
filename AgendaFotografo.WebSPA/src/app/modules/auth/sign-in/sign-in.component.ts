@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { fuseAnimations } from '@fuse/animations';
 import { FuseAlertComponent, FuseAlertType } from '@fuse/components/alert';
@@ -44,9 +45,13 @@ export class AuthSignInComponent implements OnInit {
         private formBuilder: UntypedFormBuilder,
         private router: Router,
         private route: ActivatedRoute,
+        private _title: Title,
     ) { }
 
     ngOnInit(): void {
+        // Título da aba do login no padrão "Página | Marca" (o mesmo do index.html); as demais telas definem o próprio título
+        this._title.setTitle('Agenda Fotógrafos | QuemClica');
+
         const rememberedEmail = this.authService.rememberedEmail;
 
         this.signInForm = this.formBuilder.group({

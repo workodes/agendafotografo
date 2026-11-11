@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agenda Fotógrafos | QuemClica</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --laranja:#F97316;          /* cor da marca (logo) */
+    --laranja-acao:#EA580C;     /* botões e texto laranja sobre branco (contraste) */
+    --laranja-acao-hover:#C2410C;
+    --marrom:#7C2D12;           /* marrom da logo */
+    --marrom-fundo:#431407;     /* "Inkwell" do Tracky: títulos e blocos escuros */
+    --creme:#FFF7ED;            /* "Ash canvas" quente: fundo de seção */
+    --pessego:#FFEDD5;          /* faixa de aviso, selos */
+    --branco:#FFFFFF;
+    --texto:#44403C;            /* corpo */
+    --texto-suave:#78716C;      /* apoio */
+    --borda:#F0E2D6;
+    --sombra:0 1px 4px rgba(124,45,18,.14);
+    --sombra-media:0 10px 30px -10px rgba(67,20,7,.35);
+    --fonte-display:'Baloo 2', system-ui, sans-serif;
+    --fonte-ui:'Inter', system-ui, sans-serif;
+    --fonte-mao:'Caveat', cursive;
+  }
+  *{box-sizing:border-box;margin:0}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--fonte-ui);color:var(--texto);background:var(--branco);letter-spacing:-.01em;line-height:1.55}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 24px}
+  h1,h2,h3{font-family:var(--fonte-display);color:var(--marrom-fundo);letter-spacing:.01em;line-height:1.05}
+  .destaque{color:var(--laranja-acao);position:relative;white-space:nowrap}
+  .rabisco{position:absolute;left:0;right:0;bottom:-.02em;width:100%;height:.22em}
+
+  /* Botões */
+  .btn{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:16px;border-radius:10px;padding:13px 22px;transition:.15s;cursor:pointer;border:0;font-family:var(--fonte-ui)}
+  .btn-primario{background:var(--laranja-acao);color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06)}
+  .btn-primario:hover{background:var(--laranja-acao-hover)}
+  .btn-fantasma{background:#fff;color:var(--marrom-fundo);border:1px solid var(--borda);padding:9px 16px;font-weight:600}
+  .btn-inverso{background:#fff;color:var(--marrom-fundo)}
+
+  /* Faixa de aviso */
+  .aviso{background:var(--pessego);color:var(--marrom-fundo);font-size:14px;font-weight:500;text-align:center;padding:10px 40px;position:relative}
+  .aviso a{color:var(--laranja-acao-hover);font-weight:700}
+  .aviso .fechar{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:18px;opacity:.6}
+
+  /* Cabeçalho */
+  header{padding:18px 0}
+  header .wrap{display:flex;align-items:center;gap:28px}
+  header img{height:38px;display:block}
+  header nav{display:flex;gap:24px;font-weight:500;font-size:15px;color:var(--texto);margin-left:auto}
+  header .acoes{display:flex;gap:10px;align-items:center}
+  header .btn-primario{padding:9px 16px;font-size:15px}
+
+  /* Hero */
+  .hero{padding:48px 0 72px}
+  .hero .wrap{display:grid;grid-template-columns:1.25fr .9fr;gap:24px;align-items:center}
+  .selo{display:inline-flex;align-items:center;gap:8px;background:var(--creme);border:1px solid var(--borda);color:var(--marrom);font-weight:600;font-size:13px;padding:6px 12px;border-radius:999px}
+  .hero h1{font-size:68px;font-weight:800;margin:18px 0 26px}
+  .hero p.sub{font-size:19px;color:var(--texto-suave);max-width:560px}
+  .hero .ctas{display:flex;gap:12px;align-items:center;margin-top:28px;flex-wrap:wrap}
+  .hero .micro{font-size:13px;color:var(--texto-suave);margin-top:12px}
+  .widget{display:inline-flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--borda);box-shadow:var(--sombra);border-radius:12px;padding:8px 14px 8px 8px;font-weight:600;color:var(--marrom-fundo);font-size:15px;vertical-align:middle;transform:rotate(-2deg)}
+  .widget .bola{width:32px;height:32px;border-radius:50%;background:var(--laranja);display:grid;place-items:center;color:#fff;font-size:15px}
+  .widget small{color:var(--texto-suave);font-weight:500}
+  .hero .arte{position:relative;display:flex;justify-content:center}
+  .hero .arte{padding-bottom:40px}
+  .hero .arte svg{width:100%;max-width:370px;height:auto}
+  .widget-hero{position:absolute;left:50%;bottom:0;transform:translateX(-50%) rotate(-2deg);white-space:nowrap}
+  .nota-mao{font-family:var(--fonte-mao);font-size:28px;font-weight:700;color:var(--marrom);line-height:1}
+  .hero .nota-mao{position:absolute;top:-6px;left:-10px;transform:rotate(-6deg)}
+  .tipos{display:flex;flex-wrap:wrap;gap:8px;margin-top:36px}
+  .tipos span{font-size:13px;font-weight:600;color:var(--marrom);background:#fff;border:1px dashed #E8C9B3;border-radius:8px;padding:5px 10px}
+
+  /* Seção recursos */
+  .recursos{background:var(--creme);padding:96px 0 48px}
+  .titulo-secao{text-align:center;max-width:820px;margin:0 auto 64px}
+  .titulo-secao h2{font-size:52px;font-weight:800}
+  .titulo-secao p{font-size:18px;color:var(--texto-suave);margin-top:14px}
+  .cartao-escuro{position:relative;background:var(--marrom-fundo);color:#fff;border-radius:28px;padding:56px;display:grid;grid-template-columns:1fr 1.1fr;gap:40px;align-items:center;box-shadow:var(--sombra);margin-bottom:40px;overflow:visible}
+  .cartao-escuro.invertido{grid-template-columns:1.1fr 1fr}
+  .cartao-escuro.invertido .texto{order:2}
+  .cartao-escuro .num{font-family:var(--fonte-display);font-weight:800;color:var(--laranja);font-size:20px}
+  .cartao-escuro h3{color:#fff;font-size:42px;font-weight:800;margin:6px 0 14px}
+  .cartao-escuro p{color:rgba(255,255,255,.8);font-size:17px}
+  .cartao-escuro ul{list-style:none;padding:0;margin-top:20px;display:grid;gap:10px}
+  .cartao-escuro li{display:flex;gap:10px;color:rgba(255,255,255,.88);font-size:15px}
+  .cartao-escuro li::before{content:"";flex:0 0 18px;height:18px;border-radius:50%;background:var(--laranja) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 18'%3E%3Cpath d='M5 9.5l2.6 2.5L13 6.5' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/18px no-repeat;margin-top:2px}
+  .cartao-escuro .nota-mao{color:var(--pessego);font-size:26px;margin-top:22px;display:block;transform:rotate(-3deg)}
+
+  /* Prévia branca inclinada (sobreposta) */
+  .previa{background:#fff;color:var(--texto);border-radius:18px;box-shadow:var(--sombra-media);padding:18px;transform:rotate(-4deg);margin-right:-110px}
+  .invertido .previa{transform:rotate(3deg);margin-right:0;margin-left:-110px}
+  .previa .topo{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .previa .topo b{font-family:var(--fonte-display);font-size:20px;color:var(--marrom-fundo)}
+  .chip{display:inline-block;font-size:11px;font-weight:600;border-radius:6px;padding:2px 8px;background:var(--creme);color:var(--marrom);border:1px solid var(--borda)}
+  .chip.ok{background:#FFEDD5;color:var(--laranja-acao-hover);border-color:#FED7AA}
+  .chip.pend{background:#fff;color:var(--texto-suave)}
+  .colunas{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .evento{border:1px solid var(--borda);border-radius:12px;padding:10px;font-size:12px;line-height:1.4}
+  .evento strong{display:block;font-size:13px;color:var(--marrom-fundo);margin-bottom:2px}
+  .evento .quem{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+  .evento .quem span{background:var(--creme);border-radius:999px;padding:2px 8px;font-weight:600;color:var(--marrom)}
+  .evento .quem span.conflito{background:var(--laranja);color:#fff}
+  .alerta{margin-top:12px;background:#FFF7ED;border:1px solid #FED7AA;border-left:4px solid var(--laranja);border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;color:var(--marrom)}
+  .livres{margin-top:10px;font-size:13px;color:var(--texto-suave)}
+  .livres b{color:var(--marrom-fundo)}
+
+  .celular{width:270px;margin:0 auto;background:#fff;border-radius:34px;padding:12px;box-shadow:var(--sombra-media);transform:rotate(4deg);border:6px solid #2b0d04}
+  .celular .tela{border-radius:22px;background:var(--creme);padding:16px 14px;font-size:12px;color:var(--texto)}
+  .celular .marca{display:flex;align-items:center;gap:6px;font-weight:700;color:var(--marrom);font-size:11px;margin-bottom:10px}
+  .celular h4{font-family:var(--fonte-display);font-size:19px;color:var(--marrom-fundo);line-height:1.1}
+  .celular .data{color:var(--texto-suave);margin:2px 0 10px}
+  .linha{background:#fff;border-radius:10px;padding:8px 10px;margin-bottom:6px;display:flex;justify-content:space-between;gap:6px;align-items:center}
+  .linha small{display:block;color:var(--texto-suave);font-size:10px}
+  .linha b{color:var(--marrom-fundo);font-size:12px}
+  .linha a{font-size:10px;font-weight:700;color:#fff;background:var(--laranja-acao);border-radius:6px;padding:4px 7px;white-space:nowrap}
+  .bolha{position:absolute;background:#fff;border-radius:14px 14px 14px 4px;box-shadow:var(--sombra-media);padding:10px 14px;font-size:13px;color:var(--marrom-fundo);font-weight:500;transform:rotate(-3deg)}
+  .bolha b{color:var(--laranja-acao-hover)}
+
+  .chat{display:grid;gap:10px}
+  .chat .eu{justify-self:end;background:var(--pessego);border-radius:14px 14px 4px 14px;padding:10px;max-width:78%;font-size:13px;color:var(--marrom-fundo)}
+  .flyer{width:150px;height:96px;border-radius:8px;background:linear-gradient(135deg,#7C2D12,#F97316);color:#fff;font-family:var(--fonte-display);font-weight:800;font-size:15px;line-height:1;padding:10px;margin-bottom:6px;display:flex;flex-direction:column;justify-content:space-between}
+  .flyer small{font-family:var(--fonte-ui);font-weight:600;font-size:10px;opacity:.9}
+  .chat .ia{background:#fff;border:1px solid var(--borda);border-radius:14px 14px 14px 4px;padding:10px 12px;max-width:88%;font-size:13px}
+  .chat .ia .mini{margin-top:8px;border:1px solid var(--borda);border-radius:10px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;font-size:12px}
+  .chat .ia .mini b{color:var(--marrom-fundo)}
+  .chat .ia .mini a{color:var(--laranja-acao);font-weight:700}
+
+  /* E ainda */
+  .ainda{padding:24px 0 96px;background:var(--creme)}
+  .ainda h3.rotulo{font-family:var(--fonte-mao);font-size:34px;color:var(--marrom);text-align:center;margin-bottom:22px;font-weight:700}
+  .grade4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .mini-cartao{background:#fff;border-radius:16px;padding:20px;box-shadow:var(--sombra)}
+  .mini-cartao .ico{width:40px;height:40px;border-radius:10px;background:var(--pessego);display:grid;place-items:center;margin-bottom:12px}
+  .mini-cartao h4{font-size:16px;color:var(--marrom-fundo);margin-bottom:4px}
+  .mini-cartao p{font-size:14px;color:var(--texto-suave)}
+
+  /* Como começar */
+  .passos{padding:96px 0}
+  .passos .wrap{display:grid;grid-template-columns:1fr 280px;gap:40px;align-items:center}
+  .passos h2{font-size:48px;font-weight:800;margin-bottom:28px}
+  .lista-passos{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .passo{border:1.5px dashed #E8C9B3;border-radius:16px;padding:20px}
+  .passo .n{width:36px;height:36px;border-radius:50%;background:var(--marrom-fundo);color:#fff;display:grid;place-items:center;font-family:var(--fonte-display);font-weight:800;font-size:18px;margin-bottom:12px}
+  .passo h4{color:var(--marrom-fundo);font-size:17px;margin-bottom:4px}
+  .passo p{font-size:14px;color:var(--texto-suave)}
+
+  /* Dúvidas */
+  .duvidas{background:var(--creme);padding:96px 0}
+  .duvidas .wrap{max-width:820px}
+  .duvidas h2{font-size:48px;font-weight:800;text-align:center;margin-bottom:36px}
+  details{background:#fff;border-radius:14px;box-shadow:var(--sombra);padding:18px 22px;margin-bottom:12px}
+  summary{cursor:pointer;font-weight:600;color:var(--marrom-fundo);font-size:17px;list-style:none;display:flex;justify-content:space-between;gap:12px}
+  summary::after{content:"+";color:var(--laranja-acao);font-size:22px;line-height:1}
+  details[open] summary::after{content:"–"}
+  details p{margin-top:10px;color:var(--texto-suave)}
+
+  /* CTA final */
+  .final{padding:96px 0}
+  .faixa-final{background:var(--laranja-acao);border-radius:28px;padding:56px;display:grid;grid-template-columns:1fr 260px;gap:24px;align-items:center;color:#fff;position:relative}
+  .faixa-final h2{color:#fff;font-size:52px;font-weight:800}
+  .faixa-final p{font-size:18px;color:rgba(255,255,255,.9);margin:14px 0 26px;max-width:560px}
+
+  footer{border-top:1px solid var(--borda);padding:32px 0 40px;font-size:14px;color:var(--texto-suave)}
+  footer .wrap{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+  footer img{height:30px}
+  footer nav{display:flex;gap:18px;margin-left:auto;flex-wrap:wrap}
+
+  /* Celular */
+  @media (max-width:900px){
+    header nav{display:none}
+    .hero .wrap,.passos .wrap,.faixa-final{grid-template-columns:1fr}
+    .hero h1{font-size:44px}
+    header .btn{padding:8px 12px;font-size:14px;white-space:nowrap}
+    header img{height:32px}
+    .hero{padding-top:24px}
+    .hero .arte svg{max-width:240px}
+    .titulo-secao h2,.passos h2,.duvidas h2,.faixa-final h2{font-size:34px}
+    .cartao-escuro,.cartao-escuro.invertido{grid-template-columns:1fr;padding:32px 22px}
+    .cartao-escuro.invertido .texto{order:0}
+    .cartao-escuro h3{font-size:32px}
+    .previa,.invertido .previa{margin:0;transform:rotate(-2deg)}
+    .colunas{grid-template-columns:1fr}
+    .grade4{grid-template-columns:1fr 1fr}
+    .lista-passos{grid-template-columns:1fr}
+    .passos,.duvidas{padding:64px 0}
+    .final{padding:48px 0 64px}
+    .recursos{padding:64px 0 32px}
+    .passos .wrap{grid-template-columns:1fr 112px;gap:0 8px;align-items:center}
+    .passos .wrap>div{display:contents}
+    .passos h2{grid-column:1;grid-row:1;margin-bottom:0}
+    .passos .wrap>svg{grid-column:2;grid-row:1;max-width:112px!important}
+    .lista-passos{grid-column:1/-1;grid-row:2;margin-top:20px}
+    .faixa-final{padding:32px 22px}
+    .faixa-final>svg{order:-1;justify-self:center;max-width:170px!important;margin-bottom:-8px}
+    .bolha{display:none}
+  }
+  @media (max-width:560px){.grade4{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="cabeca" viewBox="0 0 512 512">
+      <rect x="0" y="85" width="450" height="420" rx="80" fill="#F97316"/>
+      <rect x="84" y="40" width="42" height="100" rx="21" fill="#7C2D12"/>
+      <rect x="330" y="40" width="42" height="100" rx="21" fill="#7C2D12"/>
+      <rect x="0" y="180" width="450" height="20" fill="#7C2D12"/>
+      <circle cx="225" cy="345" r="118" fill="#fff"/>
+      <circle cx="228" cy="348" r="64" fill="#7C2D12"/>
+      <circle cx="256" cy="322" r="18" fill="#fff"/>
+      <g stroke="#F97316" stroke-width="20" stroke-linecap="round" fill="none">
+        <path d="M440 16 L442 60"/><path d="M488 38 L452 64"/><path d="M456 80 L504 88"/>
+      </g>
+    </symbol>
+    <g id="tenis">
+      <path d="M-16 10 V-6 Q-16 -18 -2 -18 H8 Q42 -12 50 6 V10 Z" fill="#fff" stroke="#7C2D12" stroke-width="8" stroke-linejoin="round"/>
+      <path d="M-18 14 H52" stroke="#F97316" stroke-width="8" stroke-linecap="round"/>
+    </g>
+    <g id="pernas">
+      <g fill="none" stroke="#7C2D12" stroke-width="20" stroke-linecap="round"><path d="M214 470 L210 610"/><path d="M322 470 L328 610"/></g>
+      <use href="#tenis" transform="translate(210 614) scale(-1 1)"/>
+      <use href="#tenis" transform="translate(328 614)"/>
+    </g>
+  </defs>
+</svg>
+
+<!-- 0. Faixa de aviso -->
+<div class="aviso">Novo: mande o flyer da prova e o Assistente com IA cadastra o evento para você. <a href="#recurso-3">Ver como funciona →</a><span class="fechar">×</span></div>
+
+<!-- 1. Cabeçalho -->
+<header>
+  <div class="wrap">
+    <a href="#"><img src="/files/logo.png" alt="quemclica"></a>
+    <nav><a href="#recursos">Recursos</a><a href="#como-comecar">Como começar</a><a href="#duvidas">Dúvidas</a></nav>
+    <div class="acoes"><a class="btn btn-fantasma" href="#">Entrar</a><a class="btn btn-primario" href="#">Começar grátis</a></div>
+  </div>
+</header>
+
+<!-- 2. Hero -->
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <span class="selo">📸 Para quem coordena equipes de fotografia esportiva</span>
+      <h1>Saiba quem clica onde, em <span class="destaque">cada prova<svg class="rabisco" viewBox="0 0 300 20" preserveAspectRatio="none"><path d="M4 14 C60 4 120 18 180 9 S270 6 296 12" fill="none" stroke="#F97316" stroke-width="5" stroke-linecap="round"/></svg></span>.</h1>
+      <p class="sub">Agenda, escala da equipe e o link de cada evento num lugar só. Feito para quem coordena fotógrafos de corrida, treino, CrossFit, moto passeio e o que mais aparecer.</p>
+      <div class="ctas">
+        <a class="btn btn-primario" href="#">Começar 15 dias grátis →</a>
+        <a class="btn btn-fantasma" href="#">Já tenho conta</a>
+      </div>
+      <p class="micro">15 dias para testar com a sua equipe, com tudo liberado.</p>
+      <div class="tipos"><span>Corrida</span><span>Treino</span><span>CrossFit</span><span>Moto passeio</span><span>Casamento</span><span>Academia</span></div>
+    </div>
+    <div class="arte">
+      <span class="nota-mao">oi! eu cuido da<br>agenda da equipe ↘</span>
+      <span class="widget widget-hero"><span class="bola">✓</span>Sáb, 14/03 · 3 provas <small>· 7 fotógrafos</small></span>
+      <svg viewBox="0 0 560 700" role="img" aria-label="Mascote do quemclica acenando">
+        <g fill="none" stroke="#F97316" stroke-width="7" stroke-linecap="round"><path d="M28 232 q-12 16 0 32"/><path d="M12 220 q-20 28 0 56"/></g>
+        <use href="#pernas"/>
+        <g fill="none" stroke="#7C2D12" stroke-width="20" stroke-linecap="round"><path d="M96 340 Q44 320 52 252"/><path d="M440 352 Q494 384 488 444"/></g>
+        <use href="#cabeca" x="90" y="80" width="400" height="400"/>
+        <circle cx="52" cy="244" r="16" fill="#fff" stroke="#7C2D12" stroke-width="7"/>
+        <circle cx="488" cy="452" r="16" fill="#fff" stroke="#7C2D12" stroke-width="7"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 3. Então, o que você pode fazer -->
+<section class="recursos" id="recursos">
+  <div class="wrap">
+    <div class="titulo-secao">
+      <h2>Então, o que você pode fazer com o <span class="destaque">quemclica</span>?</h2>
+      <p>Três coisas que mudam a semana de quem coordena uma equipe de fotografia.</p>
+    </div>
+
+    <!-- Recurso 1 -->
+    <div class="cartao-escuro">
+      <div class="texto">
+        <span class="num">01</span>
+        <h3>Monte a escala sem furo</h3>
+        <p>As provas do mesmo dia aparecem lado a lado, com quem vai em cada uma. Você vê na hora quem está livre e recebe um alerta se alguém foi escalado em duas provas.</p>
+        <ul><li>Agenda em lista e calendário</li><li>Quem está livre em cada dia</li><li>Alerta de fotógrafo em duas provas</li></ul>
+      </div>
+      <div class="previa">
+        <div class="topo"><b>Sábado, 14 de março</b><span class="chip">3 provas</span></div>
+        <div class="colunas">
+          <div class="evento"><strong>Corrida da Ponte 10K</strong>6h30 · Florianópolis<div class="quem"><span>Ana</span><span class="conflito">Bruno</span></div><span class="chip ok">Confirmado</span></div>
+          <div class="evento"><strong>Treino 3F</strong>7h · São José<div class="quem"><span>Carla</span></div><span class="chip ok">Confirmado</span></div>
+          <div class="evento"><strong>Moto Passeio da Serra</strong>8h · Urubici<div class="quem"><span class="conflito">Bruno</span><span>Gui</span></div><span class="chip pend">Pendente</span></div>
+        </div>
+        <div class="alerta">⚠ Bruno está escalado em 2 provas no mesmo dia</div>
+        <div class="livres">Livres no sábado: <b>Diego · Eva · Fábio</b></div>
+      </div>
+    </div>
+
+    <!-- Recurso 2 -->
+    <div class="cartao-escuro invertido" style="position:relative">
+      <div class="texto">
+        <span class="num">02</span>
+        <h3>Mande tudo para a equipe num link só</h3>
+        <p>Cada evento tem um link com código de 4 números. O fotógrafo abre no celular e encontra largada, chegada, rota, a posição dele e as suas observações. Sem app e sem login.</p>
+        <ul><li>Abrir no Maps e baixar o GPX</li><li>Posição de cada fotógrafo</li><li>Texto pronto para colar no WhatsApp</li></ul>
+        <span class="nota-mao">abre no celular, sem instalar nada!</span>
+      </div>
+      <div style="position:relative">
+        <div class="celular">
+          <div class="tela">
+            <div class="marca"><svg width="16" height="16"><use href="#cabeca"/></svg>quemclica</div>
+            <h4>Corrida da Ponte 10K</h4>
+            <div class="data">Sábado, 14/03 · 6h30</div>
+            <div class="linha"><div><small>Largada</small><b>Av. Beira-Mar Norte</b></div><a>Abrir no Maps</a></div>
+            <div class="linha"><div><small>Chegada</small><b>Trapiche</b></div><a>Abrir no Maps</a></div>
+            <div class="linha"><div><small>Rota</small><b>Percurso 10K</b></div><a>Baixar GPX</a></div>
+            <div class="linha"><div><small>Sua posição</small><b>Km 5 (retorno)</b></div></div>
+            <div class="linha"><div><small>Observações</small><b>Chegar 5h45. Foco nos pelotões.</b></div></div>
+          </div>
+        </div>
+        <div class="bolha" style="left:0;bottom:-28px">Link: quemclica.com.br/e/x7k2q<br>Código: <b>4821</b></div>
+      </div>
+    </div>
+
+    <!-- Recurso 3 -->
+    <div class="cartao-escuro" id="recurso-3">
+      <div class="texto">
+        <span class="num">03</span>
+        <h3>Cadastre o evento a partir do flyer</h3>
+        <p>Mande o flyer ou a mensagem do organizador para o Assistente com IA. Ele lança o evento, avisa se já existe um igual e responde perguntas como "o que tem no fim de semana?".</p>
+        <ul><li>Lê o flyer e preenche o evento</li><li>Avisa se o evento já existe</li><li>Consulta a agenda por você</li></ul>
+      </div>
+      <div class="previa">
+        <div class="topo"><b>Assistente</b><span class="chip ok">IA</span></div>
+        <div class="chat">
+          <div class="eu"><div class="flyer">CORRIDA NOTURNA 5K<small>21/03 · 19h · Palhoça</small></div>cadastra essa pra mim</div>
+          <div class="ia">Pronto! Lancei a <b>Corrida Noturna 5K</b> no sábado, 21/03, às 19h, em Palhoça. Conferi a agenda: não há outro evento igual.
+            <div class="mini"><span><b>Corrida Noturna 5K</b> · 21/03 · Pendente</span><a>Abrir evento</a></div>
+          </div>
+          <div class="eu">o que tem no fim de semana?</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. E ainda -->
+<section class="ainda">
+  <div class="wrap">
+    <h3 class="rotulo">e ainda…</h3>
+    <div class="grade4">
+      <div class="mini-cartao"><div class="ico">✅</div><h4>Pendências e checklist</h4><p>Cada evento já nasce com a lista do que precisa ser feito.</p></div>
+      <div class="mini-cartao"><div class="ico">🏁</div><h4>Organizadores</h4><p>Histórico de cada organizador e de quem fotografou cada prova.</p></div>
+      <div class="mini-cartao"><div class="ico">🔔</div><h4>Avisos do dia</h4><p>Ao abrir, você vê o que precisa da sua atenção hoje.</p></div>
+      <div class="mini-cartao"><div class="ico">📱</div><h4>Celular e computador</h4><p>Use de onde estiver, até no meio do percurso.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. Como começar -->
+<section class="passos" id="como-comecar">
+  <div class="wrap">
+    <div>
+      <h2>Comece em <span class="destaque">3 passos</span></h2>
+      <div class="lista-passos">
+        <div class="passo"><div class="n">1</div><h4>Crie sua conta</h4><p>São 15 dias grátis para testar com a sua equipe.</p></div>
+        <div class="passo"><div class="n">2</div><h4>Cadastre a equipe</h4><p>Fotógrafos, editores e assistentes, com o @ do Instagram.</p></div>
+        <div class="passo"><div class="n">3</div><h4>Lance o primeiro evento</h4><p>Escale quem vai e mande o link para a equipe.</p></div>
+      </div>
+    </div>
+    <svg viewBox="-50 0 610 700" role="img" aria-label="Mascote apontando para os passos" style="width:100%;max-width:260px">
+      <use href="#pernas"/>
+      <g fill="none" stroke="#7C2D12" stroke-width="20" stroke-linecap="round"><path d="M96 334 Q40 324 4 302"/><path d="M440 352 Q480 392 474 450"/></g>
+      <g fill="none" stroke="#F97316" stroke-width="7" stroke-linecap="round"><path d="M-14 268 l-10 -14"/><path d="M-30 296 l-18 -2"/></g>
+      <use href="#cabeca" x="90" y="80" width="400" height="400"/>
+      <circle cx="0" cy="300" r="16" fill="#fff" stroke="#7C2D12" stroke-width="7"/>
+      <circle cx="474" cy="458" r="16" fill="#fff" stroke="#7C2D12" stroke-width="7"/>
+    </svg>
+  </div>
+</section>
+
+<!-- 6. Dúvidas -->
+<section class="duvidas" id="duvidas">
+  <div class="wrap">
+    <h2>Dúvidas</h2>
+    <details open><summary>A minha equipe precisa instalar app ou criar login?</summary><p>Não. Só você, que coordena, entra no sistema. A equipe recebe o link do evento e o código de 4 números e abre direto no celular.</p></details>
+    <details><summary>Funciona no celular?</summary><p>Sim. Tudo funciona no celular e no computador, e o link da equipe foi pensado primeiro para o celular.</p></details>
+    <details><summary>Como funciona o teste grátis?</summary><p>Você cria a conta e usa tudo por 15 dias com a sua equipe.</p></details>
+    <details><summary>Serve para outros tipos de evento?</summary><p>Sim. Corrida, treino, CrossFit, moto passeio, casamento e academia já vêm prontos, e você pode criar os seus.</p></details>
+    <details><summary>Outras equipes conseguem ver a minha agenda?</summary><p>Não. Cada conta enxerga só os próprios eventos, equipe e organizadores.</p></details>
+  </div>
+</section>
+
+<!-- 7. CTA final -->
+<section class="final">
+  <div class="wrap">
+    <div class="faixa-final">
+      <div>
+        <h2>Sua próxima prova já começa organizada.</h2>
+        <p>Crie sua conta, cadastre a equipe e mande o primeiro link hoje mesmo.</p>
+        <a class="btn btn-inverso" href="#">Começar 15 dias grátis →</a>
+      </div>
+      <svg viewBox="0 0 560 700" role="img" aria-label="Mascote comemorando" style="width:100%;max-width:240px">
+        <g fill="#fff"><rect x="20" y="120" width="18" height="10" rx="3" transform="rotate(-20 29 125)"/><circle cx="520" cy="110" r="8"/><rect x="40" y="60" width="14" height="14" rx="3" fill="#FFEDD5"/><rect x="500" y="30" width="18" height="10" rx="3" fill="#FFEDD5" transform="rotate(25 509 35)"/><circle cx="12" cy="300" r="6" fill="#FFEDD5"/></g>
+        <use href="#pernas"/>
+        <g fill="none" stroke="#7C2D12" stroke-width="20" stroke-linecap="round"><path d="M96 330 Q40 290 50 206"/><path d="M440 330 Q500 290 492 206"/></g>
+        <use href="#cabeca" x="90" y="80" width="400" height="400"/>
+        <circle cx="50" cy="198" r="16" fill="#fff" stroke="#7C2D12" stroke-width="7"/>
+        <circle cx="492" cy="198" r="16" fill="#fff" stroke="#7C2D12" stroke-width="7"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 8. Rodapé -->
+<footer>
+  <div class="wrap">
+    <img src="/files/logo.png" alt="quemclica">
+    <span>© 2026 quemclica</span>
+    <nav><a href="#">Entrar</a><a href="#duvidas">Dúvidas</a></nav>
+  </div>
+</footer>
+
+</body>
+</html>
