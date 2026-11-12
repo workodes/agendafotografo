@@ -8,4 +8,7 @@ export class AssinanteListItem {
     ASS_ATIVO: boolean;
     ExigirTrocaSenha: boolean;
     LastLogin?: string | null;
+    ASS_TESTE_ATE?: string | null;
+    ASS_ORIGEM: number;
+    TesteDiasRestantes?: number | null;
 }

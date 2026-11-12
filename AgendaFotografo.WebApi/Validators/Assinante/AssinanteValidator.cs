@@ -20,5 +20,9 @@ public class AssinanteValidator : AbstractValidator<AssinanteModel>
 
         RuleFor(x => x.ASS_TELEFONE!).TelefoneValido()
             .When(x => !string.IsNullOrWhiteSpace(x.ASS_TELEFONE));
+
+        RuleFor(x => x.ASS_TESTE_ATE!.Value)
+            .Must(d => d.Year is >= 2000 and <= 2100).WithMessage("Data do teste grátis inválida.")
+            .When(x => x.ASS_TESTE_ATE.HasValue);
     }
 }

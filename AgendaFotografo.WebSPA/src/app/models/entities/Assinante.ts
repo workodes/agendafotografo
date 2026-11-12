@@ -11,4 +11,10 @@ export class Assinante {
     ExigirTrocaSenha?: boolean;
     LastLogin?: string | null;
     CreatedAt?: string;
+    /** Entrada e saída: "yyyy-MM-dd" ou null (sem prazo). */
+    ASS_TESTE_ATE?: string | null;
+    /** Só saída (OrigemAssinante). */
+    ASS_ORIGEM?: number;
+    /** Só saída: null = sem prazo, 0 = encerrado. */
+    TesteDiasRestantes?: number | null;
 }

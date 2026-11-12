@@ -7,4 +7,6 @@ export class Usuario {
     ExigirTrocaSenha?: boolean;
     /** Só perfil Assinante: nome do assinante (tenant). */
     AssinanteNome?: string | null;
+    /** false = conta só Google. Ausente (sessão antiga) = tem senha. */
+    TemSenha?: boolean;
 }

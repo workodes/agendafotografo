@@ -20,7 +20,7 @@
         </div>
     </div>
 
-    <button mat-menu-item (click)="alterarSenha()">
+    <button *ngIf="usuario?.TemSenha !== false" mat-menu-item (click)="alterarSenha()">
         <mat-icon [svgIcon]="'heroicons_outline:key'"></mat-icon>
         <span>Alterar senha</span>
     </button>

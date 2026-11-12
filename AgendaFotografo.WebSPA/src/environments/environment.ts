@@ -8,6 +8,11 @@ export const environment = {
     Auth: {
         login: `${baseUrl}/Auth/Login`,
         alterarSenha: `${baseUrl}/Auth/AlterarSenha`,
+        configuracaoLogin: `${baseUrl}/Auth/ConfiguracaoLogin`,
+        cadastrar: `${baseUrl}/Auth/Cadastrar`,
+        loginGoogle: `${baseUrl}/Auth/LoginGoogle`,
+        cadastrarGoogle: `${baseUrl}/Auth/CadastrarGoogle`,
+        testeGratis: `${baseUrl}/Auth/TesteGratis`,
     },
 
     Assinante: {

@@ -72,6 +72,25 @@
                                     <td mat-cell *matCellDef="let a" class="whitespace-nowrap hidden md:table-cell max-sm:!px-2">{{ a.ASS_CPF_CNPJ ? formatCpfCnpj(a.ASS_CPF_CNPJ) : '-' }}</td>
                                 </ng-container>
 
+                                <ng-container matColumnDef="ASS_ORIGEM">
+                                    <th mat-header-cell *matHeaderCellDef class="text-left hidden md:table-cell">Origem</th>
+                                    <td mat-cell *matCellDef="let a" class="hidden md:table-cell">
+                                        <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center whitespace-nowrap bg-gray-100 text-gray-800">
+                                            {{ origemRotulo[a.ASS_ORIGEM] ?? '-' }}
+                                        </span>
+                                    </td>
+                                </ng-container>
+
+                                <ng-container matColumnDef="ASS_TESTE_ATE">
+                                    <th mat-header-cell *matHeaderCellDef class="text-left hidden md:table-cell">Teste</th>
+                                    <td mat-cell *matCellDef="let a" class="hidden md:table-cell">
+                                        <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center whitespace-nowrap"
+                                            [ngClass]="testeEmAlerta(a.TesteDiasRestantes) ? 'bg-amber-100 text-amber-900' : 'text-secondary'">
+                                            {{ textoTeste(a.TesteDiasRestantes) }}
+                                        </span>
+                                    </td>
+                                </ng-container>
+
                                 <ng-container matColumnDef="ASS_ATIVO">
                                     <th mat-header-cell *matHeaderCellDef class="text-left max-sm:w-[96px] max-sm:!px-2">Situação</th>
                                     <td mat-cell *matCellDef="let a" class="max-sm:!px-2">

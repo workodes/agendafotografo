@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using AgendaFotografo.CrossCutting.Services.Arquivos;
+using AgendaFotografo.CrossCutting.Services.Google;
 using AgendaFotografo.CrossCutting.Services.IA;
 using AgendaFotografo.CrossCutting.Services.Mail;
 using AgendaFotografo.Domain.Constants;
@@ -198,6 +199,7 @@ public static class Setup
         services.AddScoped<ICurrentUser, CurrentUser>();
         services.AddScoped<AssinanteEscopo>();
         services.AddScoped<IAssinanteInicializacao, AssinanteInicializacao>();
+        services.AddScoped<AssinanteCadastro>();
         services.AddScoped<TipoEventoPadrao>();
         services.AddScoped<EscalaConsultas>();
         services.AddScoped<PendenciaConsultas>();
@@ -216,6 +218,10 @@ public static class Setup
         services.AddHttpClient<LocalBusca>(c => c.Timeout = TimeSpan.FromSeconds(5));
         services.AddHttpClient<LinkMapsExpansor>(c => c.Timeout = TimeSpan.FromSeconds(5))
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+
+        // Login/cadastro com Google: Google:ClientId (vazio = Google desligado). Validação do ID token só na API.
+        services.AddSingleton(new GoogleSettings { ClientId = (configuration["Google:ClientId"] ?? string.Empty).Trim() });
+        services.AddSingleton<IGoogleTokenValidador, GoogleTokenValidador>();
 
         services.Configure<MailSettings>(configuration.GetSection("MailSettings"));
         services.AddSingleton<IEmailService, EmailService>();

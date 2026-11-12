@@ -4,6 +4,11 @@ import { JwtHelperService } from '@auth0/angular-jwt';
 import { AuthUtils } from 'app/core/auth/auth.utils';
 import { ApiResponse } from 'app/models/ApiResponse';
 import { AuthModel } from 'app/models/AuthModel';
+import { CadastroGoogleModel } from 'app/models/DTOs/requests/CadastroGoogleModel';
+import { CadastroModel } from 'app/models/DTOs/requests/CadastroModel';
+import { ConfiguracaoLogin } from 'app/models/DTOs/responses/ConfiguracaoLogin';
+import { LoginGoogleResponse } from 'app/models/DTOs/responses/LoginGoogleResponse';
+import { TesteGratis } from 'app/models/DTOs/responses/TesteGratis';
 import { Usuario } from 'app/models/entities/Usuario';
 import { ChatService } from 'app/services/chat.service';
 import { environment } from 'environments/environment';
@@ -48,10 +53,6 @@ export class AuthService {
 
         return this.httpClient.post<AuthModel>(environment.Auth.login, body).pipe(
             map(response => {
-                // A verificação evita sessão com perfil desconhecido pelo SPA.
-                if (!Object.values(ROLE_NAMES).includes(response.Role as any))
-                    throw { error: 'Perfil sem acesso ao sistema.' };
-
                 this.registrarSessao(response);
 
                 // "Lembrar-me" só guarda o e-mail para pré-preencher o próximo login.
@@ -63,6 +64,43 @@ export class AuthService {
                 return true;
             }),
         );
+    }
+
+    /** Configuração pública da tela de login: Client ID do Google (nulo = sem botão) e dias grátis. */
+    ConfiguracaoLogin(): Observable<ConfiguracaoLogin> {
+        return this.httpClient.get<ConfiguracaoLogin>(environment.Auth.configuracaoLogin);
+    }
+
+    /** Autocadastro com e-mail e senha: já devolve a sessão. */
+    Cadastrar(body: CadastroModel): Observable<boolean> {
+        if (this._authenticated)
+            return throwError(() => 'O usuário já está logado.');
+        return this.httpClient.post<AuthModel>(environment.Auth.cadastrar, body).pipe(map(r => this.registrarSessao(r)));
+    }
+
+    /** Login pelo Google. Se PrecisaCompletar, nada foi gravado e a sessão não é aberta. */
+    LoginGoogle(idToken: string): Observable<LoginGoogleResponse> {
+        if (this._authenticated)
+            return throwError(() => 'O usuário já está logado.');
+        return this.httpClient.post<LoginGoogleResponse>(environment.Auth.loginGoogle, { IdToken: idToken }).pipe(
+            map(r => {
+                if (!r.PrecisaCompletar && r.Login)
+                    this.registrarSessao(r.Login);
+                return r;
+            }),
+        );
+    }
+
+    /** Conclui o autocadastro com Google (telefone e CPF/CNPJ) e abre a sessão. */
+    CadastrarGoogle(body: CadastroGoogleModel): Observable<boolean> {
+        if (this._authenticated)
+            return throwError(() => 'O usuário já está logado.');
+        return this.httpClient.post<AuthModel>(environment.Auth.cadastrarGoogle, body).pipe(map(r => this.registrarSessao(r)));
+    }
+
+    /** Situação do teste grátis do assinante logado (carregada uma vez ao montar o layout). */
+    TesteGratis(): Observable<TesteGratis> {
+        return this.httpClient.get<TesteGratis>(environment.Auth.testeGratis);
     }
 
     signOut(): Observable<any> {
@@ -125,7 +163,11 @@ export class AuthService {
         };
     }
 
-    private registrarSessao(response: AuthModel): void {
+    private registrarSessao(response: AuthModel): boolean {
+        // A verificação evita sessão com perfil desconhecido pelo SPA.
+        if (!Object.values(ROLE_NAMES).includes(response.Role as any))
+            throw { error: 'Perfil sem acesso ao sistema.' };
+
         this.accessToken = response.Token;
 
         const usuario: Usuario = {
@@ -135,11 +177,14 @@ export class AuthService {
             Role: response.Role,
             ExigirTrocaSenha: response.ExigirTrocaSenha === true,
             AssinanteNome: response.AssinanteNome ?? null,
+            // Ausente = tem senha (sessões anteriores à entrega do autocadastro).
+            TemSenha: response.TemSenha !== false,
         };
         localStorage.setItem('usuario', JSON.stringify(usuario));
 
         this._authenticated = true;
         this.userService.usuario = usuario;
+        return true;
     }
 
     /**

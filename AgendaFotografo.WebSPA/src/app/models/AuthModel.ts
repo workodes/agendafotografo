@@ -11,4 +11,6 @@ export interface AuthModel {
     ExigirTrocaSenha: boolean;
     /** Nome do assinante (só perfil Assinante; null para o Admin). */
     AssinanteNome?: string | null;
+    /** false = conta que entra só pelo Google (sem senha para alterar). */
+    TemSenha?: boolean;
 }

@@ -16,6 +16,9 @@ public class LoginResponse
     public string Role { get; set; } = string.Empty;
     public bool ExigirTrocaSenha { get; set; }
 
+    /// <summary>Falso quando a conta entra só pelo Google (sem senha): o SPA esconde "Alterar senha".</summary>
+    public bool TemSenha { get; set; }
+
     /// <summary>Nome do assinante (só perfil Assinante; null para o Admin). O AssinanteId NÃO é exposto.</summary>
     public string? AssinanteNome { get; set; }
 }

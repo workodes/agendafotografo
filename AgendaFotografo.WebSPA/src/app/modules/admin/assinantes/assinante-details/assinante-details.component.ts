@@ -2,6 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
@@ -13,6 +15,9 @@ import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
 import { Observable, Subject, takeUntil } from 'rxjs';
 import { Assinante } from 'app/models/entities/Assinante';
 import { AssinanteService } from 'app/services/assinante.service';
+import { ORIGEM_ASSINANTE_ROTULO } from 'app/models/enums/OrigemAssinante';
+import { formatarDataIso, parseDataIso } from 'app/utils/data-evento';
+import { testeEmAlerta, textoTeste } from 'app/utils/teste-gratis';
 import { GenericValidator } from 'app/utils/GenericValidator';
 import { emailTolerante } from 'app/utils/email-validator';
 import { mensagemErro } from 'app/utils/mensagem-erro';
@@ -33,13 +38,18 @@ function telefoneValido(control: AbstractControl): ValidationErrors | null {
     providers: [provideNgxMask()],
     imports: [
         CommonModule, ReactiveFormsModule, NgxMaskDirective,
-        MatButtonModule, MatFormFieldModule, MatIconModule, MatInputModule, MatProgressSpinnerModule,
+        MatButtonModule, MatCheckboxModule, MatDatepickerModule, MatFormFieldModule, MatIconModule, MatInputModule, MatProgressSpinnerModule,
     ],
 })
 export class AssinanteDetailsComponent implements OnInit, OnDestroy {
     form: FormGroup;
     // Preenchido na edição (vem do resolver e é atualizado pelas ações Bloquear/Reativar/Redefinir).
     assinante?: Assinante;
+    readonly testeMin = new Date(2000, 0, 1);
+    readonly testeMax = new Date(2100, 11, 31);
+    readonly origemRotulo = ORIGEM_ASSINANTE_ROTULO;
+    readonly textoTeste = textoTeste;
+    readonly testeEmAlerta = testeEmAlerta;
     salvando = false;
     acaoEmAndamento = false;
     private _destroy$ = new Subject<void>();
@@ -65,7 +75,11 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
             // Mesma regra da API: CPF (11 dígitos) ou CNPJ (14) com dígitos verificadores corretos; opcional.
             ASS_CPF_CNPJ: ['', [GenericValidator.isValidCpfOrCnpj()]],
             ASS_TELEFONE: ['', [telefoneValido]],
+            // Sem prazo = ASS_TESTE_ATE nulo. Marcada, a data fica desabilitada (e fora da validação).
+            SEM_PRAZO: [true],
+            ASS_TESTE_ATE: [{ value: null as Date | null, disabled: true }, [Validators.required]],
         });
+        this.form.get('SEM_PRAZO')!.valueChanges.pipe(takeUntil(this._destroy$)).subscribe(sem => this.aplicarSemPrazo(!!sem));
 
         // Reage a mudanças de rota (:id -> outro :id, ou :id -> novo) reaproveitando o componente.
         this._route.data.pipe(takeUntil(this._destroy$)).subscribe(data => {
@@ -77,10 +91,15 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
                     ASS_EMAIL: assinante.ASS_EMAIL,
                     ASS_CPF_CNPJ: assinante.ASS_CPF_CNPJ ?? '',
                     ASS_TELEFONE: assinante.ASS_TELEFONE ?? '',
+                    SEM_PRAZO: !assinante.ASS_TESTE_ATE,
+                    ASS_TESTE_ATE: parseDataIso(assinante.ASS_TESTE_ATE),
                 });
+                this.aplicarSemPrazo(!assinante.ASS_TESTE_ATE);
             } else {
                 this.assinante = undefined;
-                this.form.reset({ ASS_NOME: '', ASS_EMAIL: '', ASS_CPF_CNPJ: '', ASS_TELEFONE: '' });
+                // Criado pelo Admin: o padrão é sem prazo.
+                this.form.reset({ ASS_NOME: '', ASS_EMAIL: '', ASS_CPF_CNPJ: '', ASS_TELEFONE: '', SEM_PRAZO: true, ASS_TESTE_ATE: null });
+                this.aplicarSemPrazo(true);
             }
         });
     }
@@ -107,6 +126,7 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
             ASS_EMAIL: (v.ASS_EMAIL ?? '').trim(),
             ASS_CPF_CNPJ: v.ASS_CPF_CNPJ || null,
             ASS_TELEFONE: v.ASS_TELEFONE || null,
+            ASS_TESTE_ATE: v.SEM_PRAZO || !v.ASS_TESTE_ATE ? null : formatarDataIso(v.ASS_TESTE_ATE),
         };
 
         this.salvando = true;
@@ -149,11 +169,22 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
         this.executar(this._acoes.redefinirAcesso(this.assinante as any));
     }
 
+    private aplicarSemPrazo(sem: boolean): void {
+        const data = this.form.get('ASS_TESTE_ATE')!;
+        if (sem) {
+            data.disable({ emitEvent: false });
+        } else {
+            data.enable({ emitEvent: false });
+        }
+    }
+
     // Uma mensagem por campo.
     erro(nome: string): string {
         const e = this.form.get(nome)?.errors;
         if (!e) { return ''; }
-        if (e['required']) { return 'Campo obrigatório.'; }
+        if (e['matDatepickerParse']) { return 'Data inválida.'; }
+        if (e['matDatepickerMin'] || e['matDatepickerMax']) { return 'Use uma data entre 2000 e 2100.'; }
+        if (e['required']) { return nome === 'ASS_TESTE_ATE' ? 'Informe a data ou marque "Sem prazo".' : 'Campo obrigatório.'; }
         if (e['email']) { return 'E-mail inválido.'; }
         if (e['maxlength']) { return `Máximo de ${e['maxlength'].requiredLength} caracteres.`; }
         if (e['telefone']) { return 'Telefone inválido (informe DDD + número).'; }

@@ -24,7 +24,7 @@ Acesso a dados com EF Core 9 + **MySQL** via `Pomelo.EntityFrameworkCore.MySql 9
 ## Entidades e tabelas
 | Entidade | Tabela | Prefixo |
 |---|---|---|
-| `Assinante` | `ASSINANTES` | `ASS_` (nome, CPF/CNPJ, e-mail, telefone, ativo); índice em `ASS_NOME` |
+| `Assinante` | `ASSINANTES` | `ASS_` (nome, CPF/CNPJ, e-mail, telefone, ativo, `ASS_TESTE_ATE` `DateOnly?` como `date` (último dia do teste grátis; nulo = sem prazo), `ASS_ORIGEM` `OrigemAssinante` como int); índice em `ASS_NOME` |
 | `Membro` | `MEMBROS` | `MEM_` (assinante, nome, instagram sem "@", e-mail, telefone só dígitos, função `FuncaoMembro` como int, observações, ativo); índice `(MEM_ASSINANTE_ID, MEM_NOME)` e índice não único `(MEM_ASSINANTE_ID, MEM_INSTAGRAM)` (unicidade na API); FK `Restrict` |
 | `Organizador` | `ORGANIZADORES` | `ORG_` (assinante, nome, contato, e-mail até 200, telefone, instagram, notas, ativo); índice não único `(ORG_ASSINANTE_ID, ORG_NOME)` (nome pode repetir; e-mail e telefone únicos só na API, sem índice); FK `Restrict` |
 | `TipoEvento` | `TIPOSEVENTO` | `TPE_` (assinante, nome até 60, ativo); índice **único** `(TPE_ASSINANTE_ID, TPE_NOME)`; FK `Restrict` |
@@ -53,4 +53,6 @@ Acesso a dados com EF Core 9 + **MySQL** via `Pomelo.EntityFrameworkCore.MySql 9
 - Enums `Domain/Enums/StatusPendencia` (`AFazer = 1`, `EmAndamento = 2`, `Concluida = 3`), `PrioridadePendencia` (`Alta = 1`, `Media = 2`, `Baixa = 3`) e `CategoriaPendencia` (`Contrato = 1`, `EscalaEquipe = 2`, `RotaInformacoes = 3`, `PlataformaFotos = 4`, `Equipamento = 5`, `EntregaFotos = 6`, `Organizador = 7`, `Outros = 8`): valores fixos, gravados como int.
 - `PendenciaModelos` (plano 07): cria `PENDENCIAMODELOS` e adiciona `EVP_MODELO_ID` em `EVENTOPENDENCIAS` (FK `Restrict` + índice único `(EVP_EVENTO_ID, EVP_MODELO_ID)` + índice do modelo); o `Down` desfaz só isso. O `EventoPendenciaMap` declara `HasIndex(EVP_EVENTO_ID)` explícito de propósito: sem ele o EF geraria um `DropIndex` do índice de FK existente (por ser prefixo do único novo) antes de criar o substituto, e o MySQL não permite apagar o índice usado pela FK. Gerada pela `EfDbContextFactory`, sem acessar o banco.
 - Enum `StatusPendencia` ganha `Ignorada = 4` (estado final reversível; sem coluna nova, `EVP_STATUS` já é int).
+- `AutocadastroTesteGratis` (plano 14): só dois `AddColumn` em `ASSINANTES` (`ASS_TESTE_ATE` `date` nula e `ASS_ORIGEM` `int` não nula); o `Down` remove só os dois. O `AssinanteMap` não tem `HasDefaultValue` (regra do projeto), então o `defaultValue` do `AddColumn` de `ASS_ORIGEM` foi trocado à mão de `0` para `1` (com comentário), para os assinantes já existentes ficarem com origem Admin; o snapshot não muda por isso. Nenhuma coluna nova em `ASPNETUSERS`: o vínculo com o Google usa `ASPNETUSERLOGINS` (provedor "Google", chave = `sub`). Gerada pela `EfDbContextFactory`, sem acessar o banco.
+- Enum `Domain/Enums/OrigemAssinante` (`Admin = 1`, `Autocadastro = 2`): valores fixos, gravado como int; o C# inicializa `ASS_ORIGEM` com `Admin`.
 - Não rodar `dotnet ef database update`: a API aplica as migrations ao iniciar.

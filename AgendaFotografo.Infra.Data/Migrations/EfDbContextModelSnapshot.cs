@@ -45,9 +45,15 @@ namespace AgendaFotografo.Infra.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
+                    b.Property<int>("ASS_ORIGEM")
+                        .HasColumnType("int");
+
                     b.Property<string>("ASS_TELEFONE")
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
+
+                    b.Property<DateOnly?>("ASS_TESTE_ATE")
+                        .HasColumnType("date");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime");

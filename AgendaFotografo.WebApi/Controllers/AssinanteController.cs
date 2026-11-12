@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using AgendaFotografo.Domain.Constants;
 using AgendaFotografo.Domain.Entities;
+using AgendaFotografo.Domain.Enums;
 using AgendaFotografo.Domain.Interfaces;
 using AgendaFotografo.Infra.Data.Context;
 using AgendaFotografo.WebApi.Helpers;
@@ -29,7 +30,7 @@ public class AssinanteController(
     EfDbContext db,
     SessaoUsuarioCache sessaoCache,
     ICurrentUser currentUser,
-    IAssinanteInicializacao assinanteInicializacao,
+    AssinanteCadastro cadastro,
     ILogger<AssinanteController> logger) : AgendaFotografoController
 {
     private readonly IBaseRepository<Assinante> _repAssinante = repAssinante;
@@ -38,16 +39,14 @@ public class AssinanteController(
     private readonly EfDbContext _db = db;
     private readonly SessaoUsuarioCache _sessaoCache = sessaoCache;
     private readonly ICurrentUser _currentUser = currentUser;
-    private readonly IAssinanteInicializacao _assinanteInicializacao = assinanteInicializacao;
+    private readonly AssinanteCadastro _cadastro = cadastro;
     private readonly ILogger<AssinanteController> _logger = logger;
 
     private const int PageSizeMaximo = 100;
 
     private const string MsgIdObrigatorio = "Id é obrigatório";
     private const string MsgNaoEncontrado = "Assinante não encontrado";
-    private const string MsgEmailDuplicado = "Já existe um usuário com este e-mail.";
-    private const string MsgCpfCnpjDuplicado = "Já existe um assinante com este CPF/CNPJ.";
-    private const string MsgEmailInvalidoLogin = "E-mail inválido para login.";
+    private const string MsgEmailDuplicado = AssinanteCadastro.MsgEmailDuplicado;
     private const string MsgSemUsuario = "Assinante sem usuário de acesso.";
     private const string MsgFalhaGravar = "Não foi possível salvar o assinante. Tente novamente.";
 
@@ -113,10 +112,17 @@ public class AssinanteController(
                     ASS_TELEFONE = x.a.ASS_TELEFONE,
                     ASS_CPF_CNPJ = x.a.ASS_CPF_CNPJ,
                     ASS_ATIVO = x.a.ASS_ATIVO,
+                    ASS_TESTE_ATE = x.a.ASS_TESTE_ATE,
+                    ASS_ORIGEM = x.a.ASS_ORIGEM,
                     ExigirTrocaSenha = x.u != null && x.u.ExigirTrocaSenha,
                     LastLogin = x.u != null ? x.u.LastLogin : null
                 })
                 .ToListAsync(cancellationToken);
+
+            // Dias restantes do teste: calculado depois de ler a página, nunca no SQL
+            var hoje = DateOnly.FromDateTime(DateTime.Now);
+            foreach (var item in dados)
+                item.TesteDiasRestantes = TesteGratis.DiasRestantes(item.ASS_TESTE_ATE, hoje);
 
             return Ok(new PaginatedResponse<AssinanteListItem>
             {
@@ -169,35 +175,18 @@ public class AssinanteController(
             var error = ValidationHelper.ValidateModel(model, new AssinanteValidator());
             if (error is not null) { await _unitOfWork.RollbackAsync(cancellationToken); return BadRequest(error); }
 
-            if (await EmailEmUsoAsync(model.ASS_EMAIL, null, cancellationToken))
-                throw new Exception(MsgEmailDuplicado);
-            await GarantirCpfCnpjUnicoAsync(model.ASS_CPF_CNPJ, null, cancellationToken);
-
-            var assinante = new Assinante { ASS_ATIVO = true };
-            Aplicar(assinante, model);
-            await _repAssinante.InsertTransactionAsync(assinante, cancellationToken);
-
             var senha = SenhaTemporaria.Gerar();
-            var usuario = new Usuario
+            var (assinante, usuario) = await _cadastro.CriarAsync(new AssinanteCadastroDados
             {
-                UserName = model.ASS_EMAIL,
+                Nome = model.ASS_NOME,
                 Email = model.ASS_EMAIL,
-                EmailConfirmed = true,
-                FullName = model.ASS_NOME,
-                Ativo = true,
-                CreatedAt = DateTime.Now,
-                ExigirTrocaSenha = true,
-                LockoutEnabled = true,
-                AssinanteId = assinante.Id // o EF já atribuiu o Guid ao adicionar o assinante ao contexto
-            };
-
-            var criou = await _userManager.CreateAsync(usuario, senha);
-            if (!criou.Succeeded) throw new Exception(TraduzirErros(criou, "Não foi possível criar o usuário de acesso."));
-
-            var comRole = await _userManager.AddToRoleAsync(usuario, RoleNames.Assinante);
-            if (!comRole.Succeeded) throw new Exception(TraduzirErros(comRole, "Não foi possível definir o perfil do usuário de acesso."));
-
-            await _assinanteInicializacao.PrepararNovoAssinanteAsync(assinante.Id, cancellationToken);
+                Telefone = model.ASS_TELEFONE,
+                CpfCnpj = model.ASS_CPF_CNPJ,
+                Origem = OrigemAssinante.Admin,
+                TesteAte = model.ASS_TESTE_ATE,
+                EmailConfirmado = true,
+                ExigirTrocaSenha = true
+            }, senha, null, cancellationToken);
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await _unitOfWork.CommitAsync(cancellationToken);
@@ -215,7 +204,7 @@ public class AssinanteController(
         catch (DbUpdateException ex)
         {
             await _unitOfWork.RollbackAsync(cancellationToken);
-            var duplicidade = EhDuplicidade(ex);
+            var duplicidade = AssinanteCadastro.EhDuplicidade(ex);
             if (!duplicidade)
                 _logger.LogError(ex, "Falha ao gravar assinante. AtorId={AtorId}", _currentUser.UserIdentity.Id);
             return BadRequest(duplicidade ? MsgEmailDuplicado : MsgFalhaGravar);
@@ -227,7 +216,7 @@ public class AssinanteController(
         }
     }
 
-    /// <summary>Altera só nome, CPF/CNPJ, e-mail e telefone (ignora ASS_ATIVO). E-mail e nome acompanham o usuário de login.</summary>
+    /// <summary>Altera nome, CPF/CNPJ, e-mail, telefone e ASS_TESTE_ATE (ignora ASS_ATIVO e ASS_ORIGEM). E-mail e nome acompanham o usuário de login.</summary>
     [HttpPut]
     public async Task<IActionResult> Atualizar([FromBody] AssinanteModel model, CancellationToken cancellationToken)
     {
@@ -257,11 +246,11 @@ public class AssinanteController(
             // Só diferença de caixa não conta como mudança
             var emailMudou = !string.Equals(assinante.ASS_EMAIL, model.ASS_EMAIL, StringComparison.OrdinalIgnoreCase)
                 || (usuario is not null && !string.Equals(usuario.Email, model.ASS_EMAIL, StringComparison.OrdinalIgnoreCase));
-            if (emailMudou && await EmailEmUsoAsync(model.ASS_EMAIL, usuario?.Id, cancellationToken))
+            if (emailMudou && await _cadastro.EmailEmUsoAsync(model.ASS_EMAIL, usuario?.Id, cancellationToken))
                 throw new Exception(MsgEmailDuplicado);
             if (emailMudou && usuario is not null)
-                await ValidarLoginIdentityAsync(usuario.Id, model.ASS_EMAIL);
-            await GarantirCpfCnpjUnicoAsync(model.ASS_CPF_CNPJ, assinante.Id, cancellationToken);
+                await _cadastro.ValidarLoginIdentityAsync(usuario.Id, model.ASS_EMAIL);
+            await _cadastro.GarantirCpfCnpjUnicoAsync(model.ASS_CPF_CNPJ, assinante.Id, cancellationToken);
 
             Aplicar(assinante, model);
 
@@ -292,7 +281,7 @@ public class AssinanteController(
         catch (DbUpdateException ex)
         {
             await _unitOfWork.RollbackAsync(cancellationToken);
-            var duplicidade = EhDuplicidade(ex);
+            var duplicidade = AssinanteCadastro.EhDuplicidade(ex);
             if (!duplicidade)
                 _logger.LogError(ex, "Falha ao gravar assinante. AtorId={AtorId}", _currentUser.UserIdentity.Id);
             return BadRequest(duplicidade ? MsgEmailDuplicado : MsgFalhaGravar);
@@ -432,72 +421,24 @@ public class AssinanteController(
         Response.Headers.Pragma = "no-cache";
     }
 
-    /// <summary>Compara pelo e-mail normalizado (sem diferenciar caixa), excluindo o próprio usuário quando informado. Vale para qualquer usuário (inclusive o admin).</summary>
-    private async Task<bool> EmailEmUsoAsync(string email, string? usuarioIdAtual, CancellationToken cancellationToken)
-    {
-        var normalizado = _userManager.NormalizeEmail(email);
-        return await _db.Users.AsNoTracking().AnyAsync(
-            u => (u.NormalizedEmail == normalizado || u.NormalizedUserName == normalizado) && (usuarioIdAtual == null || u.Id != usuarioIdAtual),
-            cancellationToken);
-    }
-
-    /// <summary>
-    /// Antes de trocar o login, roda os validadores do Identity (caracteres permitidos no UserName, formato do e-mail e duplicidade)
-    /// num usuário descartável com o mesmo Id, sem tocar na entidade rastreada.
-    /// </summary>
-    private async Task ValidarLoginIdentityAsync(string usuarioId, string email)
-    {
-        var candidato = new Usuario { Id = usuarioId, UserName = email, Email = email };
-        foreach (var validador in _userManager.UserValidators)
-        {
-            var resultado = await validador.ValidateAsync(_userManager, candidato);
-            if (resultado.Succeeded) continue;
-
-            if (resultado.Errors.Any(e => e.Code is "DuplicateEmail" or "DuplicateUserName"))
-                throw new Exception(MsgEmailDuplicado);
-            throw new Exception(MsgEmailInvalidoLogin);
-        }
-    }
-
-    private async Task GarantirCpfCnpjUnicoAsync(string? cpfCnpj, Guid? idAtual, CancellationToken cancellationToken)
-    {
-        if (cpfCnpj is null) return;
-        var existe = await _repAssinante.AnyAsync(x => x.ASS_CPF_CNPJ == cpfCnpj && (idAtual == null || x.Id != idAtual), cancellationToken);
-        if (existe) throw new Exception(MsgCpfCnpjDuplicado);
-    }
-
     /// <summary>Trim em tudo; e-mail em minúsculas; CPF/CNPJ e telefone só com dígitos; vazio vira nulo. Campos somente de saída não são lidos.</summary>
     private static void Normalizar(AssinanteModel m)
     {
         m.ASS_NOME = (m.ASS_NOME ?? string.Empty).Trim();
-        m.ASS_EMAIL = (m.ASS_EMAIL ?? string.Empty).Trim().ToLowerInvariant();
-        m.ASS_CPF_CNPJ = SomenteDigitosOuNulo(m.ASS_CPF_CNPJ);
-        m.ASS_TELEFONE = SomenteDigitosOuNulo(m.ASS_TELEFONE);
+        m.ASS_EMAIL = AssinanteCadastro.NormalizarEmail(m.ASS_EMAIL);
+        m.ASS_CPF_CNPJ = AssinanteCadastro.SomenteDigitosOuNulo(m.ASS_CPF_CNPJ);
+        m.ASS_TELEFONE = AssinanteCadastro.SomenteDigitosOuNulo(m.ASS_TELEFONE);
     }
 
-    private static string? SomenteDigitosOuNulo(string? valor)
-    {
-        var digitos = Regex.Replace(valor ?? string.Empty, @"\D", "");
-        return digitos.Length == 0 ? null : digitos;
-    }
-
-    /// <summary>Aplica só os campos editáveis (nunca ASS_ATIVO).</summary>
+    /// <summary>Aplica só os campos editáveis (nunca ASS_ATIVO nem ASS_ORIGEM).</summary>
     private static void Aplicar(Assinante a, AssinanteModel m)
     {
         a.ASS_NOME = m.ASS_NOME;
         a.ASS_CPF_CNPJ = m.ASS_CPF_CNPJ;
         a.ASS_EMAIL = m.ASS_EMAIL;
         a.ASS_TELEFONE = m.ASS_TELEFONE;
+        a.ASS_TESTE_ATE = m.ASS_TESTE_ATE; // data passada é permitida (encerra o teste); ASS_ORIGEM do body é sempre ignorado
     }
-
-    private static bool EhDuplicidade(DbUpdateException ex)
-        => (ex.InnerException?.Message ?? string.Empty).Contains("Duplicate entry", StringComparison.OrdinalIgnoreCase);
-
-    /// <summary>Traduz os erros do Identity sem repassar texto livre (nunca inclui senha).</summary>
-    private static string TraduzirErros(IdentityResult resultado, string padrao)
-        => resultado.Errors.Any(e => e.Code is "DuplicateEmail" or "DuplicateUserName") ? MsgEmailDuplicado
-            : resultado.Errors.Any(e => e.Code is "InvalidUserName" or "InvalidEmail") ? MsgEmailInvalidoLogin
-            : padrao;
 
     private static AssinanteModel ParaModel(Assinante a, Usuario? u) => new()
     {
@@ -507,6 +448,9 @@ public class AssinanteController(
         ASS_EMAIL = a.ASS_EMAIL,
         ASS_TELEFONE = a.ASS_TELEFONE,
         ASS_ATIVO = a.ASS_ATIVO,
+        ASS_TESTE_ATE = a.ASS_TESTE_ATE,
+        ASS_ORIGEM = a.ASS_ORIGEM,
+        TesteDiasRestantes = TesteGratis.DiasRestantes(a.ASS_TESTE_ATE, DateOnly.FromDateTime(DateTime.Now)),
         ExigirTrocaSenha = u?.ExigirTrocaSenha ?? false,
         LastLogin = u?.LastLogin,
         CreatedAt = a.CreatedAt

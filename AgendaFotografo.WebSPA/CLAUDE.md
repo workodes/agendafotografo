@@ -29,7 +29,7 @@ Não há testes automatizados no padrão. Para logar é preciso a API no ar (`do
   Todo endpoint novo entra nos dois arquivos de environment, com a mesma chave (objeto por controller, chaves em camelCase: `Auth.login`, `Auth.alterarSenha`).
   JSON com nomes C# exatos (nunca camelCase).
 - Auth (`api/Auth/[action]`, comum aos dois perfis):
-  - `POST Login` (anônimo): `{Email, Password}` -> `{Token, ExpiraEm, Id, FullName, Email, Role, ExigirTrocaSenha, AssinanteNome}`. `Role` = `Admin` | `Assinante`;
+  - `POST Login` (anônimo): `{Email, Password}` -> `{Token, ExpiraEm, Id, FullName, Email, Role, ExigirTrocaSenha, AssinanteNome, TemSenha}`. `Role` = `Admin` | `Assinante`;
     `AssinanteNome` só para o Assinante; `AssinanteId` não vem mais.
   - `POST AlterarSenha` (autenticado): `{SenhaAtual, NovaSenha}` -> `ApiResponse`. Mínimo de 8 caracteres e diferente da atual; zera `ExigirTrocaSenha`.
   - Não existem `Me` nem `ChangePassword`. Erros chegam como texto no corpo do 400 (`error.error`), em pt-BR.
@@ -40,7 +40,7 @@ Não há testes automatizados no padrão. Para logar é preciso a API no ar (`do
 - `app.routes.ts` (ordem importa):
   1. `/e/:token`: rota pública anônima (link público do evento, plano 05), **fora** do layout autenticado, sem guards, layout `empty`
      (`modules/publico/evento-publico/`; ver a seção "Link público"). Rotas públicas novas ficam nesse bloco.
-  2. `/sign-in` com `NoAuthGuard` (já logado vai para a rota inicial da role).
+  2. `/sign-in` (aba Entrar) e `/sign-up` (aba Cadastro) com `NoAuthGuard` (já logado vai para a rota inicial da role). Mesmo componente (`modules/auth/sign-in`), `data.aba` = `entrar` | `cadastro` (plano 14; ver "Autocadastro e teste grátis").
   3. Bloco autenticado (`initialDataResolver` = só o menu): `/sign-out` (qualquer role) e um bloco por role com `AuthGuard` + `data.requiredRoles`:
      `/admin` (`rotasAdmin`) e `/assinante` (`rotasAssinante`). O Admin parte de `rotasComuns` (hoje só o `inicio` placeholder); o Assinante tem o próprio `inicio` (`modules/assinante/inicio`, plano 08).
   4. `404-not-found` e `**`.
@@ -56,7 +56,7 @@ Não há testes automatizados no padrão. Para logar é preciso a API no ar (`do
   `getRotaInicial()`, `AlterarSenha(body)` e `ConcluirTrocaSenha()` (zera `ExigirTrocaSenha` guardado). Token em `localStorage` (`accessToken`); "Lembrar-me" guarda só o e-mail.
 - `authInterceptor` anexa `Authorization: Bearer` quando o token não expirou. **401 com sessão = sessão derrubada pela API** (usuário/assinante inativo, role alterada;
   revalidação em até 30 s): desloga e recarrega, e o `AuthGuard` manda para `/sign-in`. Sem token guardado, o 401 é ignorado (endpoints anônimos, como o link público).
-- `UsuarioService`: guarda `usuario$` (Id, FullName, Email, Role, ExigirTrocaSenha, AssinanteNome).
+- `UsuarioService`: guarda `usuario$` (Id, FullName, Email, Role, ExigirTrocaSenha, TemSenha, AssinanteNome).
 - **Troca de senha**: `layout/common/user/alterar-senha-dialog/` (modal, `AlterarSenha`). Dois usos: (1) menu do usuário (ícone no cabeçalho) -> "Alterar senha";
   (2) **troca forçada**: se `usuario.ExigirTrocaSenha` for true, o `ModernLayoutComponent` abre o modal com `disableClose` e `data.obrigatorio`, sem Cancelar (só "Sair"),
   e repete a cada F5 até a troca. Obs.: o modal só bloqueia visualmente; a API é quem manda (não há bloqueio de rota além do modal).
@@ -103,6 +103,15 @@ Os demais módulos entram com seus planos: criar a rota e o item de menu juntos 
   (para WhatsApp). **A senha só existe em memória**: nunca em storage, console, rota ou URL; apagada ao fechar.
 - `AssinanteService` (`api/Assinante/*`, `id` sempre na query): `Inativar` = "Bloquear" na tela. Erros da API vêm em texto (`mensagemErro` em `utils/mensagem-erro.ts`).
 - Login: 5 senhas erradas = 400 "Usuário bloqueado temporariamente" por 15 min (o sign-in já mostra o texto do corpo); "Redefinir acesso" libera.
+
+## Autocadastro e teste grátis (plano 14)
+- **Rotas**: `/sign-in` (Entrar) e `/sign-up` (Cadastro) abrem o mesmo `AuthSignInComponent`; `data.aba` define a aba. Trocar de aba navega entre as duas rotas (entra no histórico). O `redirectURL` vale no Entrar. Os 3 "Começar" da landing (`src/landing/index.html`) apontam para `/sign-up`; "Entrar", "Já tenho conta", o "Entrar" do rodapé e o script do app instalado continuam em `/sign-in`.
+- **Environments** (`Auth.configuracaoLogin`, `cadastrar`, `loginGoogle`, `cadastrarGoogle`, `testeGratis`, nos dois arquivos). `AuthService`: `ConfiguracaoLogin()` (anônimo: `{ GoogleClientId, DiasGratis }`), `Cadastrar`, `LoginGoogle(idToken)` (`{ PrecisaCompletar, Login, Nome, Email }`), `CadastrarGoogle` e `TesteGratis()`. Tudo que devolve `LoginResponse` passa por `registrarSessao` (checa o perfil e guarda `TemSenha`; ausente = tem senha).
+- **Tela**: abas com `role="tablist"`; Entrar (formulário de sempre + divisor "ou" + botão do Google + dica "Criou a conta com o Google?"); Cadastro (botão do Google, "ou", Nome, E-mail, Telefone, CPF/CNPJ e Senha, todos obrigatórios, com `ngx-mask`, validação inline igual à ficha do Admin, mínimo de 8 na senha; telefone e CPF/CNPJ vão só com dígitos; texto "N dias grátis, sem cartão"). Quando `LoginGoogle` devolve `PrecisaCompletar`, abre a etapa "Complete seu cadastro" na própria tela (Nome editável, e-mail somente leitura, Telefone e CPF/CNPJ; "Criar conta" chama `CadastrarGoogle`, "Voltar" não grava nada). Erros em texto vêm de `error.error`.
+- **Google Identity Services** (`core/auth/google-identity.service.ts`, sem pacote npm; tipagem mínima local): carrega `https://accounts.google.com/gsi/client` uma vez, `initialize` uma vez com o Client ID **que vem só do `ConfiguracaoLogin`** (nunca no código nem nos environments; vazio/falha = botão e divisor somem), só o botão oficial em popup (`renderButton`, pt-BR, "Entrar com Google" no Entrar e "Continuar com Google" no Cadastro), sem One Tap. A credencial sai por `credencial$` dentro do `NgZone`. Script bloqueado = nota "Botão do Google indisponível neste navegador. Use e-mail e senha.". **O ID token só existe em memória** (propriedade do componente, apagada ao voltar, concluir e no `ngOnDestroy`); nunca em storage, URL ou console; F5 na etapa de completar volta ao início.
+- **`TemSenha`**: `Usuario.TemSenha` (false = conta só Google). O item "Alterar senha" do menu do usuário some quando é `false`, e a troca obrigatória do `ModernLayoutComponent` só abre se `TemSenha !== false`.
+- **Aviso do teste** (`layout/common/teste-gratis/`, `<teste-gratis>`, `OnPush`, no bloco `ehAssinante` do `modern.component.html`, depois da busca e antes do sino): chama `AuthService.TesteGratis()` uma vez ao montar o layout (cada F5); `DiasRestantes` nulo ou erro = nada. Mais de 3 dias: "Teste grátis: N dias restantes" neutro; de 3 a 1: âmbar; 0: "Teste encerrado" em âmbar; tooltip "Teste grátis até dd/MM/aaaa"; abaixo de `sm` (600 px) só um selo compacto (ícone de relógio + número; encerrado = ícone de alerta; até ~48 px), de `sm` até `lg` o texto curto ("N dias de teste") e o texto completo só de `lg` em diante; `aria-label` sempre com o texto completo. Não é clicável. Os dias vêm da API; `utils/teste-gratis.ts` só formata e decide o destaque (`testeEmAlerta`: 0 a 3).
+- **Admin / Assinantes**: `ASS_TESTE_ATE` ("yyyy-MM-dd" sem fuso), `ASS_ORIGEM` (enum `models/enums/OrigemAssinante.ts`: 1 Admin, 2 Autocadastro, com `ORIGEM_ASSINANTE_ROTULO`) e `TesteDiasRestantes` em `Assinante` e `AssinanteListItem`. A ficha tem o datepicker "Teste grátis até" (2000 a 2100, data passada permitida) com a caixa "Sem prazo" (padrão em `novo`; marcada envia `null`) e, na edição, mostra Origem e a situação do teste. A lista ganhou as colunas Origem e Teste (somem abaixo de `md`; âmbar de 3 a 0).
 
 ## Tema e responsividade
 - Paleta da landing no sistema (plano 16), no `tailwind.config.js`; tema `theme-sistema` (ativo em `app.config.ts`):
@@ -344,7 +353,7 @@ Painel de chat com IA (provedor configurável na API, `IA:*`; o SPA só fala com
 - **"Nova conversa" bloqueado durante o Confirmar**: contador `ChatService.confirmando` (`IniciarConfirmacao`/`EncerrarConfirmacao`, controlado pelo card, inclusive em erro e `ngOnDestroy`). Abaixo de `sm` o botão vira só ícone (`aria-label`/`title`). Linha Hora + "A confirmar" ocupa as duas colunas do card (`sm:col-span-2`), com o campo Hora de largura fixa (`w-40`).
 
 ## Landing page (plano 13)
-Página pública de apresentação em `https://quemclica.com.br/`, HTML estático **fora do Angular**. Todos os botões levam a `/sign-in`. Desenho: `docs/superpowers/specs/2026-11-10-landing-page-design.md`.
+Página pública de apresentação em `https://quemclica.com.br/`, HTML estático **fora do Angular**. Os botões "Começar" levam a `/sign-up` (o login fica em `/sign-in`). Desenho: `docs/superpowers/specs/2026-11-10-landing-page-design.md`.
 - **Onde mora**: `src/landing/` = `index.html` (página inteira, com CSS, SVGs, JSON-LD e os dois scripts inline), `fontes/` (três `woff2` e `OFL.txt`) e `compartilhar.png` (1200x630). O `angular.json` (`build.options.assets`)
   copia `src/landing` para `/landing` no `dist/wwwroot`, e `src/robots.txt` e `src/sitemap.xml` para a raiz. O `index.html` da raiz do `dist` continua sendo o do Angular. Todo endereço dentro da landing é absoluto
   (`/landing/...`, `/assets/...`, `/sign-in`); logo, favicon e ícones são os de `/assets/images/`, sem cópia. O `src/_redirects` (Netlify, vinha do template) foi removido.

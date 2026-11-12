@@ -1,7 +1,7 @@
 # Deploy no Dokploy (VM Hostinger)
 
 Deploy por **Docker Compose** a partir do repositório (auto-deploy a cada push na branch configurada no Dokploy).
-Credenciais de produção: só no `docker-compose.yml` (serviço do MySQL e connection string da API); não repetir aqui.
+Credenciais de produção: as do serviço `agenda-mysql` ficam no `docker-compose.yml`; a connection string da API vem do Environment do Dokploy (`AGENDA_DB_CONNECTION`). Não repetir senhas aqui.
 
 ## Arquitetura
 
@@ -15,7 +15,7 @@ Internet ─HTTPS─> Traefik (Dokploy) ─> agenda-web (Nginx :80) ─┬─ / 
 | Serviço | Origem | Papel |
 |---|---|---|
 | `agenda-web` | `AgendaFotografo.WebSPA/Dockerfile` + `nginx.conf` | Build do Angular (Node 22) servido por Nginx; entrega a landing page em `/` (exato); proxy de `/api/` para a API (mesma origem, sem CORS); fallback de rotas do SPA para o `index.html` (com `noindex`); 301 do `www` para o domínio sem `www`; `nginx -t` no build da imagem; gzip, cache dos bundles com hash, upload até 12 MB. **Único serviço com domínio.** |
-| `agenda-api` | `Dockerfile` (raiz) | `AgendaFotografo.WebApi` em `ASPNETCORE_ENVIRONMENT=Production`; banco e pasta de arquivos vêm das variáveis do compose. Roda sem root. Ao subir aplica as migrations e o seed. |
+| `agenda-api` | `Dockerfile` (raiz) | `AgendaFotografo.WebApi` em `ASPNETCORE_ENVIRONMENT=Production`; banco (`AGENDA_DB_CONNECTION`), Google, dias de teste e pasta de arquivos vêm das variáveis do compose. Roda sem root. Ao subir aplica as migrations e o seed. |
 | `agenda-mysql` | `mysql:8.0` | Banco `agenda_fotografo`. Sem porta publicada; só a API o enxerga (rede `interna`). |
 
 Volumes (persistem entre deploys; **incluir no backup**): `agenda-mysql-data` (banco) e `agenda-arquivos` (flyer, imagem de rota e GPX, em `/app/dados/arquivos`).
@@ -31,6 +31,25 @@ Por que a rede `interna`: na `dokploy-network` todos os projetos da VM se enxerg
 3. **Deployments / Auto Deploy**: ligado (webhook do GitHub).
 4. Primeiro deploy: o MySQL inicializa o volume (até ~40 s); a API espera o *healthcheck* dele, aplica as migrations e cria o admin do seed
    (`admin@agendafotografo.com.br`, com troca de senha obrigatória no primeiro acesso fora do Development).
+
+## Variáveis do Environment (Dokploy)
+
+> **Antes do push desta entrega (autocadastro), crie `AGENDA_DB_CONNECTION` e `AGENDA_GOOGLE_CLIENT_ID` no Environment do Dokploy.**
+> Sem `AGENDA_DB_CONNECTION` o deploy falha de propósito. Sem `AGENDA_GOOGLE_CLIENT_ID` o deploy funciona, mas o botão do Google não aparece.
+
+Definidas em *Environment* do serviço Compose no Dokploy (ou num `.env` local). O compose as repassa ao `agenda-api`. Nenhum valor real vai para o git.
+
+| Variável | Obrigatória | Padrão | Vira no `agenda-api` | Exemplo / observação |
+|---|---|---|---|---|
+| `AGENDA_DB_CONNECTION` | **Sim** | nenhum (o deploy falha) | `ConnectionStrings__DefaultConection` | `Server=agenda-mysql;Port=3306;Database=agenda_fotografo;User Id=<usuário do agenda-mysql>;Password=<senha do agenda-mysql>;` (mesmo usuário e senha do `agenda-mysql` no compose) |
+| `AGENDA_GOOGLE_CLIENT_ID` | Não | vazio (sem botão do Google) | `Google__ClientId` | `123456789-abc.apps.googleusercontent.com` (ver "Login com Google") |
+| `AGENDA_TESTE_DIAS_GRATIS` | Não | `15` | `Teste__DiasGratis` | `15`; o dia do cadastro conta como o 1º dia; valor inválido ou menor que 1 vale 15 |
+| `AGENDA_REDE_CONFIAVEL` | Não | `172.16.0.0/12` | `ForwardedHeaders__KnownIPNetworks__0` | faixa CIDR do Nginx perante a API (ver "Link público") |
+| `AGENDA_IA_PROVEDOR` | Não | `OpenAI` | `IA__Provedor` | `OpenAI` ou `AzureOpenAI` |
+| `AGENDA_IA_APIKEY` | Não | vazio (chat desligado) | `IA__ApiKey` | chave do provedor (ver [`ia.md`](ia.md)) |
+| `AGENDA_IA_MODELO` | Não | vazio (chat desligado) | `IA__Modelo` | nome do modelo ou do deployment |
+| `AGENDA_IA_ENDPOINT` | Não | vazio | `IA__Endpoint` | obrigatório no Azure OpenAI |
+| `AGENDA_IA_LIMITE_DIARIO` | Não | `100` | `IA__LimiteDiario` | mensagens por assinante por dia |
 
 ## Backup (Volume Backups do Dokploy)
 
@@ -61,14 +80,15 @@ bucket fica em torno de 4 × o tamanho de cada volume. Medir o volume de arquivo
 
 - **Um só `appsettings.json`, apontando para o zeus** (desenvolvimento e testes). O container sobrescreve por variáveis de ambiente
   (`ConnectionStrings__DefaultConection`, com um "n" só, e `Arquivos__Pasta`). Não criar `appsettings.Production.json`: o testador bloqueia
-  qualquer connection string fora do zeus nos appsettings. Se a variável sumir do compose, a produção passa a gravar no zeus.
+  qualquer connection string fora do zeus nos appsettings. A connection string de produção vem do Environment do Dokploy
+  (`AGENDA_DB_CONNECTION`, obrigatória, sintaxe `:?` no compose): se a variável não existir, o deploy falha em vez de a produção cair no zeus.
 - Variáveis do MySQL (`MYSQL_*`) só valem na **criação** do volume. Trocar a senha depois exige `ALTER USER` no banco ou recriar o volume (perde os dados).
 - `Jwt:Key` e `Seed:AdminPassword` vêm do `appsettings.json`. Para uma chave própria de produção, definir `Jwt__Key` em *Environment* do Dokploy
   e repassá-la ao `agenda-api` no compose (`Jwt__Key: ${Jwt__Key}`); a troca derruba as sessões abertas.
 - Horário: API, Nginx e MySQL em `America/Sao_Paulo` (o código usa `DateTime.Now`).
 - Build do Angular consome memória; se a VM tiver pouca RAM e o build falhar por *heap out of memory*, aumentar a swap da VM.
 - Logs: aba *Logs* de cada serviço no Dokploy. A API loga servidor/banco/ambiente ao subir (nunca a senha).
-- Rodar local (com Docker): `docker network create dokploy-network` uma vez e `docker compose up --build`; abrir http://localhost só se publicar a porta do `agenda-web` (ex.: `ports: ["8080:80"]` num override local).
+- Rodar local (com Docker): crie um arquivo `.env` na raiz (já ignorado pelo git) com `AGENDA_DB_CONNECTION` (formato da seção abaixo), `docker network create dokploy-network` uma vez e `docker compose up --build`; abrir http://localhost só se publicar a porta do `agenda-web` (ex.: `ports: ["8080:80"]` num override local).
 
 ## Link público (`/e/<token>`)
 
@@ -103,9 +123,38 @@ bucket fica em torno de 4 × o tamanho de cada volume. Medir o volume de arquivo
 - Passo a passo (conta e chave na OpenAI, créditos, limite de gasto, modelo, testes e alternativa Azure OpenAI): [`ia.md`](ia.md). Os dados das mensagens são processados fora do Brasil.
 - O limite diário fica em memória: manter **uma só instância** da API. O `/api/` do `nginx.conf` tem `proxy_read_timeout 120s`, acima do timeout de 60 s da chamada ao modelo.
 
+## Login com Google
+
+O cadastro e o login com Google usam o botão oficial (Google Identity Services, popup). O ID token é validado **sempre na API** (`Google.Apis.Auth`, audiência = Client ID); a API precisa de saída para a internet para baixar as chaves públicas do Google.
+
+- **Client ID vazio = sem botão do Google**: o cadastro e o login por e-mail e senha continuam funcionando.
+- O **segredo do cliente não é usado**: não copiar para lugar nenhum. O Client ID não é segredo, mas fica num lugar só (`Google:ClientId`; em produção, `AGENDA_GOOGLE_CLIENT_ID`).
+- Se um dia entrar **CSP** no `nginx.conf`, liberar `https://accounts.google.com` (script, frame, estilo e conexão).
+- Se um dia entrar **`Cross-Origin-Opener-Policy`**, usar `same-origin-allow-popups`, porque o botão usa popup.
+
+### Passo a passo: criar o Client ID (uma vez)
+
+1. Abrir https://console.cloud.google.com/ com a conta Google da empresa e criar um projeto (ex.: "quemclica").
+2. Menu **Google Auth Platform** (antes "APIs e serviços → Tela de consentimento OAuth") → **Começar**:
+   - nome do app: **quemclica**; e-mail de suporte: um e-mail da empresa;
+   - público: **Externo**;
+   - dados de contato do desenvolvedor: e-mail da empresa; aceitar a política.
+3. Em **Branding**:
+   - página inicial `https://quemclica.com.br` e domínio autorizado `quemclica.com.br`;
+   - a logo é opcional: enviá-la exige verificação da marca pelo Google, e sem logo o login funciona normalmente;
+   - link da política de privacidade: pendente (ver o plano 14, "Riscos conhecidos").
+4. Em **Público**: clicar em **Publicar app**. Em modo "Teste", só os e-mails cadastrados como testadores conseguem entrar. Como só usamos os escopos básicos (`openid`, `email`, `profile`), o Google não exige revisão do app.
+5. Em **Clientes** → **Criar cliente** → tipo **Aplicativo da Web**, nome "quemclica web":
+   - **Origens JavaScript autorizadas**: `http://localhost`, `http://localhost:4200` (desenvolvimento) e `https://quemclica.com.br` (produção). O `www` não precisa, porque redireciona;
+   - **URIs de redirecionamento**: deixar vazio. O botão do Google usa popup e não redireciona.
+6. Copiar o **ID do cliente** (termina em `.apps.googleusercontent.com`) e colocar:
+   - em `Google:ClientId` no `appsettings.json` (desenvolvimento);
+   - em `AGENDA_GOOGLE_CLIENT_ID` no Environment do Dokploy (produção; o compose repassa como `Google__ClientId`).
+7. Testar: abrir `http://localhost:4200/sign-up` e clicar em "Continuar com Google".
+
 ## Landing page (`/`)
 
-- **O que é**: página estática (`AgendaFotografo.WebSPA/src/landing/`, plano 13) que o próprio Nginx do `agenda-web` entrega em `https://quemclica.com.br/`, com 200 e sem redirecionar. Os botões levam a `/sign-in`. Não precisa de API, banco, volume nem variável nova.
+- **O que é**: página estática (`AgendaFotografo.WebSPA/src/landing/`, plano 13) que o próprio Nginx do `agenda-web` entrega em `https://quemclica.com.br/`, com 200 e sem redirecionar. Os botões "Começar" levam a `/sign-up` (aba Cadastro) e "Entrar"/"Já tenho conta" a `/sign-in`. Não precisa de API, banco, volume nem variável nova.
 - **Como o Nginx a serve**:
   - `location = /` entrega `/landing/index.html`; `/landing/` e `/landing/index.html` respondem 301 para `/`; o resto de `/landing/` (fontes e `compartilhar.png`) só entrega arquivo existente (404 se não houver, sem cair no SPA).
   - Cache: a landing em `/`, `no-cache`; `/landing/*` e `/assets/*`, 7 dias; `robots.txt` e `sitemap.xml`, `no-cache`.

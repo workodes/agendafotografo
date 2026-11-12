@@ -58,7 +58,9 @@ export const appRoutes: Route[] = [
         component: LayoutComponent,
         data: { layout: 'empty' },
         children: [
-            { path: 'sign-in', loadChildren: () => import('app/modules/auth/sign-in/sign-in.routes') },
+            // Mesmo componente nas duas abas: data.aba diz qual abre (Entrar | Cadastro).
+            { path: 'sign-in', data: { aba: 'entrar' }, loadChildren: () => import('app/modules/auth/sign-in/sign-in.routes') },
+            { path: 'sign-up', data: { aba: 'cadastro' }, loadChildren: () => import('app/modules/auth/sign-in/sign-in.routes') },
         ],
     },
 

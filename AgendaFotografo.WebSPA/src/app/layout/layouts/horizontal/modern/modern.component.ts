@@ -12,6 +12,7 @@ import { UsuarioService } from 'app/core/services/usuario.service';
 import { NavigationService } from 'app/core/navigation/navigation.service';
 import { Navigation } from 'app/core/navigation/navigation.types';
 import { AlterarSenhaDialogComponent } from 'app/layout/common/user/alterar-senha-dialog/alterar-senha-dialog.component';
+import { TesteGratisComponent } from 'app/layout/common/teste-gratis/teste-gratis.component';
 import { UserComponent } from 'app/layout/common/user/user.component';
 import { AssistenteComponent } from 'app/layout/common/assistente/assistente.component';
 import { ChatService } from 'app/services/chat.service';
@@ -27,7 +28,7 @@ import { Subject, filter, takeUntil } from 'rxjs';
     styleUrls    : ['./modern-component.scss'],
     encapsulation: ViewEncapsulation.None,
     standalone   : true,
-    imports      : [FuseLoadingBarComponent, RouterModule, NgIf, NgClass, AssistenteComponent, FuseVerticalNavigationComponent, FuseHorizontalNavigationComponent, MatButtonModule, MatIconModule, UserComponent, AvisosComponent, BuscaGlobalComponent, RouterOutlet, FecharComEscDirective],
+    imports      : [FuseLoadingBarComponent, RouterModule, NgIf, NgClass, AssistenteComponent, FuseVerticalNavigationComponent, FuseHorizontalNavigationComponent, MatButtonModule, MatIconModule, UserComponent, TesteGratisComponent, AvisosComponent, BuscaGlobalComponent, RouterOutlet, FecharComEscDirective],
 })
 export class ModernLayoutComponent implements OnInit, OnDestroy
 {
@@ -85,7 +86,7 @@ export class ModernLayoutComponent implements OnInit, OnDestroy
         this._usuarioService.usuario$
             .pipe(takeUntil(this._unsubscribeAll))
             .subscribe(usuario => {
-                if (usuario?.ExigirTrocaSenha === true && !this._trocaSenhaAberta) {
+                if (usuario?.ExigirTrocaSenha === true && usuario?.TemSenha !== false && !this._trocaSenhaAberta) {
                     this._trocaSenhaAberta = true;
                     this.abrirTrocaSenhaObrigatoria();
                 }
