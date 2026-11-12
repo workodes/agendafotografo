@@ -64,7 +64,9 @@
 } @else {
     <div class="qc-shell flex min-h-screen w-full items-center justify-center px-4 py-8 sm:px-6">
         <main class="qc-cartao w-full max-w-[440px] px-6 py-8 text-center sm:px-10 sm:py-10">
-            <img class="mx-auto mb-4 w-[160px]" src="assets/images/logo/logo.png" alt="quemclica" />
+            @if (mostrarLogo) {
+                <img class="mx-auto mb-4 w-[160px]" src="assets/images/logo/logo.png" alt="quemclica" />
+            }
             @if (mostrarMascote) {
                 <app-mascote tamanho="pequeno" class="mb-2" />
             }

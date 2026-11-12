@@ -25,6 +25,8 @@ export class QcAuthShellComponent {
     @Input() subtitulo = '';
     /** Mascote só-cabeça acima do título (layout cartão). Evitar junto da logo. */
     @Input() mostrarMascote = false;
+    /** Logo no topo do cartão (layout cartão). false nas telas que já mostram o mascote no conteúdo (saída e erros), para não repetir a marca. */
+    @Input() mostrarLogo = true;
     @Input() layout: 'cartao' | 'dividido' = 'cartao';
     /** Layout dividido: título grande (h1), palavra em destaque com rabisco, nota à mão e widget. */
     @Input() tituloArte = '';
