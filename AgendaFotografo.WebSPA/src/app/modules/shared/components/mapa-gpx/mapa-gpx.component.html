@@ -13,7 +13,7 @@
     </div>
 
     <div [class.hidden]="estado !== 'pronto'" class="flex flex-col gap-2 min-w-0">
-        <div #quadro class="mapa-gpx-quadro relative" [class.mapa-gpx-tela-cheia]="telaCheia">
+        <div #quadro class="mapa-gpx-quadro" [class.mapa-gpx-tela-cheia]="telaCheia">
             <div #mapa class="mapa-gpx-mapa w-full h-[300px] rounded-lg border overflow-hidden relative z-0" role="img" aria-label="Mapa do trajeto"></div>
 
             <!-- Botões sobre o mapa (fora do contêiner do Leaflet para não disputar o toque/arrasto) -->
@@ -44,6 +44,7 @@
         <div class="text-sm text-secondary">Distância do trajeto: <strong>{{ distanciaTexto }}</strong>
             <span class="ml-2"><span class="inline-block w-2.5 h-2.5 rounded-full align-middle" style="background:#16a34a"></span> largada</span>
             <span class="ml-2"><span class="inline-block w-2.5 h-2.5 rounded-full align-middle" style="background:#dc2626"></span> chegada</span>
+            <span *ngIf="temKm" class="ml-2"><span class="inline-flex items-center justify-center w-4 h-4 rounded-full border-2 border-[#c2410c] bg-white text-[8px] font-bold text-[#7c2d12] align-middle">1</span> km</span>
             <span *ngIf="estadoLocalizacao === 'ligada'" class="ml-2"><span class="inline-block w-2.5 h-2.5 rounded-full align-middle" style="background:#2563eb"></span> você</span>
         </div>
     </div>

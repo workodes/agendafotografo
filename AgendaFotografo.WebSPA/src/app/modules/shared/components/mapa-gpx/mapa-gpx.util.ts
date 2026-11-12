@@ -51,6 +51,39 @@ export function distanciaAoTrajetoKm(p: PontoGpx, segmentos: PontoGpx[][]): numb
     return melhor;
 }
 
+export interface MarcaKm {
+    Km: number;
+    Ponto: PontoGpx;
+}
+
+/** Intervalo das marcas: 1 km até 25 km de trajeto, 5 km até 60 km, 10 km acima disso. */
+export function passoKm(distanciaKm: number): number {
+    return distanciaKm <= 25 ? 1 : distanciaKm <= 60 ? 5 : 10;
+}
+
+// Pontos a cada `passoKm` ao longo do trajeto (interpolados no trecho). Pula marcas coladas na chegada (menos de 30% do passo).
+export function marcasDeKm(t: TrajetoGpx): MarcaKm[] {
+    const passo = passoKm(t.DistanciaKm);
+    if (t.DistanciaKm < passo * 1.3) {
+        return [];
+    }
+    const marcas: MarcaKm[] = [];
+    let acumulado = 0;
+    let proxima = passo;
+    for (const s of t.Segmentos) {
+        for (let i = 1; i < s.length; i++) {
+            const d = distanciaHaversineKm(s[i - 1], s[i]);
+            while (d > 0 && acumulado + d >= proxima) {
+                const f = (proxima - acumulado) / d;
+                marcas.push({ Km: proxima, Ponto: [s[i - 1][0] + (s[i][0] - s[i - 1][0]) * f, s[i - 1][1] + (s[i][1] - s[i - 1][1]) * f] });
+                proxima += passo;
+            }
+            acumulado += d;
+        }
+    }
+    return marcas.filter(m => t.DistanciaKm - m.Km >= passo * 0.3);
+}
+
 // Devolve null quando o texto não é um GPX com ao menos 2 coordenadas válidas.
 export function lerGpx(texto: string): TrajetoGpx | null {
     const doc = new DOMParser().parseFromString(texto, 'application/xml');

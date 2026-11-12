@@ -1,12 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, ElementRef, HostListener, Input, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, EventEmitter, HostListener, Input, OnDestroy, OnInit, Output, ViewChild, ViewEncapsulation } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import * as L from 'leaflet';
 import { Observable, Subscription } from 'rxjs';
-import { PontoGpx, TrajetoGpx, distanciaAoTrajetoKm, lerGpx } from './mapa-gpx.util';
+import { PontoGpx, TrajetoGpx, distanciaAoTrajetoKm, lerGpx, marcasDeKm } from './mapa-gpx.util';
 
 const MENSAGEM_INVALIDO = 'Não foi possível ler o trajeto deste GPX.';
 const COR_LOCALIZACAO = '#2563eb';
@@ -33,12 +33,15 @@ export class MapaGpxComponent implements OnInit, OnDestroy {
     @Input() carregar?: () => Observable<Blob>;
     /** true: mostra o botão "Minha localização" (só liga quando a pessoa clica). */
     @Input() localizacao = false;
+    /** Emite a largada do trajeto quando o GPX é lido, ou null se não deu para ler (usado pelo cartão "Luz e tempo"). */
+    @Output() largadaLida = new EventEmitter<PontoGpx | null>();
     @ViewChild('mapa', { static: true }) mapaEl!: ElementRef<HTMLDivElement>;
     @ViewChild('quadro', { static: true }) quadroEl!: ElementRef<HTMLDivElement>;
 
     estado: 'inicial' | 'carregando' | 'pronto' | 'erro' = 'inicial';
     mensagemErro = MENSAGEM_INVALIDO;
     distanciaTexto = '';
+    temKm = false;
 
     telaCheia = false;
     estadoLocalizacao: EstadoLocalizacao = 'desligada';
@@ -241,6 +244,7 @@ export class MapaGpxComponent implements OnInit, OnDestroy {
         }
         this.distanciaTexto = `${trajeto.DistanciaKm.toFixed(2).replace('.', ',')} km`;
         this.estado = 'pronto';
+        this.largadaLida.emit(trajeto.Largada);
         this._cdr.detectChanges(); // torna o contêiner visível antes do Leaflet medir o tamanho
         this.desenhar(trajeto);
     }
@@ -248,6 +252,7 @@ export class MapaGpxComponent implements OnInit, OnDestroy {
     private falhar(mensagem: string): void {
         this.mensagemErro = mensagem;
         this.estado = 'erro';
+        this.largadaLida.emit(null);
         this._cdr.markForCheck();
     }
 
@@ -265,8 +270,27 @@ export class MapaGpxComponent implements OnInit, OnDestroy {
         const linhas = t.Segmentos.map(s => L.polyline(s, { color: '#F97316', weight: 4, opacity: 0.9 }).addTo(mapa));
         L.circleMarker(t.Largada, { radius: 8, color: '#ffffff', weight: 2, fillColor: '#16a34a', fillOpacity: 1 }).bindTooltip('Largada').addTo(mapa);
         L.circleMarker(t.Chegada, { radius: 8, color: '#ffffff', weight: 2, fillColor: '#dc2626', fillOpacity: 1 }).bindTooltip('Chegada').addTo(mapa);
+        // Marcas de km (só número no divIcon, montado aqui: nada do GPX vira HTML).
+        const marcas = marcasDeKm(t);
+        this.temKm = marcas.length > 0;
+        const marcadores = marcas.map(m => L.marker(m.Ponto, {
+            icon: L.divIcon({ className: 'mapa-gpx-km', html: `<span>${m.Km}</span>`, iconSize: [24, 24], iconAnchor: [12, 12] }),
+            interactive: false,
+            keyboard: false,
+        }).addTo(mapa));
+        // Com o mapa afastado as marcas se amontoam: mostra só uma a cada N, para ficarem a pelo menos 30 px uma da outra.
+        const espacarKm = () => {
+            if (marcadores.length < 2) {
+                return;
+            }
+            const px = mapa.latLngToContainerPoint(marcas[0].Ponto).distanceTo(mapa.latLngToContainerPoint(marcas[1].Ponto));
+            const cada = px >= 30 ? 1 : [2, 5, 10, 20, 50].find(n => px * n >= 30) ?? 100;
+            marcadores.forEach((mk, i) => mk.setOpacity((i + 1) % cada === 0 ? 1 : 0));
+        };
+        mapa.on('zoomend', espacarKm);
         this._limitesTrajeto = L.featureGroup(linhas).getBounds();
         mapa.fitBounds(this._limitesTrajeto, { padding: [20, 20] });
+        espacarKm();
         this._mapa = mapa;
         this._trajeto = t;
     }

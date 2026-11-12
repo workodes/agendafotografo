@@ -295,3 +295,5 @@ DashboardResumoResponse {
 ## 4. Testes (testador)
 
 Não executados pelo testador: o colaborador vai testar por conta própria (11/11/2026). A conferir: a API reiniciada aceita no MySQL as consultas novas do DashboardConsultas (GroupBy com ordenação após a projeção e Any sobre EVENTOXMEMBRO no Where); rótulo "0" nas barras; 360 px sem rolagem horizontal; cliques dos cartões e gráficos; Admin recebe 403 em api/Dashboard/Resumo. A função distanciaAoTrajetoKm (mapa-gpx.util.ts) é trabalho paralelo do colaborador, fora deste plano.
+
+Conferência do colaborador (11/11/2026): Início aberto no navegador após o ajuste da grade uniforme; aprovado ("tudo ok").

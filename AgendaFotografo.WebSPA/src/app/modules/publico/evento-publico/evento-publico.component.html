@@ -63,6 +63,24 @@
                         <span *ngIf="localCidade" class="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-sm font-medium min-w-0 max-w-full">
                             <mat-icon class="icon-size-4 text-white shrink-0" svgIcon="heroicons_outline:map-pin"></mat-icon><span class="truncate">{{ localCidade }}</span>
                         </span>
+                        <span *ngIf="contagem" class="inline-flex items-center gap-1.5 rounded-full bg-[#f97316] px-3 py-1 text-sm font-bold text-[#431407]" aria-live="polite">
+                            <mat-icon class="icon-size-4 text-current" svgIcon="heroicons_outline:clock"></mat-icon>{{ contagem }}
+                        </span>
+                    </div>
+                    <div *ngIf="!evento.Cancelado && evento.EVE_DATA >= hojeIso" class="flex">
+                        <button type="button" [matMenuTriggerFor]="menuAgenda"
+                            class="inline-flex items-center gap-1.5 rounded-full border border-white/60 px-3 py-1.5 text-sm font-semibold text-white hover:bg-white/10">
+                            <mat-icon class="icon-size-4 text-white" svgIcon="heroicons_outline:calendar-days"></mat-icon>Adicionar à agenda
+                            <mat-icon class="icon-size-4 text-white" svgIcon="heroicons_outline:chevron-down"></mat-icon>
+                        </button>
+                        <mat-menu #menuAgenda="matMenu">
+                            <button mat-menu-item type="button" (click)="adicionarAgendaCelular()">
+                                <mat-icon svgIcon="heroicons_outline:device-phone-mobile"></mat-icon><span>Agenda do celular</span>
+                            </button>
+                            <a mat-menu-item [href]="linkGoogleAgenda" target="_blank" rel="noopener noreferrer">
+                                <mat-icon svgIcon="heroicons_outline:calendar"></mat-icon><span>Google Agenda</span>
+                            </a>
+                        </mat-menu>
                     </div>
                 </div>
 
@@ -124,7 +142,8 @@
             <!-- 3. Rota: trajeto do GPX já desenhado, My Maps incorporado e imagem -->
             <section *ngIf="temRota" id="sec-rota" class="qc-cartao p-5 flex flex-col gap-4 scroll-mt-4">
                 <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:map', titulo: 'Rota', cor: 'bg-blue-100 text-blue-700' }"></ng-container>
-                <app-mapa-gpx *ngIf="evento.GpxNome" [carregar]="carregarGpx" [automatico]="true" [localizacao]="true"></app-mapa-gpx>
+                <app-mapa-gpx *ngIf="evento.GpxNome" [carregar]="carregarGpx" [automatico]="true" [localizacao]="true"
+                    (largadaLida)="aoLerLargada($event)"></app-mapa-gpx>
                 <iframe *ngIf="rotaEmbed" [src]="rotaEmbed" class="block w-full h-[360px] rounded-xl border-0 bg-gray-100" loading="lazy"
                     referrerpolicy="no-referrer" allowfullscreen title="Rota no Google Maps"></iframe>
                 <ng-container *ngIf="evento.TemImagemRota && !rotaFalhou">
@@ -138,11 +157,14 @@
                     <a *ngIf="linkStrava" class="qc-btn qc-btn-fantasma" [href]="linkStrava" target="_blank" rel="noopener noreferrer">
                         <mat-icon svgIcon="heroicons_outline:arrow-top-right-on-square"></mat-icon><span class="ml-2">Strava</span>
                     </a>
-                    <button *ngIf="evento.GpxNome" class="qc-btn qc-btn-fantasma" type="button" [disabled]="baixandoGpx" (click)="baixarGpx()">
-                        <mat-icon svgIcon="heroicons_outline:arrow-down-tray"></mat-icon><span class="ml-2">Baixar GPX</span>
-                    </button>
                 </div>
-                <div *ngIf="mensagemGpx" role="alert" class="text-sm text-red-700">{{ mensagemGpx }}</div>
+            </section>
+
+            <!-- Luz e tempo (calculado no aparelho + previsão do Open-Meteo) -->
+            <section *ngIf="mostrarCondicoes" id="sec-condicoes" class="qc-cartao p-5 flex flex-col gap-4 scroll-mt-4">
+                <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:sun', titulo: 'Luz e tempo', cor: 'bg-amber-100 text-amber-700' }"></ng-container>
+                <app-evento-condicoes [data]="evento.EVE_DATA" [hora]="evento.EVE_HORA" [cidade]="evento.EVE_CIDADE"
+                    [ponto]="pontoCondicoes" [aguardando]="aguardandoGpx"></app-evento-condicoes>
             </section>
 
             <!-- 4. Informações da prova -->

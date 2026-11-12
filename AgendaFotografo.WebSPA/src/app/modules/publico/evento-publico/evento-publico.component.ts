@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { DomSanitizer, Meta, SafeResourceUrl, Title } from '@angular/platform-browser';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -10,11 +11,13 @@ import { EventoPublico } from 'app/models/DTOs/responses/EventoPublico';
 import { FUNCAO_MEMBRO_ROTULO } from 'app/models/enums/FuncaoMembro';
 import { TipoArquivoEvento } from 'app/models/enums/TipoArquivoEvento';
 import { LinkPublicoService } from 'app/services/link-publico.service';
-import { extrairMensagemErroBlob } from 'app/utils/blob-error.util';
 import { MapaGpxComponent } from 'app/modules/shared/components/mapa-gpx/mapa-gpx.component';
 import { Observable, EMPTY } from 'rxjs';
-import { diaSemana, formatarData, formatarHora, parseDataIso } from 'app/utils/data-evento';
-import { AcessoGuardado, apagarAcesso, embedDoLink, embedMaps, guardarAcesso, lerAcesso, linkMaps, obterAparelho, urlSegura } from 'app/utils/link-publico';
+import { DadosAgenda, abrirIcs, urlGoogleAgenda } from 'app/utils/agenda-evento';
+import { Coordenadas, coordenadasDoLink } from 'app/utils/clima';
+import { diaSemana, formatarData, formatarHora, hojeIso, parseDataIso } from 'app/utils/data-evento';
+import { AcessoGuardado, apagarAcesso, embedDoLink, embedMaps, guardarAcesso, lerAcesso, linkMaps, obterAparelho, urlPublica, urlSegura } from 'app/utils/link-publico';
+import { EventoCondicoesComponent } from './evento-condicoes/evento-condicoes.component';
 import { localCidade } from 'app/utils/local-evento';
 import { mensagemErro } from 'app/utils/mensagem-erro';
 
@@ -37,7 +40,7 @@ const TOKEN_VALIDO = /^[0-9a-f]{32}$/;
     standalone: true,
     selector: 'app-evento-publico',
     templateUrl: './evento-publico.component.html',
-    imports: [CommonModule, MatButtonModule, MatButtonToggleModule, MatIconModule, MatProgressSpinnerModule, MapaGpxComponent],
+    imports: [CommonModule, MatButtonModule, MatButtonToggleModule, MatIconModule, MatMenuModule, MatProgressSpinnerModule, MapaGpxComponent, EventoCondicoesComponent],
 })
 export class EventoPublicoComponent implements OnInit, OnDestroy {
     private _route = inject(ActivatedRoute);
@@ -67,10 +70,16 @@ export class EventoPublicoComponent implements OnInit, OnDestroy {
     // Imagens e GPX
     rotaUrl: string | null = null;
     rotaFalhou = false;
-    baixandoGpx = false;
-    mensagemGpx = '';
 
     funcaoRotulo = FUNCAO_MEMBRO_ROTULO;
+
+    // "Luz e tempo": ponto de referência (largada do GPX > coordenadas de um link > cidade, decidido no cartão).
+    pontoCondicoes: Coordenadas | null = null;
+    aguardandoGpx = false;
+
+    // Contagem regressiva (relógio atualizado a cada 30 s enquanto a página está aberta).
+    agora = Date.now();
+    private _relogio?: ReturnType<typeof setInterval>;
 
     // Mapas incorporados do Google Maps (sem chave). Só URLs montadas por embedMaps/embedDoLink (sempre https://www.google.com/maps...).
     pontos: PontoMapa[] = [];
@@ -98,9 +107,86 @@ export class EventoPublicoComponent implements OnInit, OnDestroy {
         this._meta.removeTag('name="robots"');
         this._meta.removeTag('name="referrer"');
         this.revogarImagens();
+        clearInterval(this._relogio);
     }
 
     // ---- Derivados ----
+
+    /** "Faltam 3 dias", "É amanhã", "Começa em 1h20", "Acontecendo agora"... Vazio para cancelado ou data inválida. */
+    get contagem(): string {
+        const e = this.evento;
+        const dia = parseDataIso(e?.EVE_DATA);
+        if (!e || e.Cancelado || !dia) {
+            return '';
+        }
+        const hoje = parseDataIso(hojeIso())!;
+        const dias = Math.round((dia.getTime() - hoje.getTime()) / 864e5);
+        if (dias > 1) {
+            return `Faltam ${dias} dias`;
+        }
+        if (dias === 1) {
+            return 'É amanhã';
+        }
+        if (dias < 0) {
+            return 'Evento realizado';
+        }
+        const hm = /^\d{2}:\d{2}/.test(e.EVE_HORA ?? '') ? e.EVE_HORA!.split(':').map(Number) : null;
+        if (!hm) {
+            return 'É hoje';
+        }
+        const min = Math.ceil((new Date(dia.getFullYear(), dia.getMonth(), dia.getDate(), hm[0], hm[1]).getTime() - this.agora) / 60000);
+        if (min <= 0) {
+            return min > -240 ? 'Acontecendo agora' : 'Foi hoje';
+        }
+        if (min < 60) {
+            return `Começa em ${min} min`;
+        }
+        const h = Math.floor(min / 60);
+        const m = min % 60;
+        return `Começa em ${h}h${m ? String(m).padStart(2, '0') : ''}`;
+    }
+
+    get hojeIso(): string {
+        return hojeIso();
+    }
+
+    /** Hoje ou adiante e não cancelado: mostra o cartão "Luz e tempo". */
+    get mostrarCondicoes(): boolean {
+        const e = this.evento;
+        return !!e && !e.Cancelado && !!parseDataIso(e.EVE_DATA) && e.EVE_DATA >= hojeIso() && !!(e.EVE_CIDADE?.trim() || this.pontoCondicoes || e.GpxNome);
+    }
+
+    private get dadosAgenda(): DadosAgenda {
+        const e = this.evento!;
+        return {
+            Uid: `${this.token}@quemclica.com.br`,
+            Titulo: e.EVE_NOME,
+            Data: e.EVE_DATA,
+            Hora: e.EVE_HORA,
+            Local: this.localCidade || e.EVE_CIDADE,
+            Url: urlPublica(this.token),
+        };
+    }
+
+    adicionarAgendaCelular(): void {
+        if (this.evento) {
+            abrirIcs(this.dadosAgenda, 'evento-quemclica.ics');
+        }
+    }
+
+    get linkGoogleAgenda(): string {
+        return this.evento ? urlGoogleAgenda(this.dadosAgenda) : '';
+    }
+
+    aoLerLargada(p: [number, number] | null): void {
+        this.pontoCondicoes = p ?? this.pontoDosLinks();
+        this.aguardandoGpx = false;
+    }
+
+    private pontoDosLinks(): Coordenadas | null {
+        const e = this.evento;
+        return coordenadasDoLink(e?.EVE_LARGADA_LINK) ?? coordenadasDoLink(e?.EVE_ROTA_LINK_MAPS) ?? coordenadasDoLink(e?.EVE_CHEGADA_LINK);
+    }
 
     get tituloData(): string {
         const e = this.evento;
@@ -222,6 +308,11 @@ export class EventoPublicoComponent implements OnInit, OnDestroy {
             next: evento => {
                 this.evento = evento;
                 this.montarMapas();
+                this.aguardandoGpx = !!evento.GpxNome;
+                this.pontoCondicoes = evento.GpxNome ? null : this.pontoDosLinks();
+                clearInterval(this._relogio);
+                this.agora = Date.now();
+                this._relogio = setInterval(() => this.agora = Date.now(), 30000);
                 this.estado = 'evento';
                 this._title.setTitle(evento.EVE_NOME);
                 this.carregarImagens();
@@ -327,34 +418,8 @@ export class EventoPublicoComponent implements OnInit, OnDestroy {
         this.rotaFalhou = false;
     }
 
-    // Fonte do GPX para o mapa (mesmo blob do download, com o acesso guardado; nada é enviado a terceiros).
+    // Fonte do GPX para o mapa (blob com o acesso guardado; nada é enviado a terceiros). O link público não oferece o download do arquivo.
     carregarGpx = (): Observable<Blob> => this.acesso ? this._service.Arquivo(this.token, TipoArquivoEvento.Gpx, this.acesso.Acesso) : EMPTY;
-
-    baixarGpx(): void {
-        if (!this.acesso || !this.evento?.GpxNome || this.baixandoGpx) {
-            return;
-        }
-        const nome = this.evento.GpxNome;
-        this.baixandoGpx = true;
-        this.mensagemGpx = '';
-        this._service.Arquivo(this.token, TipoArquivoEvento.Gpx, this.acesso.Acesso).subscribe({
-            next: blob => {
-                this.baixandoGpx = false;
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = nome;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                setTimeout(() => URL.revokeObjectURL(url), 1000);
-            },
-            error: async error => {
-                this.baixandoGpx = false;
-                this.mensagemGpx = await extrairMensagemErroBlob(error, 'Não foi possível baixar o GPX.');
-            },
-        });
-    }
 
     // Data do cabeçalho inválida não deve quebrar a página.
     get dataValida(): boolean {
