@@ -128,8 +128,21 @@ export class ChatService {
                 return { Papel: m.Papel, Texto: m.TemImagem ? this.comMarcador(m.Texto) : m.Texto };
             }
             const rascunho = this.RascunhoVigente(m) ? this.rascunhoEnxuto(m.Rascunho) : null;
-            return rascunho ? { Papel: m.Papel, Texto: m.Texto, Rascunho: rascunho } : { Papel: m.Papel, Texto: m.Texto };
+            const texto = m.Lancamento ? this.comLancamento(m) : m.Texto;
+            return rascunho ? { Papel: m.Papel, Texto: texto, Rascunho: rascunho } : { Papel: m.Papel, Texto: texto };
         });
+    }
+
+    /**
+     * Rascunho já confirmado: o modelo precisa saber que o evento foi gravado, senão propõe o mesmo evento de novo
+     * (ex.: "coloca a Fernanda no evento" depois do Confirmar). A marca vai no início (a API corta o texto do assistente em 2.000).
+     */
+    private comLancamento(m: ChatMensagem): string {
+        const e = m.Rascunho?.Evento;
+        const marca = e
+            ? `[O usuário confirmou este rascunho e o evento "${(e.EVE_NOME ?? '').substring(0, 150)}" de ${e.EVE_DATA} já está gravado na agenda. Não proponha este evento de novo.]`
+            : '[O usuário confirmou este rascunho e o evento já está gravado na agenda. Não proponha este evento de novo.]';
+        return `${marca}\n${m.Texto ?? ''}`;
     }
 
     private comMarcador(texto: string): string {

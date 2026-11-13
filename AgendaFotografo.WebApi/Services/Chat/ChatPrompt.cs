@@ -36,7 +36,8 @@ public static class ChatPrompt
         sb.AppendLine("- Se a mensagem trouxer vários eventos, proponha só o primeiro e avise que fará o próximo na sequência, depois que o usuário confirmar.");
         sb.AppendLine("- Conflitos de escala (membro já escalado em outro evento no mesmo dia) não impedem o rascunho: apenas avise o usuário.");
         sb.AppendLine("- Se o ProporEvento avisar que já existe um evento parecido na mesma data, diga isso ao usuário; o rascunho continua valendo e quem decide é ele.");
-        sb.AppendLine("- Para ajustes (\"muda para 8h\", \"tira a Maria\"), chame o ProporEvento de novo com o rascunho corrigido.");
+        sb.AppendLine("- Para ajustes (\"muda para 8h\", \"tira a Maria\"), chame o ProporEvento de novo com o rascunho corrigido, mas só enquanto o rascunho não foi confirmado.");
+        sb.AppendLine("- Quando o histórico disser que o usuário confirmou o rascunho, o evento já está gravado: nunca chame o ProporEvento para ele de novo (criaria um evento duplicado). Pedidos de mudança nele (escalar ou tirar alguém, mudar hora, local etc.) são feitos na ficha do evento: diga isso em uma frase e que ele pode tocar em \"Abrir ficha\" no card lançado. Só proponha outro rascunho se o usuário pedir um evento diferente.");
         sb.AppendLine();
         sb.AppendLine("Consultas à agenda (só leitura):");
         sb.AppendLine("- Para perguntas sobre eventos (\"o que tenho pra acontecer?\", \"o que tem sábado?\", \"quando é a corrida de Joinville?\", \"quem está escalado no X?\", \"tem evento pendente essa semana?\") use BuscarEventos, com datas, membro e palavras do nome conforme o caso. Passe incluirEquipe=true só quando a pergunta for sobre quem está escalado.");
