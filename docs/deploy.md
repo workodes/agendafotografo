@@ -64,9 +64,9 @@ do MySQL só na própria VM (`127.0.0.1:3307:3306`), então o acesso é por tún
 do firewall da VM e o banco ficaria aberto na internet.
 
 1. Depois do deploy com essa porta, na conexão MySQL do DBeaver:
-   - Aba **SSH**: "Use SSH Tunnel", Host = IP da VM, porta 22, usuário e senha/chave do SSH da VM (hPanel da Hostinger → VPS → Acesso SSH; normalmente `root`).
+   - Aba **SSH**: "Use SSH Tunnel", Host = IP da VM, porta **2402** (o SSH da VM não usa a 22; o ufw só libera a 2402), usuário e senha/chave do SSH da VM (hPanel da Hostinger → VPS → Acesso SSH; normalmente `root`).
    - Aba **Main**: Host `127.0.0.1`, porta `3307`, banco `agenda_fotografo`, usuário e senha do `agenda-mysql` (os mesmos da `AGENDA_DB_CONNECTION`).
-2. Teste o SSH antes no Terminal: `ssh root@<IP da VM>`.
+2. Teste o SSH antes no Terminal: `ssh -p 2402 root@<IP da VM>`. Timeout no DBeaver: use "Testar configuração do túnel" e, se preciso, a implementação SSHJ (Configurações avançadas); evite várias tentativas seguidas.
 3. Se o deploy falhar com "port is already allocated", outro projeto da VM já usa a 3307: troque para outra porta livre (ex.: `127.0.0.1:3317:3306`) e use a mesma no DBeaver.
 4. É o banco de **produção**: cuidado com alterações manuais (a estrutura vem só das migrations).
 
