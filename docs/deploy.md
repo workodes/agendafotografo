@@ -16,7 +16,7 @@ Internet ─HTTPS─> Traefik (Dokploy) ─> agenda-web (Nginx :80) ─┬─ / 
 |---|---|---|
 | `agenda-web` | `AgendaFotografo.WebSPA/Dockerfile` + `nginx.conf` | Build do Angular (Node 22) servido por Nginx; entrega a landing page em `/` (exato); proxy de `/api/` para a API (mesma origem, sem CORS); fallback de rotas do SPA para o `index.html` (com `noindex`); 301 do `www` para o domínio sem `www`; `nginx -t` no build da imagem; gzip, cache dos bundles com hash, upload até 12 MB. **Único serviço com domínio.** |
 | `agenda-api` | `Dockerfile` (raiz) | `AgendaFotografo.WebApi` em `ASPNETCORE_ENVIRONMENT=Production`; banco (`AGENDA_DB_CONNECTION`), Google, dias de teste e pasta de arquivos vêm das variáveis do compose. Roda sem root. Ao subir aplica as migrations e o seed. |
-| `agenda-mysql` | `mysql:8.0` | Banco `agenda_fotografo`. Sem porta publicada; só a API o enxerga (rede `interna`). |
+| `agenda-mysql` | `mysql:8.0` | Banco `agenda_fotografo`. A API o enxerga pela rede `interna`; porta `3307` publicada **só em `127.0.0.1` da VM** (fechada para a internet), para acesso por túnel SSH (ver "Acessar o banco pelo DBeaver"). |
 
 Volumes (persistem entre deploys; **incluir no backup**): `agenda-mysql-data` (banco) e `agenda-arquivos` (flyer, imagem de rota e GPX, em `/app/dados/arquivos`).
 
@@ -56,6 +56,19 @@ Definidas em *Environment* do serviço Compose no Dokploy (ou num `.env` local).
 | `AGENDA_MAIL_HOST` | Não | vazio (e-mail desligado) | `MailSettings__Host` | servidor SMTP do provedor |
 | `AGENDA_MAIL_PORTA` | Não | `587` | `MailSettings__Port` | `587` (STARTTLS) ou `465` (SSL direto) |
 | `AGENDA_URL_SISTEMA` | Não | `https://quemclica.com.br` | `MailSettings__UrlSistema` | base dos links e das imagens dos e-mails (URL http/https; sem barra no fim) |
+
+## Acessar o banco pelo DBeaver (túnel SSH)
+
+O nome `agenda-mysql` só existe dentro da rede do Docker; de fora ele não resolve ("nodename nor servname provided"). O compose publica a porta
+do MySQL só na própria VM (`127.0.0.1:3307:3306`), então o acesso é por túnel SSH. **Nunca** publicar sem o `127.0.0.1`: o Docker passa por cima
+do firewall da VM e o banco ficaria aberto na internet.
+
+1. Depois do deploy com essa porta, na conexão MySQL do DBeaver:
+   - Aba **SSH**: "Use SSH Tunnel", Host = IP da VM, porta 22, usuário e senha/chave do SSH da VM (hPanel da Hostinger → VPS → Acesso SSH; normalmente `root`).
+   - Aba **Main**: Host `127.0.0.1`, porta `3307`, banco `agenda_fotografo`, usuário e senha do `agenda-mysql` (os mesmos da `AGENDA_DB_CONNECTION`).
+2. Teste o SSH antes no Terminal: `ssh root@<IP da VM>`.
+3. Se o deploy falhar com "port is already allocated", outro projeto da VM já usa a 3307: troque para outra porta livre (ex.: `127.0.0.1:3317:3306`) e use a mesma no DBeaver.
+4. É o banco de **produção**: cuidado com alterações manuais (a estrutura vem só das migrations).
 
 ## Backup (Volume Backups do Dokploy)
 

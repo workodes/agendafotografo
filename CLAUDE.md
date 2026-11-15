@@ -52,7 +52,7 @@ Swagger fica em `/swagger` (somente Development). Não existem testes automatiza
 
 ## Deploy (Dokploy, VM Hostinger)
 Docker Compose na raiz (`docker-compose.yml`): `agenda-web` (Nginx com o build do Angular, proxy de `/api/` para a API; único serviço com domínio),
-`agenda-api` (`Dockerfile` da raiz, `ASPNETCORE_ENVIRONMENT=Production`) e `agenda-mysql` (MySQL 8.0, banco `agenda_fotografo`, sem porta publicada).
+`agenda-api` (`Dockerfile` da raiz, `ASPNETCORE_ENVIRONMENT=Production`) e `agenda-mysql` (MySQL 8.0, banco `agenda_fotografo`; porta 3307 publicada só em `127.0.0.1` da VM, para acesso por túnel SSH, ver `docs/deploy.md`).
 A landing page (plano 13, HTML estático em `AgendaFotografo.WebSPA/src/landing/`) é entregue pelo mesmo Nginx em `/`; o domínio é `quemclica.com.br` e o `www.quemclica.com.br` redireciona (301) para ele no próprio Nginx.
 Há **um só** `appsettings.json`, sempre no zeus (o `fartec:testador` bloqueia se qualquer connection string dos appsettings não for o zeus): **não criar
 `appsettings.Production.json`**. Produção sobrescreve por variáveis de ambiente do `agenda-api` no compose (`ConnectionStrings__DefaultConection` para o banco do
