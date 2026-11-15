@@ -1,0 +1,17 @@
+Perdeu a chave? A gente faz outra.
+
+Recebemos um pedido para criar uma nova senha para {{Email}}. Digite o código abaixo na tela do quemclica e escolha a senha nova.
+
+Seu código: {{Codigo}}
+
+Vale por {{ValidadeMinutos}} minutos e só pode ser usado uma vez.
+
+Não foi você que pediu? Pode ignorar este e-mail. Sua senha atual continua valendo, e ninguém entra na sua conta sem este código.
+
+A equipe do quemclica nunca pede este código por telefone, WhatsApp ou e-mail.
+
+--
+quemclica
+A agenda da sua equipe de fotografia: eventos, escala e pendências num lugar só.
+Você recebeu este e-mail porque alguém pediu uma nova senha para {{Email}} no quemclica.
+Este é um e-mail automático e não recebe respostas.

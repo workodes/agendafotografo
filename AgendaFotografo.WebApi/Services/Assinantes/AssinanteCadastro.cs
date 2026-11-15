@@ -42,7 +42,7 @@ public class AssinanteCadastro(
     private readonly IAssinanteInicializacao _assinanteInicializacao = assinanteInicializacao;
 
     public const string MsgEmailDuplicado = "Já existe um usuário com este e-mail.";
-    public const string MsgEmailDuplicadoAutocadastro = "Já existe um usuário com este e-mail. Entre pela aba Entrar.";
+    public const string MsgEmailDuplicadoAutocadastro = "Este e-mail já tem cadastro.";
     public const string MsgCpfCnpjDuplicado = "Já existe um assinante com este CPF/CNPJ.";
     public const string MsgEmailInvalidoLogin = "E-mail inválido para login.";
     public const string MsgSenhaCurta = "A senha deve ter no mínimo 8 caracteres";

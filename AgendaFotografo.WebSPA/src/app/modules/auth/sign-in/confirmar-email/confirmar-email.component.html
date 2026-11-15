@@ -1,0 +1,53 @@
+<div *ngIf="erro" role="alert"
+    class="mb-4 flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
+    <mat-icon class="icon-size-5 shrink-0" [svgIcon]="'heroicons_solid:exclamation-circle'"></mat-icon>
+    <span>{{ erro }}</span>
+</div>
+
+<div *ngIf="envioFalhou" role="alert"
+    class="mb-4 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
+    <mat-icon class="icon-size-5 shrink-0" [svgIcon]="'heroicons_solid:exclamation-triangle'"></mat-icon>
+    <span>Não conseguimos enviar o e-mail agora. Toque em "Reenviar código" para tentar de novo.</span>
+</div>
+
+<form (submit)="$event.preventDefault(); confirmar()" novalidate>
+    <label class="qc-rotulo" for="codigo-confirmacao">Código de 6 números</label>
+    <input #campoCodigo id="codigo-confirmacao" name="codigo" class="qc-campo text-center text-3xl font-bold tracking-[0.4em]"
+        type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*"
+        [disabled]="ocupado" (input)="aoDigitar($event)">
+
+    <button type="submit" class="qc-btn qc-btn-primario qc-btn-bloco mt-4" [disabled]="ocupado">
+        <span *ngIf="!ocupado">Confirmar</span>
+        <mat-progress-spinner *ngIf="ocupado" [diameter]="24" [mode]="'indeterminate'"></mat-progress-spinner>
+    </button>
+</form>
+
+<button type="button" class="qc-btn qc-btn-fantasma qc-btn-bloco mt-3" [disabled]="ocupado || segundos > 0" (click)="reenviar()">
+    {{ segundos > 0 ? 'Reenviar em ' + segundos + ' s' : 'Reenviar código' }}
+</button>
+<span class="sr-only" role="status" aria-live="polite">{{ avisoLiberado }}</span>
+
+<p class="qc-suave mt-3 text-center text-sm">Não chegou? Olhe a caixa de spam ou de promoções.</p>
+
+<!-- Errei o e-mail -->
+<div class="mt-4 text-center">
+    <button *ngIf="!corrigindo" type="button" class="min-h-[44px] px-2 text-sm font-semibold text-[#9a3412] underline"
+        [disabled]="ocupado" (click)="abrirCorrecao()">Errei o e-mail</button>
+</div>
+
+<form *ngIf="corrigindo" (submit)="$event.preventDefault(); corrigir()" novalidate class="mt-1 rounded-lg border border-[#f0e2d6] p-3">
+    <label class="qc-rotulo" for="email-novo">E-mail correto</label>
+    <input #campoEmailNovo id="email-novo" class="qc-campo" type="email" autocomplete="email" maxlength="200"
+        [formControl]="emailNovo" [attr.aria-invalid]="!!erroEmailNovo">
+    <div class="qc-erro" *ngIf="erroEmailNovo" role="alert">
+        <mat-icon class="icon-size-5 shrink-0" [svgIcon]="'heroicons_solid:exclamation-circle'"></mat-icon>
+        <span>{{ erroEmailNovo }}</span>
+    </div>
+    <button type="submit" class="qc-btn qc-btn-primario qc-btn-bloco mt-3" [disabled]="ocupado">
+        <span *ngIf="!ocupado">Enviar para este e-mail</span>
+        <mat-progress-spinner *ngIf="ocupado" [diameter]="24" [mode]="'indeterminate'"></mat-progress-spinner>
+    </button>
+    <button type="button" class="qc-btn qc-btn-fantasma qc-btn-bloco mt-2" [disabled]="ocupado" (click)="cancelarCorrecao()">Cancelar</button>
+</form>
+
+<button type="button" class="qc-btn qc-btn-fantasma qc-btn-bloco mt-3" [disabled]="ocupado" (click)="sair()">Voltar para o login</button>

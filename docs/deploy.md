@@ -50,6 +50,12 @@ Definidas em *Environment* do serviço Compose no Dokploy (ou num `.env` local).
 | `AGENDA_IA_MODELO` | Não | vazio (chat desligado) | `IA__Modelo` | nome do modelo ou do deployment |
 | `AGENDA_IA_ENDPOINT` | Não | vazio | `IA__Endpoint` | obrigatório no Azure OpenAI |
 | `AGENDA_IA_LIMITE_DIARIO` | Não | `100` | `IA__LimiteDiario` | mensagens por assinante por dia |
+| `AGENDA_MAIL_REMETENTE` | Não | vazio (e-mail desligado) | `MailSettings__Mail` | endereço do remetente, do domínio verificado no provedor |
+| `AGENDA_MAIL_USUARIO` | Não | vazio (usa o remetente) | `MailSettings__Usuario` | login do SMTP, quando for diferente do remetente (ver "E-mails da conta") |
+| `AGENDA_MAIL_SENHA` | Não | vazio (e-mail desligado) | `MailSettings__Password` | segredo do SMTP: só no Environment do Dokploy |
+| `AGENDA_MAIL_HOST` | Não | vazio (e-mail desligado) | `MailSettings__Host` | servidor SMTP do provedor |
+| `AGENDA_MAIL_PORTA` | Não | `587` | `MailSettings__Port` | `587` (STARTTLS) ou `465` (SSL direto) |
+| `AGENDA_URL_SISTEMA` | Não | `https://quemclica.com.br` | `MailSettings__UrlSistema` | base dos links e das imagens dos e-mails (URL http/https; sem barra no fim) |
 
 ## Backup (Volume Backups do Dokploy)
 
@@ -122,6 +128,36 @@ bucket fica em torno de 4 × o tamanho de cada volume. Medir o volume de arquivo
   do Dokploy. Sem elas o chat fica desligado e o resto do sistema funciona. **Nenhum valor real vai para o compose nem para o git.**
 - Passo a passo (conta e chave na OpenAI, créditos, limite de gasto, modelo, testes e alternativa Azure OpenAI): [`ia.md`](ia.md). Os dados das mensagens são processados fora do Brasil.
 - O limite diário fica em memória: manter **uma só instância** da API. O `/api/` do `nginx.conf` tem `proxy_read_timeout 120s`, acima do timeout de 60 s da chamada ao modelo.
+
+## E-mails da conta
+
+Plano 18: confirmação de e-mail no cadastro manual (código de 6 números), boas-vindas e "Esqueci minha senha". Funciona com qualquer serviço SMTP; trocar de provedor é trocar variáveis no Environment do Dokploy.
+
+### Ligado e desligado
+- **Ligado** = `AGENDA_MAIL_REMETENTE`, `AGENDA_MAIL_HOST` e `AGENDA_MAIL_SENHA` preenchidas (e `AGENDA_MAIL_USUARIO`, quando o login do SMTP não é o remetente). A API loga o modo na subida (sem valores).
+- **Desligado** (qualquer uma vazia): o cadastro manual entra direto, como antes; não há boas-vindas; o link "Esqueci minha senha" não aparece; as actions novas de `api/Auth` respondem 400 "O envio de e-mails não está disponível no momento.". A API sobe normalmente, com um aviso no log.
+- Ao configurar as variáveis e fazer o redeploy o fluxo liga sozinho, sem código novo. O modo "gravar em pasta" só existe no Development e nunca em produção.
+- **O que muda para quem já usa:** autocadastros manuais ainda não confirmados vão pedir o código no próximo login, depois de ligar o e-mail. **Avisar essas pessoas antes de ligar.** Contas criadas pelo Admin, contas Google e o Admin entram como sempre.
+- Os e-mails **não recebem respostas** (remetente `no-reply`, rodapé "Este é um e-mail automático e não recebe respostas.").
+- A fila de boas-vindas e de nova senha fica em memória: reiniciar a API perde o que estiver na fila. Manter **uma só instância** da API. Trocar `Jwt__Key` invalida os códigos em andamento (no máximo 15 min).
+
+### Remetente, domínio e entrega
+- Use um remetente do próprio domínio (`no-reply@quemclica.com.br`): passa mais confiança e cai menos no spam.
+- No DNS do domínio, configurar **SPF** e **DKIM** (o provedor mostra os registros) e conferir o **DMARC**. Sem eles os e-mails caem no spam.
+- **Senha de app:** se o SMTP for de uma caixa de e-mail comum (Gmail, Zoho Mail etc.) com verificação em duas etapas, use uma senha de app, não a senha da conta. Em serviço de envio automático, use a senha SMTP do próprio serviço.
+- **Portas:** `587` com STARTTLS (padrão) ou `465` com SSL direto. Outras portas também exigem STARTTLS; a API não envia senha nem código sem TLS.
+- **Teste:** depois de configurar, cadastre uma conta de teste e confira a chegada no Gmail, no Outlook e no iPhone (se cai no spam, como fica com as imagens bloqueadas e no modo escuro, se o código aparece na notificação e se SPF/DKIM aparecem como "pass" nos cabeçalhos).
+- As imagens dos e-mails ficam em `https://quemclica.com.br/assets/images/email/` (vêm do SPA): publique o SPA antes de ligar o e-mail.
+
+### Passo a passo do provedor escolhido: ZeptoMail (Zoho)
+1. Criar a conta no ZeptoMail e um **Mail Agent** para o quemclica.
+2. Em **Domínios** (Sender Domains), adicionar `quemclica.com.br`, criar no DNS os registros que o ZeptoMail mostra (**SPF** e **DKIM**) e verificar o domínio. Associar o domínio ao Mail Agent. Conferir também o **DMARC** do domínio.
+3. No Mail Agent, abrir a aba **SMTP**:
+   - servidor: `smtp.zeptomail.com`; porta `587` (STARTTLS);
+   - usuário: `emailapikey` (o mesmo texto para todos os agentes);
+   - senha: o campo **Palavra-passe** (Password 1) do agente. É um segredo: só no Environment do Dokploy.
+4. No Environment do Dokploy: `AGENDA_MAIL_REMETENTE` = `no-reply@quemclica.com.br`, `AGENDA_MAIL_USUARIO` = `emailapikey`, `AGENDA_MAIL_HOST` = `smtp.zeptomail.com`, `AGENDA_MAIL_PORTA` = `587` e `AGENDA_MAIL_SENHA` = a palavra-passe do passo 3. Redeploy da API.
+5. **Créditos:** o ZeptoMail é pré-pago, em créditos de 10.000 e-mails (o primeiro é grátis; os seguintes valem 6 meses). Sem crédito, o envio falha (a tela mostra "Não conseguimos enviar o e-mail agora."). Acompanhar o saldo no painel.
 
 ## Login com Google
 

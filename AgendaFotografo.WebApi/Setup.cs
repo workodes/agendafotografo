@@ -14,6 +14,7 @@ using AgendaFotografo.WebApi.Services.Assinantes;
 using AgendaFotografo.WebApi.Services.Avisos;
 using AgendaFotografo.WebApi.Services.Chat;
 using AgendaFotografo.WebApi.Services.Dashboard;
+using AgendaFotografo.WebApi.Services.Emails;
 using AgendaFotografo.WebApi.Services.Eventos;
 using AgendaFotografo.WebApi.Services.LinkPublico;
 using AgendaFotografo.WebApi.Services.Locais;
@@ -24,6 +25,7 @@ using AgendaFotografo.WebApi.Services.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using MySqlConnector;
 
@@ -223,8 +225,25 @@ public static class Setup
         services.AddSingleton(new GoogleSettings { ClientId = (configuration["Google:ClientId"] ?? string.Empty).Trim() });
         services.AddSingleton<IGoogleTokenValidador, GoogleTokenValidador>();
 
+        // E-mails de conta (plano 18). Modo decidido na subida: Smtp (configuração completa), Pasta (só Development, configuração incompleta e
+        // MailSettings:GravarEmPasta diferente de false) ou Desligado (todo o resto, inclusive Production sem configuração).
         services.Configure<MailSettings>(configuration.GetSection("MailSettings"));
-        services.AddSingleton<IEmailService, EmailService>();
+        services.AddSingleton<IEmailService>(sp =>
+        {
+            var ambiente = sp.GetRequiredService<IHostEnvironment>();
+            var configuracao = sp.GetRequiredService<IOptions<MailSettings>>();
+            var modo = DecidirModoEmail(configuracao.Value, ambiente);
+            var pasta = Path.Combine(ambiente.ContentRootPath, "App_Data", "emails");
+            return new EmailService(configuracao, modo, pasta, sp.GetRequiredService<ILogger<EmailService>>());
+        });
+        services.AddSingleton<FilaEmail>();
+        services.AddHostedService<EnvioEmailEmSegundoPlano>();
+        services.AddSingleton<FilaPedidoNovaSenha>();
+        services.AddHostedService<ProcessadorPedidoNovaSenha>();
+        services.AddHostedService<EmailAvisoInicial>();
+        services.AddSingleton<EmailModelos>();
+        services.AddScoped<CodigoEmail>();
+        services.AddScoped<EmailsConta>();
 
         // Arquivos do evento: disco, fora do wwwroot (Arquivos:Pasta vazio = <ContentRoot>/App_Data/arquivos)
         services.AddSingleton(new ArquivoSettings { Pasta = configuration["Arquivos:Pasta"] ?? string.Empty });
@@ -234,6 +253,13 @@ public static class Setup
 
         services.AddScoped<Seed>();
         return services;
+    }
+
+    /// <summary>Smtp quando a configuração está completa; Pasta só no Development (e sem GravarEmPasta=false); Desligado no resto.</summary>
+    internal static ModoEmail DecidirModoEmail(MailSettings configuracao, IHostEnvironment ambiente)
+    {
+        if (EmailService.Verificar(configuracao) is null) return ModoEmail.Smtp;
+        return ambiente.IsDevelopment() && configuracao.GravarEmPasta ? ModoEmail.Pasta : ModoEmail.Desligado;
     }
 
     public static async Task RegisterCustomSeedAsync(WebApplication app)

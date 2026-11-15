@@ -6,6 +6,12 @@ import { ApiResponse } from 'app/models/ApiResponse';
 import { AuthModel } from 'app/models/AuthModel';
 import { CadastroGoogleModel } from 'app/models/DTOs/requests/CadastroGoogleModel';
 import { CadastroModel } from 'app/models/DTOs/requests/CadastroModel';
+import { ConfirmarEmailModel } from 'app/models/DTOs/requests/ConfirmarEmailModel';
+import { CorrigirEmailModel } from 'app/models/DTOs/requests/CorrigirEmailModel';
+import { EsqueciSenhaModel } from 'app/models/DTOs/requests/EsqueciSenhaModel';
+import { ReenviarCodigoModel } from 'app/models/DTOs/requests/ReenviarCodigoModel';
+import { RedefinirSenhaModel } from 'app/models/DTOs/requests/RedefinirSenhaModel';
+import { CodigoEnvioResponse } from 'app/models/DTOs/responses/CodigoEnvio';
 import { ConfiguracaoLogin } from 'app/models/DTOs/responses/ConfiguracaoLogin';
 import { LoginGoogleResponse } from 'app/models/DTOs/responses/LoginGoogleResponse';
 import { TesteGratis } from 'app/models/DTOs/responses/TesteGratis';
@@ -15,6 +21,11 @@ import { environment } from 'environments/environment';
 import { map, Observable, of, throwError } from 'rxjs';
 import { ROLE_NAMES } from '../constants/RoleNames';
 import { UsuarioService } from '../services/usuario.service';
+
+/** Resultado de Login/Cadastrar: entrou na sessão ou a confirmação do e-mail está pendente (sem sessão). */
+export type ResultadoAcesso =
+    | { pendente: false }
+    | { pendente: true; Email: string; EnvioFalhou: boolean; ReenviarEmSegundos: number };
 
 // Nome da claim de role no JWT da API (ClaimTypes.Role, sem remapeamento).
 const CLAIM_ROLE = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
@@ -44,7 +55,7 @@ export class AuthService {
         return localStorage.getItem('rememberedEmail') ?? '';
     }
 
-    signIn(credentials: { email: string; password: string; rememberMe?: boolean }): Observable<boolean> {
+    signIn(credentials: { email: string; password: string; rememberMe?: boolean }): Observable<ResultadoAcesso> {
         if (this._authenticated)
             return throwError(() => 'O usuário já está logado.');
 
@@ -53,15 +64,13 @@ export class AuthService {
 
         return this.httpClient.post<AuthModel>(environment.Auth.login, body).pipe(
             map(response => {
-                this.registrarSessao(response);
-
-                // "Lembrar-me" só guarda o e-mail para pré-preencher o próximo login.
+                // "Lembrar-me" só guarda o e-mail para pré-preencher o próximo login (a senha foi aceita nos dois casos).
                 if (credentials.rememberMe)
                     localStorage.setItem('rememberedEmail', credentials.email);
                 else
                     localStorage.removeItem('rememberedEmail');
 
-                return true;
+                return this.resultado(response);
             }),
         );
     }
@@ -71,11 +80,38 @@ export class AuthService {
         return this.httpClient.get<ConfiguracaoLogin>(environment.Auth.configuracaoLogin);
     }
 
-    /** Autocadastro com e-mail e senha: já devolve a sessão. */
-    Cadastrar(body: CadastroModel): Observable<boolean> {
+    /** Autocadastro com e-mail e senha: devolve a sessão ou, com o e-mail ligado, a confirmação pendente. */
+    Cadastrar(body: CadastroModel): Observable<ResultadoAcesso> {
         if (this._authenticated)
             return throwError(() => 'O usuário já está logado.');
-        return this.httpClient.post<AuthModel>(environment.Auth.cadastrar, body).pipe(map(r => this.registrarSessao(r)));
+        return this.httpClient.post<AuthModel>(environment.Auth.cadastrar, body).pipe(map(r => this.resultado(r)));
+    }
+
+    /** Confirma o e-mail com o código e abre a sessão. */
+    ConfirmarEmail(body: ConfirmarEmailModel): Observable<boolean> {
+        if (this._authenticated)
+            return throwError(() => 'O usuário já está logado.');
+        return this.httpClient.post<AuthModel>(environment.Auth.confirmarEmail, body).pipe(map(r => this.registrarSessao(r)));
+    }
+
+    ReenviarCodigo(body: ReenviarCodigoModel): Observable<CodigoEnvioResponse> {
+        return this.httpClient.post<CodigoEnvioResponse>(environment.Auth.reenviarCodigo, body);
+    }
+
+    CorrigirEmail(body: CorrigirEmailModel): Observable<CodigoEnvioResponse> {
+        return this.httpClient.post<CodigoEnvioResponse>(environment.Auth.corrigirEmail, body);
+    }
+
+    /** Sempre 200 com a mesma mensagem (a API não revela se o e-mail existe). */
+    EsqueciSenha(body: EsqueciSenhaModel): Observable<ApiResponse> {
+        return this.httpClient.post<ApiResponse>(environment.Auth.esqueciSenha, body);
+    }
+
+    /** Troca a senha com o código e abre a sessão. */
+    RedefinirSenha(body: RedefinirSenhaModel): Observable<boolean> {
+        if (this._authenticated)
+            return throwError(() => 'O usuário já está logado.');
+        return this.httpClient.post<AuthModel>(environment.Auth.redefinirSenha, body).pipe(map(r => this.registrarSessao(r)));
     }
 
     /** Login pelo Google. Se PrecisaCompletar, nada foi gravado e a sessão não é aberta. */
@@ -161,6 +197,19 @@ export class AuthService {
             Email: claim('email', 'emailaddress'),
             Role: this.getUserRole() ?? undefined,
         };
+    }
+
+    // Pendente nunca abre sessão (Token vazio): só devolve o que a tela precisa.
+    private resultado(response: AuthModel): ResultadoAcesso {
+        if (response.ConfirmacaoPendente === true)
+            return {
+                pendente: true,
+                Email: response.Email,
+                EnvioFalhou: response.EnvioFalhou === true,
+                ReenviarEmSegundos: response.ReenviarEmSegundos ?? 0,
+            };
+        this.registrarSessao(response);
+        return { pendente: false };
     }
 
     private registrarSessao(response: AuthModel): boolean {

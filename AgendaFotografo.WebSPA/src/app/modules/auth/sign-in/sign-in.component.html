@@ -60,6 +60,11 @@
                     </div>
                 </div>
 
+                <p *ngIf="emailLigado" class="mt-2 text-right">
+                    <button type="button" class="min-h-[44px] px-2 text-sm font-semibold text-[#9a3412] underline"
+                        [disabled]="ocupado" (click)="abrirEsqueci(signInForm.get('email').value)">Esqueci minha senha</button>
+                </p>
+
                 <!-- Lembrar-me -->
                 <label class="mt-4 flex min-h-[44px] cursor-pointer items-center gap-3 text-sm">
                     <input type="checkbox" formControlName="rememberMe" class="h-5 w-5 accent-[#c2410c]">
@@ -71,7 +76,6 @@
                     <mat-progress-spinner *ngIf="ocupado" [diameter]="24" [mode]="'indeterminate'"></mat-progress-spinner>
                 </button>
 
-                <!-- "Esqueci minha senha": pendente (plano 15). Não há contato de suporte na landing; o colaborador define e-mail ou WhatsApp. -->
             </form>
 
             <ng-container *ngIf="googleClientId">
@@ -93,6 +97,19 @@
                     <span class="h-px flex-1 bg-[#f0e2d6]"></span><span>ou</span><span class="h-px flex-1 bg-[#f0e2d6]"></span>
                 </div>
             </ng-container>
+
+            <!-- E-mail já cadastrado: atalhos para entrar ou recuperar a senha -->
+            <div *ngIf="emailDuplicado" role="alert"
+                class="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-3 text-sm text-amber-900">
+                <p class="flex items-start gap-2 font-medium">
+                    <mat-icon class="icon-size-5 shrink-0" [svgIcon]="'heroicons_solid:exclamation-triangle'"></mat-icon>
+                    <span>Este e-mail já tem cadastro.</span>
+                </p>
+                <div class="mt-3 flex flex-col gap-2 sm:flex-row">
+                    <button type="button" class="qc-btn qc-btn-primario sm:flex-1" (click)="irParaEntrar()">Entrar</button>
+                    <button *ngIf="emailLigado" type="button" class="qc-btn qc-btn-fantasma sm:flex-1" (click)="irParaEsqueci()">Esqueci minha senha</button>
+                </div>
+            </div>
 
             <form [formGroup]="cadastroForm" (ngSubmit)="cadastrar()" novalidate>
                 <div>
@@ -166,6 +183,31 @@
             </form>
         </div>
     </ng-container>
+
+    <!-- CONFIRMAR E-MAIL (plano 18): sem rota própria; senha e código só em memória -->
+    <app-confirmar-email *ngIf="etapa === 'codigo' && pendente" [email]="pendente.email" [senha]="senhaEmMemoria"
+        [envioFalhou]="pendente.envioFalhou" [reenviarEmSegundos]="pendente.reenviarEmSegundos"
+        (emailAlterado)="atualizarEmailPendente($event)" (concluido)="aoConfirmarEmail()" (voltar)="voltarAoLogin()"></app-confirmar-email>
+
+    <!-- ESQUECI MINHA SENHA -->
+    <form *ngIf="etapa === 'esqueci'" (submit)="$event.preventDefault(); enviarEsqueci()" novalidate>
+        <label class="qc-rotulo" for="esq-email">E-mail</label>
+        <input id="esq-email" class="qc-campo" type="email" autocomplete="username" maxlength="200" [formControl]="esqueciEmail"
+            [attr.aria-invalid]="esqueciEmail.invalid && (esqueciEmail.touched || esqueciEnviado)">
+        <div class="qc-erro" *ngIf="esqueciEmail.invalid && (esqueciEmail.touched || esqueciEnviado)">
+            <mat-icon class="icon-size-5 shrink-0" [svgIcon]="'heroicons_solid:exclamation-circle'"></mat-icon>
+            <span>{{ erroEsqueci() }}</span>
+        </div>
+        <button type="submit" class="qc-btn qc-btn-primario qc-btn-bloco mt-4" [disabled]="ocupado">
+            <span *ngIf="!ocupado">Enviar código</span>
+            <mat-progress-spinner *ngIf="ocupado" [diameter]="24" [mode]="'indeterminate'"></mat-progress-spinner>
+        </button>
+        <button type="button" class="qc-btn qc-btn-fantasma qc-btn-bloco mt-3" [disabled]="ocupado" (click)="voltarAoLogin()">Voltar para o login</button>
+    </form>
+
+    <!-- NOVA SENHA -->
+    <app-nova-senha *ngIf="etapa === 'nova-senha'" [email]="emailNovaSenha" [mensagem]="mensagemNovaSenha"
+        (concluido)="entrarAposNovaSenha()" (voltar)="voltarAoLogin()"></app-nova-senha>
 
     <!-- COMPLETAR CADASTRO (Google): sem rota própria; nada foi gravado ainda -->
     <form *ngIf="etapa === 'completar'" [formGroup]="completarForm" (ngSubmit)="concluirGoogle()" novalidate>

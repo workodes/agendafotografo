@@ -1,0 +1,26 @@
+Que bom ter você aqui, {{PrimeiroNome}}!
+
+O quemclica junta numa agenda só os eventos, a escala da equipe e as pendências de cada trabalho. Sua conta já está pronta para o primeiro evento.
+
+Teste grátis: {{DiasGratis}} dias, válido até {{TesteAte}}.
+Sem cartão cadastrado. Os dias que faltam aparecem no topo do sistema.
+
+Seu primeiro evento em 3 passos
+
+1. Monte a equipe
+   Cadastre quem trabalha com você: fotógrafos, editores e assistentes.
+2. Lance o evento
+   Preencha data, local e horários, ou mande o flyer para o Assistente preencher.
+3. Mande a escala
+   Escale a equipe e envie o link do evento no grupo. Cada um vê onde e quando estar.
+
+Abrir minha agenda: {{UrlSistema}}
+{{LinhaAcesso}}
+
+Dica para o celular: abra o quemclica no navegador do celular e escolha "Adicionar à tela inicial". Ele passa a abrir como um app, sem baixar nada na loja.
+
+--
+quemclica
+A agenda da sua equipe de fotografia: eventos, escala e pendências num lugar só.
+Você recebeu este e-mail porque criou uma conta no quemclica com {{Email}}.
+Este é um e-mail automático e não recebe respostas.

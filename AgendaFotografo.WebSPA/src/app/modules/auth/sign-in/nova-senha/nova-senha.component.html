@@ -1,0 +1,74 @@
+<div *ngIf="erro" role="alert"
+    class="mb-4 flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
+    <mat-icon class="icon-size-5 shrink-0" [svgIcon]="'heroicons_solid:exclamation-circle'"></mat-icon>
+    <span>{{ erro }}</span>
+</div>
+
+<p *ngIf="info || mensagem" class="qc-suave mb-4 text-sm">{{ info || mensagem }}</p>
+
+<form [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+    <div>
+        <label class="qc-rotulo" for="ns-codigo">Código de 6 números</label>
+        <input #campoCodigo id="ns-codigo" class="qc-campo text-center text-3xl font-bold tracking-[0.4em]" type="text"
+            inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" formControlName="codigo" (input)="aoDigitarCodigo($event)"
+            [attr.aria-invalid]="mostrar('codigo')">
+        <div class="qc-erro" *ngIf="mostrar('codigo')">
+            <mat-icon class="icon-size-5 shrink-0" [svgIcon]="'heroicons_solid:exclamation-circle'"></mat-icon>
+            <span>{{ textoErro('codigo') }}</span>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <label class="qc-rotulo" for="ns-senha">Senha nova</label>
+        <div class="relative">
+            <input id="ns-senha" class="qc-campo pr-12" type="password" autocomplete="new-password" formControlName="senha" #senhaNova
+                [attr.aria-invalid]="mostrar('senha')">
+            <button type="button"
+                class="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-[#7c2d12]"
+                [attr.aria-label]="senhaNova.type === 'password' ? 'Mostrar senha' : 'Ocultar senha'"
+                (click)="senhaNova.type === 'password' ? senhaNova.type = 'text' : senhaNova.type = 'password'">
+                <mat-icon class="icon-size-5" *ngIf="senhaNova.type === 'password'" [svgIcon]="'heroicons_solid:eye'"></mat-icon>
+                <mat-icon class="icon-size-5" *ngIf="senhaNova.type === 'text'" [svgIcon]="'heroicons_solid:eye-slash'"></mat-icon>
+            </button>
+        </div>
+        <p class="qc-suave mt-1 text-sm">Mínimo de 8 caracteres.</p>
+        <div class="qc-erro" *ngIf="mostrar('senha')">
+            <mat-icon class="icon-size-5 shrink-0" [svgIcon]="'heroicons_solid:exclamation-circle'"></mat-icon>
+            <span>{{ textoErro('senha') }}</span>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <label class="qc-rotulo" for="ns-confirmar">Confirmar senha</label>
+        <div class="relative">
+            <input id="ns-confirmar" class="qc-campo pr-12" type="password" autocomplete="new-password" formControlName="confirmar" #senhaConf
+                [attr.aria-invalid]="mostrar('confirmar') || senhasDiferentes">
+            <button type="button"
+                class="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-[#7c2d12]"
+                [attr.aria-label]="senhaConf.type === 'password' ? 'Mostrar senha' : 'Ocultar senha'"
+                (click)="senhaConf.type === 'password' ? senhaConf.type = 'text' : senhaConf.type = 'password'">
+                <mat-icon class="icon-size-5" *ngIf="senhaConf.type === 'password'" [svgIcon]="'heroicons_solid:eye'"></mat-icon>
+                <mat-icon class="icon-size-5" *ngIf="senhaConf.type === 'text'" [svgIcon]="'heroicons_solid:eye-slash'"></mat-icon>
+            </button>
+        </div>
+        <div class="qc-erro" *ngIf="mostrar('confirmar')">
+            <mat-icon class="icon-size-5 shrink-0" [svgIcon]="'heroicons_solid:exclamation-circle'"></mat-icon>
+            <span>{{ textoErro('confirmar') }}</span>
+        </div>
+        <div class="qc-erro" *ngIf="senhasDiferentes">
+            <mat-icon class="icon-size-5 shrink-0" [svgIcon]="'heroicons_solid:exclamation-circle'"></mat-icon>
+            <span>As senhas não são iguais.</span>
+        </div>
+    </div>
+
+    <button type="submit" class="qc-btn qc-btn-primario qc-btn-bloco mt-5" [disabled]="ocupado">
+        <span *ngIf="!ocupado">Criar nova senha</span>
+        <mat-progress-spinner *ngIf="ocupado" [diameter]="24" [mode]="'indeterminate'"></mat-progress-spinner>
+    </button>
+</form>
+
+<button type="button" class="qc-btn qc-btn-fantasma qc-btn-bloco mt-3" [disabled]="ocupado || segundos > 0" (click)="reenviar()">
+    {{ segundos > 0 ? 'Reenviar em ' + segundos + ' s' : 'Reenviar código' }}
+</button>
+<span class="sr-only" role="status" aria-live="polite">{{ avisoLiberado }}</span>
+<button type="button" class="qc-btn qc-btn-fantasma qc-btn-bloco mt-3" [disabled]="ocupado" (click)="sair()">Voltar para o login</button>

@@ -58,6 +58,14 @@ services:
       Google__ClientId: "${AGENDA_GOOGLE_CLIENT_ID:-}"
       # Dias do teste grátis no autocadastro (inclui o dia do cadastro).
       Teste__DiasGratis: "${AGENDA_TESTE_DIAS_GRATIS:-15}"
+      # E-mails da conta (confirmação, boas-vindas e nova senha; plano 18). Valores só nas variáveis do Dokploy (Environment); NUNCA neste arquivo.
+      # Vazio = e-mail desligado (o cadastro manual entra direto e o "Esqueci minha senha" não aparece). Ver docs/deploy.md ("E-mails da conta").
+      MailSettings__Mail: "${AGENDA_MAIL_REMETENTE:-}"
+      MailSettings__Usuario: "${AGENDA_MAIL_USUARIO:-}"
+      MailSettings__Password: "${AGENDA_MAIL_SENHA:-}"
+      MailSettings__Host: "${AGENDA_MAIL_HOST:-}"
+      MailSettings__Port: "${AGENDA_MAIL_PORTA:-587}"
+      MailSettings__UrlSistema: "${AGENDA_URL_SISTEMA:-https://quemclica.com.br}"
     volumes:
       # Flyer, imagem de rota e GPX (Arquivos:Pasta = /app/dados/arquivos). Sem volume, somem a cada deploy.
       - agenda-arquivos:/app/dados

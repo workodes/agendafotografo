@@ -16,6 +16,14 @@
     <None Remove="App_Data\**" />
   </ItemGroup>
 
+  <!-- Modelos dos e-mails da conta (plano 18): recursos embutidos, lidos uma vez. Cópia de docs/emails/ (mudou um, copiar para o outro) -->
+  <ItemGroup>
+    <None Remove="Services\Emails\Modelos\**" />
+    <Content Remove="Services\Emails\Modelos\**" />
+    <EmbeddedResource Include="Services\Emails\Modelos\*.html" />
+    <EmbeddedResource Include="Services\Emails\Modelos\*.txt" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\AgendaFotografo.Infra.Data\AgendaFotografo.Infra.Data.csproj" />
     <ProjectReference Include="..\AgendaFotografo.CrossCutting\AgendaFotografo.CrossCutting.csproj" />

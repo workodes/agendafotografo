@@ -21,4 +21,13 @@ public class LoginResponse
 
     /// <summary>Nome do assinante (só perfil Assinante; null para o Admin). O AssinanteId NÃO é exposto.</summary>
     public string? AssinanteNome { get; set; }
+
+    /// <summary>Verdadeiro quando o e-mail da conta ainda precisa ser confirmado (plano 18): <c>Token</c> vem vazio e só valem <c>Email</c>, <c>EnvioFalhou</c> e <c>ReenviarEmSegundos</c>.</summary>
+    public bool ConfirmacaoPendente { get; set; }
+
+    /// <summary>Verdadeiro só quando o envio do código deste pedido falhou.</summary>
+    public bool EnvioFalhou { get; set; }
+
+    /// <summary>Segundos até liberar "Reenviar código" (0 a 60).</summary>
+    public int ReenviarEmSegundos { get; set; }
 }

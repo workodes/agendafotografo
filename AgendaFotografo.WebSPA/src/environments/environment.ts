@@ -13,6 +13,11 @@ export const environment = {
         loginGoogle: `${baseUrl}/Auth/LoginGoogle`,
         cadastrarGoogle: `${baseUrl}/Auth/CadastrarGoogle`,
         testeGratis: `${baseUrl}/Auth/TesteGratis`,
+        confirmarEmail: `${baseUrl}/Auth/ConfirmarEmail`,
+        reenviarCodigo: `${baseUrl}/Auth/ReenviarCodigo`,
+        corrigirEmail: `${baseUrl}/Auth/CorrigirEmail`,
+        esqueciSenha: `${baseUrl}/Auth/EsqueciSenha`,
+        redefinirSenha: `${baseUrl}/Auth/RedefinirSenha`,
     },
 
     Assinante: {

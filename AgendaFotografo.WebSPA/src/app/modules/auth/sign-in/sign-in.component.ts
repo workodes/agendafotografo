@@ -1,6 +1,6 @@
 import { NgIf } from '@angular/common';
 import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
-import { AbstractControl, FormsModule, ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup, ValidationErrors, Validators } from '@angular/forms';
+import { AbstractControl, FormControl, FormsModule, ReactiveFormsModule, UntypedFormBuilder, UntypedFormGroup, ValidationErrors, Validators } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Title } from '@angular/platform-browser';
@@ -9,11 +9,13 @@ import { fuseAnimations } from '@fuse/animations';
 import { FuseAlertType } from '@fuse/components/alert';
 import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
 import { Subject, takeUntil } from 'rxjs';
-import { AuthService } from 'app/core/auth/auth.service';
+import { AuthService, ResultadoAcesso } from 'app/core/auth/auth.service';
 import { GoogleIdentityService } from 'app/core/auth/google-identity.service';
 import { QcAuthShellComponent } from 'app/shared/auth-shell/qc-auth-shell.component';
 import { GenericValidator } from 'app/utils/GenericValidator';
 import { emailTolerante, normalizarEmail } from 'app/utils/email-validator';
+import { ConfirmarEmailComponent } from './confirmar-email/confirmar-email.component';
+import { NovaSenhaComponent } from './nova-senha/nova-senha.component';
 
 // Mesma regra da API: DDD + número = 10 ou 11 dígitos (aqui o campo é obrigatório, o required cobre o vazio).
 function telefoneValido(control: AbstractControl): ValidationErrors | null {
@@ -22,7 +24,10 @@ function telefoneValido(control: AbstractControl): ValidationErrors | null {
 }
 
 type Aba = 'entrar' | 'cadastro';
-type Etapa = 'abas' | 'completar';
+type Etapa = 'abas' | 'completar' | 'codigo' | 'esqueci' | 'nova-senha';
+
+// Texto exato da API para e-mail repetido no cadastro (mostra os atalhos Entrar / Esqueci minha senha).
+const MSG_EMAIL_JA_CADASTRADO = 'Este e-mail já tem cadastro.';
 
 const DIAS_GRATIS_PADRAO = 15;
 
@@ -47,6 +52,8 @@ const DIAS_GRATIS_PADRAO = 15;
         NgxMaskDirective,
         MatIconModule,
         MatProgressSpinnerModule,
+        ConfirmarEmailComponent,
+        NovaSenhaComponent,
     ],
 })
 export class AuthSignInComponent implements OnInit, OnDestroy {
@@ -60,6 +67,19 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
     cadastroForm: UntypedFormGroup;
     completarForm: UntypedFormGroup;
     enviado = { entrar: false, cadastro: false, completar: false };
+
+    // E-mails de conta (plano 18): só com EmailLigado.
+    emailLigado = false;
+    emailDuplicado = false;
+    // Etapa "codigo": a senha só existe aqui, em memória (apagada ao concluir, ao voltar e no ngOnDestroy).
+    pendente: { email: string; envioFalhou: boolean; reenviarEmSegundos: number } | null = null;
+    private _senha = '';
+    // Etapas "esqueci" e "nova-senha".
+    esqueciEmail = new FormControl('', [Validators.required, emailTolerante, Validators.maxLength(200)]);
+    esqueciEnviado = false;
+    emailNovaSenha = '';
+    mensagemNovaSenha = '';
+    private _etapaInicial: Etapa | null = null;
 
     diasGratis = DIAS_GRATIS_PADRAO;
     googleClientId: string | null = null;
@@ -94,12 +114,25 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
     get tituloCartao(): string {
         if (this.etapa === 'completar')
             return 'Complete seu cadastro';
+        if (this.etapa === 'codigo')
+            return 'Confirme seu e-mail';
+        if (this.etapa === 'esqueci')
+            return 'Esqueci minha senha';
+        if (this.etapa === 'nova-senha')
+            return 'Crie uma nova senha';
         return this.aba === 'entrar' ? 'Entrar' : 'Criar conta';
     }
 
     get subtituloCartao(): string {
         if (this.etapa === 'completar')
             return 'Falta pouco para criar a sua conta.';
+        if (this.etapa === 'codigo')
+            // Texto neutro: se o envio falhou ou deu certo, quem avisa é o próprio cartão do código (o reenvio é tratado lá)
+            return `O código vai para ${this.pendente?.email ?? ''}.`;
+        if (this.etapa === 'esqueci')
+            return 'Informe o e-mail da sua conta para receber um código.';
+        if (this.etapa === 'nova-senha')
+            return `Código enviado para ${this.emailNovaSenha}.`;
         return this.aba === 'entrar' ? 'Acesse a agenda da sua equipe.' : `${this.textoDias}, sem cartão.`;
     }
 
@@ -113,7 +146,15 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
 
         this.aba = this.route.snapshot.data['aba'] === 'cadastro' ? 'cadastro' : 'entrar';
 
-        const rememberedEmail = this.authService.rememberedEmail;
+        // Atalhos do aviso de e-mail repetido: o `state` leva só o e-mail (nunca senha nem código) e é apagado após a leitura.
+        const estado = (history.state ?? {}) as { email?: string; etapa?: string };
+        const emailDoEstado = typeof estado.email === 'string' ? estado.email : '';
+        if (estado.email !== undefined || estado.etapa !== undefined)
+            history.replaceState({}, '');
+        if (emailDoEstado && estado.etapa === 'esqueci')
+            this._etapaInicial = 'esqueci';
+
+        const rememberedEmail = emailDoEstado || this.authService.rememberedEmail;
 
         this.signInForm = this.formBuilder.group({
             email: [rememberedEmail, [Validators.required, Validators.email]],
@@ -140,6 +181,10 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
             next: config => {
                 this.diasGratis = config.DiasGratis > 0 ? config.DiasGratis : DIAS_GRATIS_PADRAO;
                 this.googleClientId = config.GoogleClientId || null;
+                this.emailLigado = config.EmailLigado === true;
+                if (this._etapaInicial === 'esqueci' && this.emailLigado && this.etapa === 'abas')
+                    this.abrirEsqueci(this.signInForm.get('email')?.value ?? '');
+                this._etapaInicial = null;
                 this._cdr.markForCheck();
             },
             error: () => { /* mantém o padrão: sem Google, 15 dias */ },
@@ -150,6 +195,7 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
 
     ngOnDestroy(): void {
         this._idToken = null;
+        this._senha = '';
         this._destroy$.next();
         this._destroy$.complete();
     }
@@ -167,9 +213,10 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
         if (this.signInForm.invalid || this.ocupado)
             return;
 
+        const senha = this.signInForm.get('password')?.value ?? '';
         this.iniciar();
         this.authService.signIn(this.signInForm.value).subscribe({
-            next: () => this.entrar(),
+            next: r => this.aposAcesso(r, this.signInForm.get('email')?.value, senha),
             error: error => this.falhar(error, 'Erro ao fazer login'),
         });
     }
@@ -181,6 +228,7 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
             return;
 
         const v = this.cadastroForm.getRawValue();
+        const senha = v.senha as string;
         this.iniciar();
         this.authService.Cadastrar({
             ASS_NOME: (v.nome ?? '').trim(),
@@ -189,14 +237,116 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
             ASS_CPF_CNPJ: this.digitos(v.cpfCnpj),
             Senha: v.senha,
         }).subscribe({
-            next: () => this.entrar(),
-            error: error => this.falhar(error, 'Não foi possível criar a conta.'),
+            next: r => this.aposAcesso(r, normalizarEmail(v.email), senha),
+            error: error => {
+                // E-mail repetido: aviso com atalhos no lugar do alerta comum (CPF/CNPJ repetido segue com o alerta).
+                if (error?.error === MSG_EMAIL_JA_CADASTRADO) {
+                    this.ocupado = false;
+                    this.emailDuplicado = true;
+                    this._cdr.markForCheck();
+                    return;
+                }
+                this.falhar(error, 'Não foi possível criar a conta.');
+            },
         });
+    }
+
+    // Resposta de Login/Cadastrar: entrou ou a confirmação do e-mail está pendente (nunca abre sessão).
+    private aposAcesso(r: ResultadoAcesso, email: string, senha: string): void {
+        if (!r.pendente) {
+            this.entrar();
+            return;
+        }
+        this._senha = senha;
+        this.signInForm.get('password')?.reset('');
+        this.cadastroForm.get('senha')?.reset('');
+        this.pendente = { email: r.Email || email, envioFalhou: r.EnvioFalhou, reenviarEmSegundos: r.ReenviarEmSegundos };
+        this.etapa = 'codigo';
+        this.ocupado = false;
+        this._cdr.markForCheck();
+    }
+
+    get senhaEmMemoria(): string {
+        return this._senha;
+    }
+
+    // Atalhos do aviso "Este e-mail já tem cadastro."
+    irParaEntrar(): void {
+        this.router.navigate(['/sign-in'], { state: { email: normalizarEmail(this.cadastroForm.get('email')?.value) }, queryParamsHandling: 'preserve' });
+    }
+
+    irParaEsqueci(): void {
+        this.router.navigate(['/sign-in'], { state: { email: normalizarEmail(this.cadastroForm.get('email')?.value), etapa: 'esqueci' }, queryParamsHandling: 'preserve' });
+    }
+
+    // ----- Confirmação de e-mail, esqueci e nova senha -----
+    aoConfirmarEmail(): void {
+        this._senha = '';
+        this.pendente = null;
+        this.entrar();
+    }
+
+    entrarAposNovaSenha(): void {
+        this.entrar();
+    }
+
+    atualizarEmailPendente(email: string): void {
+        if (this.pendente)
+            this.pendente = { ...this.pendente, email };
+    }
+
+    voltarAoLogin(): void {
+        this._senha = '';
+        this.pendente = null;
+        this.emailNovaSenha = '';
+        this.mensagemNovaSenha = '';
+        this.showAlert = false;
+        this.emailDuplicado = false;
+        this.enviado = { entrar: false, cadastro: false, completar: false };
+        this.signInForm.get('password')?.reset('');
+        this.signInForm.markAsUntouched();
+        this.cadastroForm.markAsUntouched();
+        this.etapa = 'abas';
+        if (this.aba !== 'entrar')
+            this.trocarAba('entrar');
+    }
+
+    abrirEsqueci(email: string): void {
+        if (!this.emailLigado)
+            return;
+        this.esqueciEmail.reset(normalizarEmail(email));
+        this.esqueciEnviado = false;
+        this.showAlert = false;
+        this.etapa = 'esqueci';
+        this._cdr.markForCheck();
+    }
+
+    enviarEsqueci(): void {
+        this.esqueciEnviado = true;
+        if (this.esqueciEmail.invalid || this.ocupado)
+            return;
+
+        const email = normalizarEmail(this.esqueciEmail.value);
+        this.iniciar();
+        this.authService.EsqueciSenha({ Email: email }).subscribe({
+            next: r => {
+                this.ocupado = false;
+                this.emailNovaSenha = email;
+                this.mensagemNovaSenha = r.Message ?? '';
+                this.etapa = 'nova-senha';
+                this._cdr.markForCheck();
+            },
+            error: error => this.falhar(error, 'Não foi possível enviar o código.'),
+        });
+    }
+
+    erroEsqueci(): string {
+        return this.esqueciEmail.hasError('required') ? 'O endereço de e-mail é obrigatório.' : 'Informe um e-mail válido.';
     }
 
     // ----- Google -----
     private aoReceberCredencial(token: string): void {
-        if (this.ocupado || this.etapa === 'completar')
+        if (this.ocupado || this.etapa !== 'abas')
             return;
 
         this.iniciar();
@@ -297,6 +447,7 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
     private iniciar(): void {
         this.ocupado = true;
         this.showAlert = false;
+        this.emailDuplicado = false;
     }
 
     private entrar(): void {

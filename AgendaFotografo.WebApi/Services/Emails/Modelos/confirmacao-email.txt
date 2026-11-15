@@ -1,0 +1,18 @@
+Falta um clique, {{PrimeiroNome}}.
+
+Digite o código abaixo na tela do quemclica para confirmar que {{Email}} é seu. Depois disso, sua agenda abre na hora.
+
+Seu código: {{Codigo}}
+
+Vale por {{ValidadeMinutos}} minutos e só pode ser usado uma vez.
+
+Fechou a tela antes de digitar? Sem problema. Entre no quemclica com seu e-mail e senha: a gente manda um código novo na hora.
+Ir para o quemclica: {{UrlSistema}}
+
+Não foi você que criou esta conta? Pode ignorar este e-mail. Sem o código, nada é ativado.
+
+--
+quemclica
+A agenda da sua equipe de fotografia: eventos, escala e pendências num lugar só.
+Você recebeu este e-mail porque {{Email}} foi usado para criar uma conta no quemclica.
+Este é um e-mail automático e não recebe respostas.

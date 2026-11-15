@@ -13,4 +13,8 @@ export interface AuthModel {
     AssinanteNome?: string | null;
     /** false = conta que entra só pelo Google (sem senha para alterar). */
     TemSenha?: boolean;
+    /** Cadastro manual/login com e-mail por confirmar: Token vem vazio e só Email e os dois campos abaixo valem. */
+    ConfirmacaoPendente?: boolean;
+    EnvioFalhou?: boolean;
+    ReenviarEmSegundos?: number;
 }
