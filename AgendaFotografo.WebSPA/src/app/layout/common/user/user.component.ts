@@ -13,6 +13,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormsModule, ReactiveFormsModule, UntypedFormGroup, } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { DefinirSenhaDialogComponent } from './definir-senha-dialog/definir-senha-dialog.component';
 import { AlterarSenhaDialogComponent } from './alterar-senha-dialog/alterar-senha-dialog.component';
 
 @Component({
@@ -94,6 +95,17 @@ export class UserComponent implements OnInit, OnDestroy {
     alterarSenha(): void {
         this._matDialog.open(AlterarSenhaDialogComponent, {
             width: '380px',
+            maxWidth: '95vw',
+            autoFocus: 'first-tabbable',
+        });
+    }
+
+    /**
+     * Abre o modal de definir senha (conta criada só com o Google).
+     */
+    definirSenha(): void {
+        this._matDialog.open(DefinirSenhaDialogComponent, {
+            width: '440px',
             maxWidth: '95vw',
             autoFocus: 'first-tabbable',
         });

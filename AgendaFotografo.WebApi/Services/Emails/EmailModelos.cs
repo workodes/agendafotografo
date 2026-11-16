@@ -29,7 +29,8 @@ public partial class EmailModelos
         {
             [TipoEmailConta.Confirmacao] = (Ler("confirmacao-email.html"), Ler("confirmacao-email.txt")),
             [TipoEmailConta.BoasVindas] = (Ler("boas-vindas.html"), Ler("boas-vindas.txt")),
-            [TipoEmailConta.NovaSenha] = (Ler("recuperacao-senha.html"), Ler("recuperacao-senha.txt"))
+            [TipoEmailConta.NovaSenha] = (Ler("recuperacao-senha.html"), Ler("recuperacao-senha.txt")),
+            [TipoEmailConta.DefinirSenha] = (Ler("definir-senha.html"), Ler("definir-senha.txt"))
         };
     }
 
@@ -64,6 +65,7 @@ public partial class EmailModelos
         TipoEmailConta.Confirmacao => $"{campos["Codigo"]} é o seu código do quemclica",
         TipoEmailConta.BoasVindas => $"Boas-vindas ao quemclica, {campos["PrimeiroNome"]}! Seu teste grátis começou",
         TipoEmailConta.NovaSenha => $"{campos["Codigo"]} é o código para criar sua nova senha",
+        TipoEmailConta.DefinirSenha => $"{campos["Codigo"]} é o código para definir sua senha de acesso",
         _ => throw new InvalidOperationException("Tipo de e-mail desconhecido.")
     };
 

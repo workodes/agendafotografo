@@ -1,0 +1,99 @@
+<h2 mat-dialog-title>Entrar também com e-mail e senha</h2>
+
+<mat-dialog-content>
+    <div *ngIf="passo === 'carregando'" class="flex justify-center py-6">
+        <mat-progress-spinner [diameter]="28" mode="indeterminate"></mat-progress-spinner>
+    </div>
+
+    <p *ngIf="passo === 'indisponivel'" class="text-secondary">
+        O envio de e-mails não está disponível no momento, por isso não é possível definir a senha agora. Você continua entrando com o Google.
+    </p>
+
+    <div *ngIf="erro" role="alert"
+        class="mb-4 flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
+        <mat-icon class="icon-size-5 shrink-0" [svgIcon]="'heroicons_solid:exclamation-circle'"></mat-icon>
+        <span class="whitespace-pre-line">{{ erro }}</span>
+    </div>
+
+    <div *ngIf="avisoEnvio" role="alert"
+        class="mb-4 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
+        <mat-icon class="icon-size-5 shrink-0" [svgIcon]="'heroicons_solid:exclamation-triangle'"></mat-icon>
+        <span>Não foi possível enviar o e-mail agora. Tente de novo em instantes.</span>
+    </div>
+
+    <!-- Passo 1 -->
+    <div *ngIf="passo === 'enviar'">
+        <p class="mb-4 text-secondary">
+            Enviaremos um código de 6 números para o e-mail da sua conta. Com ele você escolhe uma senha e passa a entrar
+            também com e-mail e senha, sem precisar do Google. O login com Google continua funcionando.
+        </p>
+        <mat-form-field class="w-full">
+            <mat-label>E-mail da conta</mat-label>
+            <input matInput type="email" [value]="email" readonly>
+        </mat-form-field>
+        <button type="button" mat-button [disabled]="ocupado" (click)="irParaCodigo()">Já tenho um código</button>
+    </div>
+
+    <!-- Passo 2 -->
+    <form *ngIf="passo === 'codigo'" id="form-definir-senha" class="flex flex-col gap-1 pt-1" [formGroup]="form" (ngSubmit)="definir()" novalidate>
+        <p class="mb-2 text-secondary">
+            Digite o código de 6 números enviado para <strong>{{ email }}</strong> e escolha a senha.
+        </p>
+        <mat-form-field class="w-full">
+            <mat-label>Código de 6 números</mat-label>
+            <input matInput type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*"
+                formControlName="Codigo" (input)="aoDigitarCodigo($event)">
+            <mat-error *ngIf="form.get('Codigo')?.invalid">Digite o código de 6 números.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="w-full">
+            <mat-label>Nova senha</mat-label>
+            <input matInput [type]="mostrarNova ? 'text' : 'password'" formControlName="NovaSenha" autocomplete="new-password">
+            <button mat-icon-button matSuffix type="button" tabindex="-1"
+                [attr.aria-label]="mostrarNova ? 'Ocultar senha' : 'Mostrar senha'" (click)="mostrarNova = !mostrarNova">
+                <mat-icon class="icon-size-5" [svgIcon]="mostrarNova ? 'heroicons_solid:eye-slash' : 'heroicons_solid:eye'"></mat-icon>
+            </button>
+            <mat-hint>Mínimo de 8 caracteres.</mat-hint>
+            <mat-error *ngIf="form.get('NovaSenha')?.hasError('required')">Nova senha é obrigatória</mat-error>
+            <mat-error *ngIf="!form.get('NovaSenha')?.hasError('required') && form.get('NovaSenha')?.hasError('minlength')">A senha deve ter no mínimo 8 caracteres</mat-error>
+        </mat-form-field>
+
+        <mat-form-field class="w-full">
+            <mat-label>Confirmar senha</mat-label>
+            <input matInput [type]="mostrarConfirmar ? 'text' : 'password'" formControlName="Confirmar" autocomplete="new-password">
+            <button mat-icon-button matSuffix type="button" tabindex="-1"
+                [attr.aria-label]="mostrarConfirmar ? 'Ocultar senha' : 'Mostrar senha'" (click)="mostrarConfirmar = !mostrarConfirmar">
+                <mat-icon class="icon-size-5" [svgIcon]="mostrarConfirmar ? 'heroicons_solid:eye-slash' : 'heroicons_solid:eye'"></mat-icon>
+            </button>
+            <mat-error *ngIf="form.get('Confirmar')?.hasError('required')">Confirme a senha</mat-error>
+        </mat-form-field>
+        <p *ngIf="senhasDiferentes" class="text-sm text-warn" role="alert">As senhas não conferem</p>
+
+        <div>
+            <button type="button" mat-stroked-button [color]="destacarReenvio ? 'primary' : undefined"
+                [disabled]="ocupado || segundos > 0" (click)="enviarCodigo()">
+                {{ segundos > 0 ? 'Reenviar código em ' + segundos + ' s' : 'Reenviar código' }}
+            </button>
+        </div>
+    </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <ng-container *ngIf="passo === 'indisponivel'">
+        <button mat-flat-button color="primary" type="button" (click)="fechar()">Fechar</button>
+    </ng-container>
+    <ng-container *ngIf="passo === 'enviar'">
+        <button mat-button type="button" [disabled]="ocupado" (click)="fechar()">Cancelar</button>
+        <button mat-flat-button color="primary" type="button" [disabled]="ocupado" (click)="enviarCodigo()">
+            <mat-progress-spinner *ngIf="ocupado" diameter="20" mode="indeterminate"></mat-progress-spinner>
+            <span *ngIf="!ocupado">Enviar código</span>
+        </button>
+    </ng-container>
+    <ng-container *ngIf="passo === 'codigo'">
+        <button mat-button type="button" [disabled]="ocupado" (click)="fechar()">Cancelar</button>
+        <button mat-flat-button color="primary" type="submit" form="form-definir-senha" [disabled]="ocupado">
+            <mat-progress-spinner *ngIf="ocupado" diameter="20" mode="indeterminate"></mat-progress-spinner>
+            <span *ngIf="!ocupado">Definir senha</span>
+        </button>
+    </ng-container>
+</mat-dialog-actions>

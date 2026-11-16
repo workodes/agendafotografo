@@ -24,6 +24,10 @@
         <mat-icon [svgIcon]="'heroicons_outline:key'"></mat-icon>
         <span>Alterar senha</span>
     </button>
+    <button *ngIf="usuario?.TemSenha === false" mat-menu-item (click)="definirSenha()">
+        <mat-icon [svgIcon]="'heroicons_outline:key'"></mat-icon>
+        <span>Definir senha de acesso</span>
+    </button>
     <button mat-menu-item class="menu-usuario-sair" (click)="signOut()">
         <mat-icon [svgIcon]="'heroicons_outline:arrow-right-on-rectangle'"></mat-icon>
         <span>Sair</span>

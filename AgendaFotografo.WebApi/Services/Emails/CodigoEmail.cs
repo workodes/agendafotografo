@@ -10,7 +10,8 @@ namespace AgendaFotografo.WebApi.Services.Emails;
 public enum FinalidadeCodigo
 {
     Confirmacao,
-    NovaSenha
+    NovaSenha,
+    DefinirSenha
 }
 
 /// <summary>Resultado de <see cref="CodigoEmail.ConferirAsync"/>.</summary>
@@ -60,6 +61,7 @@ public class CodigoEmail
     {
         FinalidadeCodigo.Confirmacao => "CodigoConfirmacaoEmail",
         FinalidadeCodigo.NovaSenha => "CodigoNovaSenha",
+        FinalidadeCodigo.DefinirSenha => "CodigoDefinirSenha",
         _ => throw new InvalidOperationException("Finalidade desconhecida.")
     };
 
@@ -142,10 +144,10 @@ public class CodigoEmail
         return registro.Erros >= MaximoErros ? ResultadoCodigo.NaoVale : ResultadoCodigo.Incorreto;
     }
 
-    /// <summary>Remove o código de uma finalidade, ou das duas quando <paramref name="finalidade"/> é nulo.</summary>
+    /// <summary>Remove o código de uma finalidade, ou de todas quando <paramref name="finalidade"/> é nulo.</summary>
     public async Task RemoverAsync(Usuario usuario, FinalidadeCodigo? finalidade = null)
     {
-        foreach (var f in finalidade is null ? [FinalidadeCodigo.Confirmacao, FinalidadeCodigo.NovaSenha] : new[] { finalidade.Value })
+        foreach (var f in finalidade is null ? [FinalidadeCodigo.Confirmacao, FinalidadeCodigo.NovaSenha, FinalidadeCodigo.DefinirSenha] : new[] { finalidade.Value })
             await _userManager.RemoveAuthenticationTokenAsync(usuario, Provedor, NomeToken(f));
     }
 }

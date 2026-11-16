@@ -1,0 +1,17 @@
+Mais uma chave para a sua conta.
+
+Recebemos um pedido para definir uma senha de acesso para {{Email}}. Digite o código abaixo na tela do quemclica e escolha a senha. Depois, você poderá entrar também com e-mail e senha, além do Google.
+
+Seu código: {{Codigo}}
+
+Vale por {{ValidadeMinutos}} minutos e só pode ser usado uma vez.
+
+Não foi você que pediu? Pode ignorar este e-mail. Nada muda na sua conta, e ninguém define uma senha sem este código.
+
+A equipe do quemclica nunca pede este código por telefone, WhatsApp ou e-mail.
+
+--
+quemclica
+A agenda da sua equipe de fotografia: eventos, escala e pendências num lugar só.
+Você recebeu este e-mail porque alguém pediu para definir uma senha de acesso para {{Email}} no quemclica.
+Este é um e-mail automático e não recebe respostas.

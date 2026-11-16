@@ -18,6 +18,8 @@ export const environment = {
         corrigirEmail: `${baseUrl}/Auth/CorrigirEmail`,
         esqueciSenha: `${baseUrl}/Auth/EsqueciSenha`,
         redefinirSenha: `${baseUrl}/Auth/RedefinirSenha`,
+        solicitarCodigoDefinirSenha: `${baseUrl}/Auth/SolicitarCodigoDefinirSenha`,
+        definirSenha: `${baseUrl}/Auth/DefinirSenha`,
     },
 
     Assinante: {

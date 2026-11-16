@@ -53,6 +53,7 @@ public class AuthController(UserManager<Usuario> userManager, IConfiguration con
     private const string MsgCodigoNaoVale = "Este código não vale mais. Peça um novo.";
     private const string MsgCodigoVenceu = "Este código venceu. Peça um novo.";
     private const string MsgCodigoOcupado = "Não foi possível conferir o código agora. Tente de novo.";
+    private const string MsgJaTemSenha = "Sua conta já tem senha. Use Alterar senha.";
     private const string MsgUsuarioInativo = "Usuário inativo. Procure o administrador do sistema";
     private const string MsgEsqueciSenha = "Se este e-mail tiver cadastro com senha, enviamos um código. Se você entra com o Google, use o botão Entrar com Google.";
     private readonly ILogger<AuthController> _logger = logger;
@@ -821,6 +822,112 @@ public class AuthController(UserManager<Usuario> userManager, IConfiguration con
                 // A senha já mudou: o acesso recusado (usuário inativo, assinante bloqueado) vem avisando disso
                 throw new Exception("Senha alterada. " + ex.Message);
             }
+        }
+        catch (Exception ex)
+        {
+            if (aberta) await _unitOfWork.RollbackAsync(cancellationToken);
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>
+    /// Travas comuns de SolicitarCodigoDefinirSenha e DefinirSenha, nesta ordem: e-mail ligado, usuário ativo e conta sem senha.
+    /// Devolve o usuário logado (lido do banco pelo Id do token).
+    /// </summary>
+    private async Task<Usuario> ObterUsuarioSemSenhaAsync()
+    {
+        if (!_emailsConta.Ligado) throw new Exception(MsgEmailIndisponivel);
+
+        var usuario = await _userManager.FindByIdAsync(_currentUser.UserIdentity.Id)
+            ?? throw new Exception("Usuário não encontrado");
+        if (!usuario.Ativo) throw new Exception(MsgUsuarioInativo);
+        if (await _userManager.HasPasswordAsync(usuario)) throw new Exception(MsgJaTemSenha);
+        return usuario;
+    }
+
+    /// <summary>
+    /// Plano 19: manda ao e-mail da conta um código de 6 números para quem entrou só pelo Google definir uma senha de acesso.
+    /// Libera 60 s depois do último envio bem-sucedido. Falha de envio não é erro HTTP: responde 200 com EnvioFalhou = true.
+    /// </summary>
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> SolicitarCodigoDefinirSenha(CancellationToken cancellationToken)
+    {
+        MarcarSemCache();
+        try
+        {
+            var usuario = await ObterUsuarioSemSenhaAsync();
+
+            var faltam = await _codigos.SegundosParaReenviarAsync(usuario, FinalidadeCodigo.DefinirSenha);
+            if (faltam > 0)
+                throw new Exception($"Aguarde {faltam} segundos para pedir outro código.");
+
+            var envio = await _emailsConta.EnviarDefinirSenhaAsync(usuario, cancellationToken);
+            return Ok(new CodigoEnvioResponse { Email = usuario.Email ?? string.Empty, EnvioFalhou = envio.EnvioFalhou, ReenviarEmSegundos = envio.ReenviarEmSegundos });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>
+    /// Plano 19: define a primeira senha da conta (sem senha) com o código recebido por e-mail. Só com o código certo, numa transação:
+    /// adiciona a senha, remove o código e zera as falhas de login. Não mexe em ExigirTrocaSenha, EmailConfirmed nem no vínculo Google.
+    /// </summary>
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> DefinirSenha([FromBody] DefinirSenhaModel model, CancellationToken cancellationToken)
+    {
+        MarcarSemCache();
+        if (model is null) return BadRequest("Dados inválidos.");
+
+        var aberta = false;
+        try
+        {
+            var usuario = await ObterUsuarioSemSenhaAsync();
+
+            model.Codigo = (model.Codigo ?? string.Empty).Trim();
+            model.NovaSenha ??= string.Empty;
+
+            var error = ValidationHelper.ValidateModel(model, new DefinirSenhaValidator());
+            if (error is not null) return BadRequest(error);
+
+            var resultado = await _codigos.ConferirAsync(usuario, FinalidadeCodigo.DefinirSenha, model.Codigo);
+            if (resultado != ResultadoCodigo.Certo)
+            {
+                _logger.LogInformation("Definir senha recusado. UsuarioId={UsuarioId} Resultado={Resultado}", usuario.Id, resultado);
+                throw new Exception(MensagemCodigo(resultado));
+            }
+
+            await _unitOfWork.BeginTransactionAsync(cancellationToken);
+            aberta = true;
+
+            var adicionou = await _userManager.AddPasswordAsync(usuario, model.NovaSenha);
+            if (!adicionou.Succeeded)
+            {
+                var mensagens = adicionou.Errors.Select(e => e.Code switch
+                {
+                    "PasswordTooShort" => "A senha deve ter no mínimo 8 caracteres",
+                    "PasswordRequiresUpper" => "A senha deve conter ao menos uma letra maiúscula",
+                    "PasswordRequiresLower" => "A senha deve conter ao menos uma letra minúscula",
+                    "PasswordRequiresDigit" => "A senha deve conter ao menos um número",
+                    "PasswordRequiresNonAlphanumeric" => "A senha deve conter ao menos um caractere especial",
+                    _ => "Não foi possível definir a senha"
+                }).Distinct();
+                throw new Exception(string.Join("\n", mensagens));
+            }
+
+            var zerou = await _userManager.ResetAccessFailedCountAsync(usuario);
+            if (!zerou.Succeeded) throw new Exception("Não foi possível definir a senha");
+
+            await _codigos.RemoverAsync(usuario, FinalidadeCodigo.DefinirSenha);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
+            aberta = false;
+
+            _logger.LogInformation("Senha de acesso definida por código. UsuarioId={UsuarioId}", usuario.Id);
+            return Ok(new ApiResponse { Success = true, Message = "Senha definida. Agora você também pode entrar com e-mail e senha." });
         }
         catch (Exception ex)
         {

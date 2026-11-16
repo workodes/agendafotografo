@@ -78,6 +78,45 @@ public class EmailsConta(
         }
     }
 
+    /// <summary>
+    /// Definir senha de acesso (conta sem senha, plano 19): gera o código e envia de forma síncrona (limite de 15 s), como a confirmação.
+    /// Falhou = o código é removido e um novo pedido libera na hora. Sem fila.
+    /// </summary>
+    public async Task<EnvioConfirmacao> EnviarDefinirSenhaAsync(Usuario usuario, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var assinante = await ObterAssinanteAsync(usuario, cancellationToken);
+            var codigo = await codigos.GerarAsync(usuario, FinalidadeCodigo.DefinirSenha);
+            try
+            {
+                var email = modelos.Montar(TipoEmailConta.DefinirSenha, new Dictionary<string, string>
+                {
+                    ["PrimeiroNome"] = PrimeiroNome(assinante?.ASS_NOME ?? usuario.FullName),
+                    ["Email"] = usuario.Email ?? string.Empty,
+                    ["Codigo"] = codigo
+                });
+
+                using var limite = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                limite.CancelAfter(LimiteConfirmacao);
+                await emailService.EnviarAsync(usuario.Email ?? string.Empty, assinante?.ASS_NOME ?? usuario.FullName,
+                    email.Assunto, email.Html, email.Texto, limite.Token);
+            }
+            catch (Exception)
+            {
+                await codigos.RemoverAsync(usuario, FinalidadeCodigo.DefinirSenha);
+                throw;
+            }
+            return new EnvioConfirmacao(false, CodigoEmail.SegundosEntreEnvios);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning("Falha ao enviar e-mail de definir senha. UsuarioId={UsuarioId} Tipo={Tipo} Erro={Erro}",
+                usuario.Id, TipoEmailConta.DefinirSenha, ex.GetType().Name);
+            return new EnvioConfirmacao(true, 0);
+        }
+    }
+
     /// <summary>Nova senha: gera o código e coloca o e-mail na fila (envio em segundo plano, sem revelar nada pela demora).</summary>
     public async Task EnfileirarNovaSenhaAsync(Usuario usuario, CancellationToken cancellationToken)
     {

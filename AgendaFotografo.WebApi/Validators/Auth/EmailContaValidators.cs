@@ -63,3 +63,12 @@ public class RedefinirSenhaValidator : AbstractValidator<RedefinirSenhaModel>
         RuleFor(x => x.NovaSenha).SenhaMinima8();
     }
 }
+
+public class DefinirSenhaValidator : AbstractValidator<DefinirSenhaModel>
+{
+    public DefinirSenhaValidator()
+    {
+        CodigoRegras.Codigo(this, x => x.Codigo);
+        RuleFor(x => x.NovaSenha).SenhaMinima8();
+    }
+}

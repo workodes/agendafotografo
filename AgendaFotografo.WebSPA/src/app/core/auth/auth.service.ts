@@ -10,6 +10,7 @@ import { ConfirmarEmailModel } from 'app/models/DTOs/requests/ConfirmarEmailMode
 import { CorrigirEmailModel } from 'app/models/DTOs/requests/CorrigirEmailModel';
 import { EsqueciSenhaModel } from 'app/models/DTOs/requests/EsqueciSenhaModel';
 import { ReenviarCodigoModel } from 'app/models/DTOs/requests/ReenviarCodigoModel';
+import { DefinirSenhaModel } from 'app/models/DTOs/requests/DefinirSenhaModel';
 import { RedefinirSenhaModel } from 'app/models/DTOs/requests/RedefinirSenhaModel';
 import { CodigoEnvioResponse } from 'app/models/DTOs/responses/CodigoEnvio';
 import { ConfiguracaoLogin } from 'app/models/DTOs/responses/ConfiguracaoLogin';
@@ -245,6 +246,29 @@ export class AuthService {
             return;
 
         const usuario: Usuario = { ...JSON.parse(salvo), ExigirTrocaSenha: false };
+        localStorage.setItem('usuario', JSON.stringify(usuario));
+        this.userService.usuario = usuario;
+    }
+
+    /** Pede o código de 6 números por e-mail para definir a senha (conta sem senha). */
+    SolicitarCodigoDefinirSenha(): Observable<CodigoEnvioResponse> {
+        return this.httpClient.post<CodigoEnvioResponse>(environment.Auth.solicitarCodigoDefinirSenha, null);
+    }
+
+    /** Define a senha com o código. Não mexe na sessão; depois chame ConcluirDefinicaoSenha(). */
+    DefinirSenha(body: DefinirSenhaModel): Observable<ApiResponse> {
+        return this.httpClient.post<ApiResponse>(environment.Auth.definirSenha, body, {
+            headers: { 'Content-Type': 'application/json' },
+        });
+    }
+
+    /** Grava TemSenha = true no usuário guardado e no usuario$ (o menu muda sem F5). */
+    ConcluirDefinicaoSenha(): void {
+        const salvo = localStorage.getItem('usuario');
+        if (!salvo)
+            return;
+
+        const usuario: Usuario = { ...JSON.parse(salvo), TemSenha: true };
         localStorage.setItem('usuario', JSON.stringify(usuario));
         this.userService.usuario = usuario;
     }
