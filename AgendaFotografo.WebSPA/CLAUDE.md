@@ -289,6 +289,7 @@ Tela `/assinante/pendencias` (item "Pendências" do menu, depois de "Visão do d
 
 ## Convenções de lista e erros (ajustes pós-testes)
 - Tabelas das listas: abaixo de `sm` usam `max-sm:table-fixed`, células com `max-sm:!px-2`, larguras fixas só nas colunas curtas (Status/Função/Situação) e `div truncate` dentro da célula; nunca `max-w` no `td`.
+- Fichas de cadastro no drawer (Equipe, Organizadores, Tipos de evento, Checklist padrão): o selo Ativo/Inativo fica ao lado do título (só na edição) e Inativar (`mat-button` warn) / Ativar (`mat-button` primary) ficam à esquerda do rodapé, com Fechar/Salvar à direita (`ml-auto`). Não usar caixa de status no topo do conteúdo. A ficha de Assinantes (Admin) segue o mesmo desenho: selos Ativo/Bloqueado e "Aguardando 1º acesso" no título, Bloquear/Reativar no rodapé, e Último acesso, Origem e Teste grátis em linhas de texto simples no topo do conteúdo, com "Redefinir acesso" como link ao lado do Último acesso (no rodapé de 560 px não cabem 4 botões).
 - `/generic-error` (`modules/main/error/generic-error/`): página de erro genérico, destino dos resolvers e do `AuthorizationErrorHandlerService`; o botão volta para `AuthService.getRotaInicial()`.
 - Ficha de Assinantes valida CPF/CNPJ (`GenericValidator.isValidCpfOrCnpj`), telefone (10/11 dígitos) e e-mail (`emailTolerante`) inline; Instagram (Equipe/Organizadores) é limpo de todos os espaços e do "@" inicial antes de validar e enviar.
 

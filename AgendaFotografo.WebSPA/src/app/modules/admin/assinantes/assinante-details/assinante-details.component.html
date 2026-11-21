@@ -1,51 +1,47 @@
 <div class="flex flex-col flex-1 gap-4 min-h-0 w-full">
-    <div class="flex items-center justify-between pt-6 pb-4 border-b border-gray-300">
-        <span class="text-2xl sm:text-3xl font-bold text-accent">{{ ehNovo ? 'Novo assinante' : 'Assinante' }}</span>
-        <button mat-icon-button type="button" aria-label="Fechar" (click)="voltar()">
+    <div class="flex items-center justify-between gap-3 pt-6 pb-4 border-b border-gray-300">
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
+            <span class="text-2xl sm:text-3xl font-bold text-accent">{{ ehNovo ? 'Novo assinante' : 'Assinante' }}</span>
+            <ng-container *ngIf="!ehNovo">
+                <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center shrink-0"
+                    [ngClass]="assinante?.ASS_ATIVO ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
+                    {{ assinante?.ASS_ATIVO ? 'Ativo' : 'Bloqueado' }}
+                </span>
+                <span *ngIf="assinante?.ExigirTrocaSenha"
+                    class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center shrink-0 bg-amber-100 text-amber-900">
+                    Aguardando 1º acesso
+                </span>
+            </ng-container>
+        </div>
+        <button mat-icon-button type="button" class="shrink-0" aria-label="Fechar" (click)="voltar()">
             <mat-icon class="icon-size-5" svgIcon="heroicons_outline:x-mark"></mat-icon>
         </button>
     </div>
 
     <div class="flex flex-col flex-1 min-h-0 overflow-auto">
-        <!-- Situação e ações (só na edição) -->
-        <div *ngIf="!ehNovo" class="flex flex-col gap-3 mb-4 p-3 rounded-lg bg-gray-50 border">
-            <div class="flex flex-wrap items-center gap-2">
-                <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center"
-                    [ngClass]="assinante?.ASS_ATIVO ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'">
-                    {{ assinante?.ASS_ATIVO ? 'Ativo' : 'Bloqueado' }}
-                </span>
-                <span *ngIf="assinante?.ExigirTrocaSenha"
-                    class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center bg-amber-100 text-amber-900">
-                    Aguardando 1º acesso
-                </span>
-                <span class="text-xs text-secondary">
-                    Último acesso: {{ assinante?.LastLogin ? (assinante?.LastLogin | date: 'dd/MM/yyyy HH:mm') : 'nunca acessou' }}
-                </span>
+        <!-- Dados do acesso (só na edição); Bloquear/Reativar fica no rodapé -->
+        <div *ngIf="!ehNovo" class="flex flex-col gap-1.5 mb-4 text-sm">
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span class="text-secondary">Último acesso:</span>
+                <span class="font-medium">{{ assinante?.LastLogin ? (assinante?.LastLogin | date: 'dd/MM/yyyy HH:mm') : 'nunca acessou' }}</span>
+                <span class="text-secondary" aria-hidden="true">·</span>
+                <button type="button" class="inline-flex items-center gap-1 rounded font-semibold text-primary hover:underline disabled:opacity-50 disabled:no-underline"
+                    [disabled]="acaoEmAndamento || salvando" (click)="redefinirAcesso()">
+                    <mat-icon class="icon-size-4 text-current" svgIcon="heroicons_outline:key"></mat-icon>
+                    Redefinir acesso
+                </button>
             </div>
-            <div class="flex flex-wrap items-center gap-2 text-xs">
-                <span class="text-secondary">Origem:</span>
-                <span class="leading-none rounded-full px-3 py-1.5 font-semibold inline-flex items-center bg-gray-100 text-gray-800">
-                    {{ origemRotulo[assinante?.ASS_ORIGEM ?? 1] }}
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span class="inline-flex items-center gap-2">
+                    <span class="text-secondary">Origem:</span>
+                    <span class="font-medium">{{ origemRotulo[assinante?.ASS_ORIGEM ?? 1] }}</span>
                 </span>
-                <span class="text-secondary">Teste grátis:</span>
-                <span class="leading-none rounded-full px-3 py-1.5 font-semibold inline-flex items-center"
-                    [ngClass]="testeEmAlerta(assinante?.TesteDiasRestantes) ? 'bg-amber-100 text-amber-900' : 'bg-gray-100 text-gray-800'">
-                    {{ textoTeste(assinante?.TesteDiasRestantes) }}
+                <span class="inline-flex items-center gap-2">
+                    <span class="text-secondary">Teste grátis:</span>
+                    <span class="font-medium" [ngClass]="{ 'text-amber-700': testeEmAlerta(assinante?.TesteDiasRestantes) }">
+                        {{ textoTeste(assinante?.TesteDiasRestantes) }}
+                    </span>
                 </span>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-2">
-                <button *ngIf="assinante?.ASS_ATIVO" mat-stroked-button color="warn" type="button" [disabled]="acaoEmAndamento" (click)="bloquear()">
-                    <mat-icon svgIcon="heroicons_outline:no-symbol"></mat-icon>
-                    <span class="ml-2">Bloquear</span>
-                </button>
-                <button *ngIf="!assinante?.ASS_ATIVO" mat-stroked-button type="button" [disabled]="acaoEmAndamento" (click)="reativar()">
-                    <mat-icon svgIcon="heroicons_outline:check-circle"></mat-icon>
-                    <span class="ml-2">Reativar</span>
-                </button>
-                <button mat-stroked-button type="button" [disabled]="acaoEmAndamento" (click)="redefinirAcesso()">
-                    <mat-icon svgIcon="heroicons_outline:key"></mat-icon>
-                    <span class="ml-2">Redefinir acesso</span>
-                </button>
             </div>
         </div>
 
@@ -88,11 +84,22 @@
         </p>
     </div>
 
-    <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-300">
-        <button mat-button type="button" [disabled]="salvando" (click)="voltar()">Cancelar</button>
-        <button mat-flat-button color="primary" type="submit" form="form-assinante" [disabled]="salvando">
-            <mat-progress-spinner *ngIf="salvando" diameter="20" mode="indeterminate"></mat-progress-spinner>
-            <span *ngIf="!salvando">Salvar</span>
+    <div class="flex items-center gap-3 pt-2 border-t border-gray-300">
+        <!-- Situação (só na edição): à esquerda, longe do Salvar -->
+        <button *ngIf="!ehNovo && assinante?.ASS_ATIVO" mat-button color="warn" type="button" [disabled]="acaoEmAndamento || salvando" (click)="bloquear()">
+            <mat-icon class="icon-size-5" svgIcon="heroicons_outline:no-symbol"></mat-icon>
+            <span class="ml-2">Bloquear</span>
         </button>
+        <button *ngIf="!ehNovo && !assinante?.ASS_ATIVO" mat-button color="primary" type="button" [disabled]="acaoEmAndamento || salvando" (click)="reativar()">
+            <mat-icon class="icon-size-5" svgIcon="heroicons_outline:check-circle"></mat-icon>
+            <span class="ml-2">Reativar</span>
+        </button>
+        <div class="flex items-center gap-3 ml-auto">
+            <button mat-button type="button" [disabled]="salvando" (click)="voltar()">Cancelar</button>
+            <button mat-flat-button color="primary" type="submit" form="form-assinante" [disabled]="salvando">
+                <mat-progress-spinner *ngIf="salvando" diameter="20" mode="indeterminate"></mat-progress-spinner>
+                <span *ngIf="!salvando">Salvar</span>
+            </button>
+        </div>
     </div>
 </div>
