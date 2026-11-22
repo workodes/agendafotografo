@@ -19,6 +19,7 @@ import { AssinanteListItem } from 'app/models/DTOs/responses/AssinanteListItem';
 import { PaginatedResponse } from 'app/models/PaginatedResponse';
 import { AssinanteService } from 'app/services/assinante.service';
 import { ORIGEM_ASSINANTE_ROTULO } from 'app/models/enums/OrigemAssinante';
+import { TIPO_ASSINANTE_ROTULO } from 'app/models/enums/TipoAssinante';
 import { testeEmAlerta, textoTeste } from 'app/utils/teste-gratis';
 import { configPaginator } from 'app/utils/config-paginator';
 import { formatCpfCnpj } from 'app/utils/format-cpf-cnpj';
@@ -51,8 +52,9 @@ export class AssinanteIndexComponent implements OnInit, AfterViewInit, OnDestroy
     @ViewChild('detailsDrawer') detailsDrawer?: MatDrawer;
 
     dataSource = new MatTableDataSource<AssinanteListItem>([]);
-    displayedColumns: string[] = ['ASS_NOME', 'ASS_EMAIL', 'ASS_TELEFONE', 'ASS_CPF_CNPJ', 'ASS_ORIGEM', 'ASS_TESTE_ATE', 'ASS_ATIVO', 'LastLogin', 'Acoes'];
+    displayedColumns: string[] = ['ASS_NOME', 'ASS_EMAIL', 'ASS_TELEFONE', 'ASS_CPF_CNPJ', 'ASS_TIPO', 'ASS_ORIGEM', 'ASS_TESTE_ATE', 'ASS_ATIVO', 'LastLogin', 'Acoes'];
     readonly origemRotulo = ORIGEM_ASSINANTE_ROTULO;
+    readonly tipoRotulo = TIPO_ASSINANTE_ROTULO;
     readonly textoTeste = textoTeste;
     readonly testeEmAlerta = testeEmAlerta;
     page = 0;

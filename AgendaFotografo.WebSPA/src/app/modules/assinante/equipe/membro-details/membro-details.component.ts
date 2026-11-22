@@ -15,6 +15,7 @@ import { Observable, Subject, filter, takeUntil } from 'rxjs';
 import { Membro } from 'app/models/entities/Membro';
 import { FUNCAO_MEMBRO } from 'app/models/enums/FuncaoMembro';
 import { MembroService } from 'app/services/membro.service';
+import { GenericValidator } from 'app/utils/GenericValidator';
 import { emailTolerante, normalizarEmail } from 'app/utils/email-validator';
 import { instagramValido, limparInstagram, somenteDigitos } from 'app/utils/instagram';
 import { mensagemErro } from 'app/utils/mensagem-erro';
@@ -59,6 +60,8 @@ export class MembroDetailsComponent implements OnInit, OnDestroy {
             MEM_INSTAGRAM: ['', [instagramValido]],
             MEM_EMAIL: ['', [emailTolerante, Validators.maxLength(150)]],
             MEM_TELEFONE: [''],
+            // CPF opcional (plano 20): só CPF, 11 dígitos válidos.
+            MEM_CPF: ['', [GenericValidator.isValidCpf()]],
             MEM_OBSERVACOES: ['', [Validators.maxLength(2000)]],
         });
 
@@ -72,6 +75,7 @@ export class MembroDetailsComponent implements OnInit, OnDestroy {
                 MEM_INSTAGRAM: m?.MEM_INSTAGRAM ?? '',
                 MEM_EMAIL: m?.MEM_EMAIL ?? '',
                 MEM_TELEFONE: m?.MEM_TELEFONE ?? '',
+                MEM_CPF: m?.MEM_CPF ?? '',
                 MEM_OBSERVACOES: m?.MEM_OBSERVACOES ?? '',
             });
         });
@@ -101,6 +105,7 @@ export class MembroDetailsComponent implements OnInit, OnDestroy {
             MEM_INSTAGRAM: limparInstagram(v.MEM_INSTAGRAM) || null,
             MEM_EMAIL: normalizarEmail(v.MEM_EMAIL) || null,
             MEM_TELEFONE: somenteDigitos(v.MEM_TELEFONE) || null,
+            MEM_CPF: somenteDigitos(v.MEM_CPF) || null,
             MEM_OBSERVACOES: (v.MEM_OBSERVACOES ?? '').trim() || null,
         };
 
@@ -145,7 +150,8 @@ export class MembroDetailsComponent implements OnInit, OnDestroy {
         if (e['required']) { return 'Campo obrigatório.'; }
         if (e['email']) { return 'E-mail inválido.'; }
         if (e['instagram']) { return 'Use só letras, números, ponto e sublinhado.'; }
-        if (e['mask']) { return 'Telefone incompleto (DDD + número).'; }
+        if (e['cpfNotValid']) { return 'CPF inválido.'; }
+        if (e['mask']) { return nome === 'MEM_CPF' ? 'CPF inválido.' : 'Telefone incompleto (DDD + número).'; }
         if (e['maxlength']) { return `Máximo de ${e['maxlength'].requiredLength} caracteres.`; }
         return 'Valor inválido.';
     }
@@ -171,7 +177,8 @@ export class MembroDetailsComponent implements OnInit, OnDestroy {
             this.acaoEmAndamento = true;
             acao().subscribe({
                 next: atualizado => {
-                    this.membro = atualizado;
+                    // Inativar/Ativar devolvem MEM_CPF = null de propósito: o CPF do formulário não é tocado e o do membro carregado é mantido.
+                    this.membro = { ...atualizado, MEM_CPF: this.membro?.MEM_CPF ?? null };
                     this.acaoEmAndamento = false;
                     this._snackBar.open(sucesso, 'X', { duration: 4000 });
                     this._service.NotificarAlteracao();

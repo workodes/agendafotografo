@@ -11,4 +11,5 @@ public interface ICurrentUser
     UserIdentity UserIdentity { get; }
     bool IsAdmin { get; }
     bool IsAssinante { get; }
+    bool IsFotografo { get; }
 }

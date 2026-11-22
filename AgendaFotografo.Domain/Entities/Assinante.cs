@@ -18,4 +18,7 @@ public class Assinante : BaseEntity
 
     /// <summary>Quem criou o assinante: o Admin (padrão) ou o próprio coordenador pelo autocadastro.</summary>
     public OrigemAssinante ASS_ORIGEM { get; set; } = OrigemAssinante.Admin;
+
+    /// <summary>Perfil da conta: Coordenador (padrão) ou Fotógrafo.</summary>
+    public TipoAssinante ASS_TIPO { get; set; } = TipoAssinante.Coordenador;
 }

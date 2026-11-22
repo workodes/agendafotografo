@@ -167,7 +167,7 @@ public class MembroController(
             if (error is not null) { await _unitOfWork.RollbackAsync(cancellationToken); return BadRequest(error); }
 
             await GarantirInstagramUnicoAsync(assinanteId, model.MEM_INSTAGRAM, null, cancellationToken);
-            await GarantirContatoUnicoAsync(assinanteId, model.MEM_EMAIL, model.MEM_TELEFONE, null, cancellationToken);
+            await GarantirContatoUnicoAsync(assinanteId, model.MEM_EMAIL, model.MEM_TELEFONE, model.MEM_CPF, null, cancellationToken);
 
             // O assinante vem só do escopo; o MEM_ATIVO do body é ignorado (nasce ativo)
             var membro = new Membro { MEM_ASSINANTE_ID = assinanteId, MEM_ATIVO = true };
@@ -217,7 +217,7 @@ public class MembroController(
             }
 
             await GarantirInstagramUnicoAsync(assinanteId, model.MEM_INSTAGRAM, membro.Id, cancellationToken);
-            await GarantirContatoUnicoAsync(assinanteId, model.MEM_EMAIL, model.MEM_TELEFONE, membro.Id, cancellationToken);
+            await GarantirContatoUnicoAsync(assinanteId, model.MEM_EMAIL, model.MEM_TELEFONE, model.MEM_CPF, membro.Id, cancellationToken);
 
             Aplicar(membro, model);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -294,7 +294,7 @@ public class MembroController(
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             await _unitOfWork.CommitAsync(cancellationToken);
 
-            return Ok(ParaModel(membro));
+            return Ok(ParaModel(membro, comCpf: false));
         }
         catch (AssinanteSemVinculoException)
         {
@@ -323,10 +323,10 @@ public class MembroController(
     }
 
     /// <summary>
-    /// E-mail e telefone (quando preenchidos) não podem repetir em outro membro do mesmo assinante, ativo ou inativo.
+    /// E-mail, telefone e CPF (quando preenchidos) não podem repetir em outro membro do mesmo assinante, ativo ou inativo.
     /// Valores já normalizados (e-mail em minúsculas, telefone só dígitos).
     /// </summary>
-    private async Task GarantirContatoUnicoAsync(Guid assinanteId, string? email, string? telefone, Guid? idAtual, CancellationToken cancellationToken)
+    private async Task GarantirContatoUnicoAsync(Guid assinanteId, string? email, string? telefone, string? cpf, Guid? idAtual, CancellationToken cancellationToken)
     {
         if (!string.IsNullOrEmpty(email))
         {
@@ -351,6 +351,18 @@ public class MembroController(
                 .FirstOrDefaultAsync(cancellationToken);
             if (existente is not null) throw new Exception(MsgDuplicado(existente.MEM_NOME, existente.MEM_ATIVO, "telefone"));
         }
+
+        if (!string.IsNullOrEmpty(cpf))
+        {
+            var existente = await _repMembro.SelectContext().AsNoTracking()
+                .Where(x => x.MEM_ASSINANTE_ID == assinanteId &&
+                            (idAtual == null || x.Id != idAtual) &&
+                            x.MEM_CPF == cpf)
+                .OrderBy(x => x.MEM_ATIVO ? 0 : 1).ThenBy(x => x.MEM_NOME)
+                .Select(x => new { x.MEM_NOME, x.MEM_ATIVO })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (existente is not null) throw new Exception(MsgDuplicado(existente.MEM_NOME, existente.MEM_ATIVO, "CPF"));
+        }
     }
 
     private static string MsgDuplicado(string nome, bool ativo, string campo)
@@ -363,6 +375,7 @@ public class MembroController(
         m.MEM_INSTAGRAM = VazioParaNulo(Regex.Replace((m.MEM_INSTAGRAM ?? string.Empty).Trim().TrimStart('@'), @"\s", ""));
         m.MEM_EMAIL = VazioParaNulo((m.MEM_EMAIL ?? string.Empty).Trim().ToLowerInvariant());
         m.MEM_TELEFONE = VazioParaNulo(Regex.Replace(m.MEM_TELEFONE ?? string.Empty, @"\D", ""));
+        m.MEM_CPF = VazioParaNulo(Regex.Replace(m.MEM_CPF ?? string.Empty, @"\D", ""));
         m.MEM_OBSERVACOES = VazioParaNulo((m.MEM_OBSERVACOES ?? string.Empty).Trim());
     }
 
@@ -375,17 +388,20 @@ public class MembroController(
         e.MEM_INSTAGRAM = m.MEM_INSTAGRAM;
         e.MEM_EMAIL = m.MEM_EMAIL;
         e.MEM_TELEFONE = m.MEM_TELEFONE;
+        e.MEM_CPF = m.MEM_CPF;
         e.MEM_FUNCAO = m.MEM_FUNCAO;
         e.MEM_OBSERVACOES = m.MEM_OBSERVACOES;
     }
 
-    private static MembroModel ParaModel(Membro e) => new()
+    /// <summary>Ficha do membro. O CPF só vai nas respostas de Obter, Criar e Atualizar (<paramref name="comCpf"/>).</summary>
+    private static MembroModel ParaModel(Membro e, bool comCpf = true) => new()
     {
         Id = e.Id,
         MEM_NOME = e.MEM_NOME,
         MEM_INSTAGRAM = e.MEM_INSTAGRAM,
         MEM_EMAIL = e.MEM_EMAIL,
         MEM_TELEFONE = e.MEM_TELEFONE,
+        MEM_CPF = comCpf ? e.MEM_CPF : null,
         MEM_FUNCAO = e.MEM_FUNCAO,
         MEM_OBSERVACOES = e.MEM_OBSERVACOES,
         MEM_ATIVO = e.MEM_ATIVO

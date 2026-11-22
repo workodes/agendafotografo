@@ -4,7 +4,7 @@ namespace AgendaFotografo.WebApi.Models.Cadastros;
 
 /// <summary>
 /// Ficha do membro da equipe (entrada e saída). Nomes C# exatos no JSON; MEM_FUNCAO trafega como número (enum <see cref="FuncaoMembro"/>).
-/// Na entrada só são lidos Id, MEM_NOME, MEM_INSTAGRAM, MEM_EMAIL, MEM_TELEFONE, MEM_FUNCAO e MEM_OBSERVACOES;
+/// Na entrada só são lidos Id, MEM_NOME, MEM_INSTAGRAM, MEM_EMAIL, MEM_TELEFONE, MEM_CPF, MEM_FUNCAO e MEM_OBSERVACOES;
 /// MEM_ATIVO é somente de saída (a situação muda pelas actions Inativar/Ativar). O assinante nunca trafega.
 /// </summary>
 public class MembroModel
@@ -18,6 +18,9 @@ public class MembroModel
 
     /// <summary>Opcional. Trafega só com dígitos.</summary>
     public string? MEM_TELEFONE { get; set; }
+
+    /// <summary>Opcional. Trafega só com 11 dígitos (CPF). Só existe neste model (Obter, Criar e Atualizar).</summary>
+    public string? MEM_CPF { get; set; }
     public FuncaoMembro MEM_FUNCAO { get; set; }
     public string? MEM_OBSERVACOES { get; set; }
 

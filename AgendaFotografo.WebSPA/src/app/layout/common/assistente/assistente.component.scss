@@ -34,6 +34,9 @@ fuse-drawer.assistente-drawer {
 }
 .assistente-mascote-botao svg { width: 64px; height: auto; }
 
+/* Com a ficha lateral de uma tela aberta (mat-drawer: membro, organizador, pendência...), o mascote some para não cobrir o "Salvar". */
+body:has(.mat-drawer.mat-drawer-opened) .assistente-botao-mascote { display: none; }
+
 @media (prefers-reduced-motion: reduce) {
     .assistente-botao-mascote { transition: none; &:hover, &:active { transform: none; } }
 }

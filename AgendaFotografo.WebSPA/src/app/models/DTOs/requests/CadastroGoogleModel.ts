@@ -5,4 +5,6 @@ export class CadastroGoogleModel {
     ASS_NOME: string;
     ASS_TELEFONE: string;
     ASS_CPF_CNPJ: string;
+    /** TipoAssinante: 1 Coordenador, 2 Fotografo. */
+    ASS_TIPO: number;
 }

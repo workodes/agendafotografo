@@ -1,5 +1,6 @@
 using AgendaFotografo.Domain.Constants;
 using AgendaFotografo.Domain.Entities;
+using AgendaFotografo.Domain.Enums;
 using AgendaFotografo.Infra.Data.Context;
 using AgendaFotografo.WebApi.Services.TiposEvento;
 using Microsoft.AspNetCore.Identity;
@@ -76,7 +77,7 @@ public class Seed(RoleManager<IdentityRole> roleManager, UserManager<Usuario> us
     private async Task GarantirTiposEventoPadraoAsync()
     {
         var assinantesSemTipos = await db.Assinantes.AsNoTracking()
-            .Where(a => !db.TiposEvento.Any(t => t.TPE_ASSINANTE_ID == a.Id))
+            .Where(a => a.ASS_TIPO == TipoAssinante.Coordenador && !db.TiposEvento.Any(t => t.TPE_ASSINANTE_ID == a.Id))
             .Select(a => a.Id)
             .ToListAsync();
 

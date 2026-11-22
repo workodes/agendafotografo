@@ -17,6 +17,7 @@ public class AssinanteMap : BaseMap<Assinante>
         builder.Property(x => x.ASS_ATIVO).IsRequired();
         builder.Property(x => x.ASS_TESTE_ATE).HasColumnType("date");
         builder.Property(x => x.ASS_ORIGEM).IsRequired();
+        builder.Property(x => x.ASS_TIPO).IsRequired();
 
         builder.HasIndex(x => x.ASS_NOME);
     }

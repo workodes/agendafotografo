@@ -12,8 +12,10 @@ import { Subject, takeUntil } from 'rxjs';
 import { AuthService, ResultadoAcesso } from 'app/core/auth/auth.service';
 import { GoogleIdentityService } from 'app/core/auth/google-identity.service';
 import { QcAuthShellComponent } from 'app/shared/auth-shell/qc-auth-shell.component';
+import { TipoAssinante } from 'app/models/enums/TipoAssinante';
 import { GenericValidator } from 'app/utils/GenericValidator';
 import { emailTolerante, normalizarEmail } from 'app/utils/email-validator';
+import { EscolhaPerfilComponent } from './escolha-perfil/escolha-perfil.component';
 import { ConfirmarEmailComponent } from './confirmar-email/confirmar-email.component';
 import { NovaSenhaComponent } from './nova-senha/nova-senha.component';
 
@@ -54,6 +56,7 @@ const DIAS_GRATIS_PADRAO = 15;
         MatProgressSpinnerModule,
         ConfirmarEmailComponent,
         NovaSenhaComponent,
+        EscolhaPerfilComponent,
     ],
 })
 export class AuthSignInComponent implements OnInit, OnDestroy {
@@ -80,6 +83,14 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
     emailNovaSenha = '';
     mensagemNovaSenha = '';
     private _etapaInicial: Etapa | null = null;
+
+    // Perfil do cadastro (plano 20): obrigatório e sem padrão. Cadastro manual e etapa do Google têm escolhas separadas:
+    // a do Google vem marcada só quando a pessoa partiu da aba Cadastro com a escolha feita.
+    readonly tipos = TipoAssinante;
+    tipoCadastro: TipoAssinante | null = null;
+    tipoGoogle: TipoAssinante | null = null;
+    // Mostra a mensagem "Escolha como você vai usar o quemclica." (tentou seguir sem escolher).
+    escolhaPendente = { cadastro: false, completar: false };
 
     diasGratis = DIAS_GRATIS_PADRAO;
     googleClientId: string | null = null;
@@ -193,6 +204,42 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
         this.google.credencial$.pipe(takeUntil(this._destroy$)).subscribe(token => this.aoReceberCredencial(token));
     }
 
+    /** Fotógrafo: o documento é só CPF (11 dígitos); coordenador: CPF ou CNPJ. */
+    private aplicarValidadorDocumento(form: UntypedFormGroup, tipo: TipoAssinante | null): void {
+        const c = form.get('cpfCnpj')!;
+        c.setValidators([Validators.required, tipo === TipoAssinante.Fotografo ? GenericValidator.isValidCpf() : GenericValidator.isValidCpfOrCnpj()]);
+        // O CNPJ não cabe na máscara do CPF: descarta o excesso ao trocar para Fotógrafo.
+        if (tipo === TipoAssinante.Fotografo && this.digitos(c.value).length > 11)
+            c.setValue(this.digitos(c.value).slice(0, 11));
+        c.updateValueAndValidity();
+    }
+
+    escolherTipoCadastro(tipo: TipoAssinante): void {
+        this.tipoCadastro = tipo;
+        this.escolhaPendente.cadastro = false;
+        this.aplicarValidadorDocumento(this.cadastroForm, tipo);
+    }
+
+    escolherTipoGoogle(tipo: TipoAssinante): void {
+        this.tipoGoogle = tipo;
+        this.escolhaPendente.completar = false;
+        this.aplicarValidadorDocumento(this.completarForm, tipo);
+    }
+
+    /** O botão do Google fica coberto até a escolha; o clique no aviso só mostra a mensagem. */
+    exigirEscolhaCadastro(): void {
+        this.escolhaPendente.cadastro = true;
+        this._cdr.markForCheck();
+    }
+
+    rotuloDocumento(tipo: TipoAssinante | null): string {
+        return tipo === TipoAssinante.Fotografo ? 'CPF' : 'CPF/CNPJ';
+    }
+
+    mascaraDocumento(tipo: TipoAssinante | null): string {
+        return tipo === TipoAssinante.Fotografo ? '000.000.000-00' : '000.000.000-00||00.000.000/0000-00';
+    }
+
     ngOnDestroy(): void {
         this._idToken = null;
         this._senha = '';
@@ -224,6 +271,10 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
     // ----- Cadastro manual -----
     cadastrar(): void {
         this.enviado.cadastro = true;
+        if (this.tipoCadastro === null) {
+            this.escolhaPendente.cadastro = true;
+            return;
+        }
         if (this.cadastroForm.invalid || this.ocupado)
             return;
 
@@ -236,6 +287,7 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
             ASS_TELEFONE: this.digitos(v.telefone),
             ASS_CPF_CNPJ: this.digitos(v.cpfCnpj),
             Senha: v.senha,
+            ASS_TIPO: this.tipoCadastro,
         }).subscribe({
             next: r => this.aposAcesso(r, normalizarEmail(v.email), senha),
             error: error => {
@@ -348,6 +400,11 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
     private aoReceberCredencial(token: string): void {
         if (this.ocupado || this.etapa !== 'abas')
             return;
+        // No Cadastro, a escolha do perfil vem antes do Google (a API só é chamada depois dela).
+        if (this.aba === 'cadastro' && this.tipoCadastro === null) {
+            this.exigirEscolhaCadastro();
+            return;
+        }
 
         this.iniciar();
         this.authService.LoginGoogle(token).subscribe({
@@ -361,6 +418,10 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
                 this.emailGoogle = resp.Email ?? '';
                 this.completarForm.reset({ nome: resp.Nome ?? '', telefone: this._dadosGoogle?.telefone ?? '', cpfCnpj: this._dadosGoogle?.cpfCnpj ?? '' });
                 this._dadosGoogle = null;
+                // Vem marcada só se a pessoa partiu da aba Cadastro com a escolha feita; da aba Entrar, sem marca.
+                this.tipoGoogle = this.aba === 'cadastro' ? this.tipoCadastro : null;
+                this.escolhaPendente.completar = false;
+                this.aplicarValidadorDocumento(this.completarForm, this.tipoGoogle);
                 this.enviado.completar = false;
                 this.etapa = 'completar';
                 this.ocupado = false;
@@ -372,6 +433,10 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
 
     concluirGoogle(): void {
         this.enviado.completar = true;
+        if (this.tipoGoogle === null) {
+            this.escolhaPendente.completar = true;
+            return;
+        }
         if (this.completarForm.invalid || this.ocupado || !this._idToken)
             return;
 
@@ -382,6 +447,7 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
             ASS_NOME: (v.nome ?? '').trim(),
             ASS_TELEFONE: this.digitos(v.telefone),
             ASS_CPF_CNPJ: this.digitos(v.cpfCnpj),
+            ASS_TIPO: this.tipoGoogle,
         }).subscribe({
             next: () => {
                 this._idToken = null;
@@ -408,6 +474,7 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
         this._idToken = null;
         this.emailGoogle = '';
         this.showAlert = false;
+        this.tipoGoogle = null;
         this.etapa = 'abas';
     }
 
@@ -438,8 +505,13 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
         if (e['minlength']) { return `Mínimo de ${e['minlength'].requiredLength} caracteres.`; }
         if (e['maxlength']) { return `Máximo de ${e['maxlength'].requiredLength} caracteres.`; }
         if (e['telefone']) { return 'Telefone inválido (informe DDD + número).'; }
+        if (e['cpfNotValid']) { return 'Informe um CPF válido.'; }
         if (e['cpfOrCnpjNotValid']) { return 'CPF/CNPJ inválido.'; }
-        if (e['mask']) { return campo === 'telefone' ? 'Telefone incompleto (DDD + número).' : 'CPF/CNPJ incompleto.'; }
+        if (e['mask']) {
+            if (campo === 'telefone') { return 'Telefone incompleto (DDD + número).'; }
+            const tipo = form === this.completarForm ? this.tipoGoogle : this.tipoCadastro;
+            return tipo === TipoAssinante.Fotografo ? 'CPF incompleto.' : 'CPF/CNPJ incompleto.';
+        }
         return 'Valor inválido.';
     }
 

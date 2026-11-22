@@ -1,13 +1,13 @@
-<!-- Faixa fixa à direita (a partir de lg), como o "Team Chat" do Fuse -->
+<!-- Faixa fixa à direita (a partir de md, onde o rodapé aparece), como o "Team Chat" do Fuse -->
 <button type="button" (click)="abrir()" aria-label="Abrir o assistente" title="Assistente"
-    class="hidden lg:flex fixed top-16 bottom-0 right-0 z-40 w-16 flex-col items-center gap-4 border-l bg-card pt-5 hover:bg-hover print:hidden">
+    class="hidden md:flex fixed top-16 bottom-0 right-0 z-50 w-16 flex-col items-center gap-4 border-l bg-card pt-5 hover:bg-hover print:hidden">
     <app-mascote tamanho="pequeno" class="assistente-mascote-faixa" />
     <span class="text-sm font-medium tracking-wide text-secondary [writing-mode:vertical-rl]">Assistente</span>
 </button>
 
-<!-- Botão flutuante (abaixo de lg): o mascote inteiro; escondido enquanto o painel está aberto -->
+<!-- Botão flutuante (abaixo de md, sem rodapé): o mascote inteiro; escondido com o painel aberto ou com a ficha lateral de uma tela aberta (.scss) -->
 <button *ngIf="!aberto" type="button" (click)="abrir()" aria-label="Abrir o assistente" title="Assistente"
-    class="assistente-botao-mascote lg:hidden fixed bottom-3 right-3 z-40 rounded-2xl p-1 print:hidden">
+    class="assistente-botao-mascote md:hidden fixed bottom-3 right-3 z-40 rounded-2xl p-1 print:hidden">
     <!-- O próprio mascote, de corpo inteiro, é o botão (sem a bolinha). -->
     <app-mascote tamanho="medio" class="assistente-mascote-botao" />
 </button>

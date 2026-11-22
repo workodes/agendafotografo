@@ -1,8 +1,8 @@
 # 20 - Perfil Fotógrafo e agenda pessoal
 
 - Data: 21/11/2026
-- Commit de partida: dbc1591
-- Status: Em construção
+- Commit de partida: 8ac3d0d
+- Status: Concluído com pendências (revisão aprovada; testes no navegador não executados)
 
 ## Contexto
 Hoje o quemclica atende só o coordenador de equipe (perfil Assinante). O colaborador quer atender também o **fotógrafo que trabalha sozinho** ou para vários coordenadores:
@@ -341,6 +341,234 @@ A obra tem duas partes, construídas e revisadas nesta ordem:
 
 ## 2. Execução (pedreiros)
 
+### Back-end — Etapa 1
+- Arquivos criados: `Domain/Enums/TipoAssinante.cs`, `Domain/Entities/EventoPessoal.cs`, `Infra.Data/Mapping/EventoPessoalMap.cs`, `Infra.Data/Migrations/*_PerfilFotografo.cs` (+ `.Designer.cs`).
+- Arquivos alterados: `Domain/Constants/RoleNames.cs` (`Fotografo` em `All` e novo conjunto `ComConta` com Assinante e Fotografo), `Domain/Entities/Assinante.cs` (`ASS_TIPO`, padrão Coordenador), `Infra.Data/Mapping/AssinanteMap.cs` (`IsRequired()`), `Infra.Data/Context/EfDbContext.cs` (DbSet `EventosPessoais` e `EventoPessoalMap`), `Infra.Data/Migrations/EfDbContextModelSnapshot.cs`, `WebApi/Seed.cs` (`GarantirTiposEventoPadraoAsync` só para `ASS_TIPO = Coordenador`).
+- Migration: `PerfilFotografo` (só `AddColumn` de `ASS_TIPO`, com `defaultValue` ajustado à mão de 0 para 1 e comentário, e `CreateTable` de `EVENTOSPESSOAIS` com FK Restrict e o índice `(EPS_ASSINANTE_ID, EPS_DATA)`; o `Down` desfaz só isso). Nada acessou o banco.
+- Build: `dotnet build` da solução, 0 erros e 0 avisos.
+- Desvios do plano: nenhum.
+
+### Back-end — Etapa 2
+- Arquivos criados: `WebApi/Services/CurrentUser/FotografoEscopo.cs` (scoped; lê do banco por PK o `AssinanteId` e o CPF; só Fotografo, senão `AssinanteSemVinculoException`).
+- Arquivos alterados:
+  - `Services/CurrentUser/ICurrentUser.cs` e `CurrentUser.cs` (`IsFotografo`);
+  - `Setup.cs` (registro do `FotografoEscopo`; `OnTokenValidated` usa `RoleNames.ComConta`);
+  - `Controllers/AuthController.cs` (`ConferirAcessoAsync`, `PrecisaConfirmar`, `LoginGoogle`, `RedefinirSenha`, `TesteGratis`, `Cadastrar`, `CadastrarGoogle` e log do cadastro com o tipo);
+  - `Models/Auth/CadastroModel.cs` e `CadastroGoogleModel.cs` (`ASS_TIPO`);
+  - `Validators/Auth/CadastroValidator.cs` (perfil e CPF por perfil);
+  - `Services/Assinantes/AssinanteCadastro.cs` (tipo, role por tipo, tipos de evento padrão só do Coordenador);
+  - `Services/Emails/EmailsConta.cs` (boas-vindas só do Coordenador) e `ProcessadorPedidoNovaSenha.cs`;
+  - `Controllers/AssinanteController.cs`, `Models/Assinantes/AssinanteListItem.cs` e `AssinanteModel.cs`, `Validators/Assinante/AssinanteValidator.cs` (`AssinanteFotografoValidator`).
+- Endpoints (contrato que mudou):
+  - `POST Auth/Cadastrar` e `POST Auth/CadastrarGoogle` recebem `ASS_TIPO` (int; ausente/0 = Coordenador, 1, 2; outro = 400 "Perfil inválido."). Com 2: vazio = "CPF é obrigatório"; CNPJ ou CPF inválido = "Informe um CPF válido.". Coordenador continua com CPF/CNPJ.
+  - `GET Auth/TesteGratis` aceita Assinante e Fotografo.
+  - `Assinante/Listar`, `Obter` e as respostas de `Criar`, `Atualizar`, `Inativar`, `Ativar` e `RedefinirAcesso` devolvem `ASS_TIPO` (só saída; o body é ignorado). `Criar` só cria Coordenador. `Atualizar` de conta Fotógrafo: CPF obrigatório e só CPF (mesmas mensagens). `RedefinirAcesso` aceita os dois perfis.
+  - `LoginResponse.Role` pode ser "Fotografo".
+- Pontos que assumiam Role == Assinante e foram tratados: `ConferirAcessoAsync`, `PrecisaConfirmar`, `LoginGoogle`, `RedefinirSenha`, `ProcessadorPedidoNovaSenha` (Esqueci minha senha), `OnTokenValidated`, `AssinanteController.RedefinirAcesso`. Já valiam para o Fotógrafo sem mudança: `AlterarSenha`, `SolicitarCodigoDefinirSenha` e `DefinirSenha` (só `[Authorize]`, por usuário), `ConfirmarEmail`, `ReenviarCodigo`, `CorrigirEmail`, `EsqueciSenha` (não filtram perfil), `Inativar`/`Ativar` (invalidam a sessão de todos os usuários do assinante). `AssinanteEscopo` e os `[Authorize(Roles = Assinante)]` não mudaram.
+- Migration: nenhuma.
+- Build: `dotnet build` sem erros e sem avisos.
+- Desvios do plano: nenhum.
+
+### Back-end — Etapa 3
+- Arquivos criados: `WebApi/Controllers/EventoPessoalController.cs`, `Models/Fotografo/EventoPessoalModel.cs` e `EventoPessoalListItem.cs`, `Validators/EventoPessoal/EventoPessoalValidator.cs`, `Services/Eventos/PeriodoAgenda.cs` (validação única do período).
+- Arquivos alterados: `Controllers/EventoController.cs` (`Agenda` usa `PeriodoAgenda.Validar`; mesmas mensagens e contrato; `Listar` não mudou), `Validators/Evento/EventoValidator.cs` (`UrlHttpValida` passou a `internal`, reaproveitada).
+- Endpoints (`[Authorize(Roles = Fotografo)]`): `GET api/EventoPessoal/Agenda?dataDe=&dataAte=`, `GET Obter?id=`, `POST Criar`, `PUT Atualizar`, `DELETE Excluir?id=`. Conta só do `FotografoEscopo`; Id + conta; outra conta = 404 "Evento não encontrado".
+- Migration: nenhuma.
+- Build: `dotnet build` sem erros e sem avisos.
+- Desvios do plano: nenhum.
+
+### Front-end — Etapa 1
+- Arquivos criados/alterados (em `AgendaFotografo.WebSPA/src/app/`):
+  - novos: `models/enums/TipoAssinante.ts`, `modules/auth/sign-in/escolha-perfil/escolha-perfil.component.ts`, `modules/fotografo/agenda/agenda-fotografo.{routes,component}.ts` (agenda provisória "Agenda em construção", a Etapa 2 substitui);
+  - alterados: `core/constants/RoleNames.ts`, `app.routes.ts`, `core/navigation/menu.data.ts`, `layout/layouts/horizontal/modern/modern.component.{ts,html}`, `modules/auth/sign-in/sign-in.component.{ts,html}`, `models/entities/Assinante.ts`, `models/DTOs/responses/AssinanteListItem.ts`, `models/DTOs/requests/CadastroModel.ts` e `CadastroGoogleModel.ts` (ganham `ASS_TIPO`), `modules/admin/assinantes/assinante-index/*` e `assinante-details/*`.
+- Rotas e menu: bloco `/fotografo` com `AuthGuard` e `requiredRoles: [Fotografo]`; `''` e `inicio` redirecionam para `agenda`; `getRotaInicial()` e os guards não mudaram (já eram genéricos); `registrarSessao` aceita "Fotografo" por usar `Object.values(ROLE_NAMES)`. Menu do Fotógrafo só com "Agenda".
+- Layout: sino e busca global só para o Assinante; `<teste-gratis>` para Assinante e Fotógrafo; Assistente e `CarregarStatus` só para o Assinante (já era assim).
+- Cadastro: cartões `role="radiogroup"`/`radio` com `aria-checked`, setas movem e marcam, foco visível, selecionado em #C2410C com texto branco e ícone de check. Sem escolha, "Criar conta" não envia e o botão do Google fica coberto por um botão transparente que só mostra "Escolha como você vai usar o quemclica."; a credencial do Google também é ignorada sem escolha. Fotógrafo: rótulo "CPF", máscara de CPF, `isValidCpf` ("Informe um CPF válido."). Etapa "Complete seu cadastro" tem a própria escolha, marcada só se a pessoa veio da aba Cadastro com escolha feita. Envia `ASS_TIPO`.
+- Admin: coluna "Perfil" (oculta abaixo de `md`) e "Perfil:" na ficha junto de Origem; ficha de Fotógrafo com "CPF" obrigatório e só CPF; "Novo" segue criando coordenador, sem escolha de perfil.
+- Verificação: `npm run build` sem erros (não testado em navegador nem a 360 px; layouts empilham em telas estreitas).
+- Desvios do plano: nenhum.
+
+### Front-end — Etapa 2
+- Arquivos criados/alterados (em `AgendaFotografo.WebSPA/src/`):
+  - novos: `app/services/evento-pessoal.service.ts` (`Agenda`, `Get`, `Add`, `Update`, `Delete`, `alterado$`/`NotificarAlteracao`), `app/models/entities/EventoPessoal.ts`, `app/models/DTOs/responses/EventoPessoalListItem.ts`, `app/resolvers/evento-pessoal.resolver.ts`, `app/modules/fotografo/agenda/` (`agenda.routes.ts`, `agenda-fotografo.component.ts/html`), `app/modules/fotografo/eventos/` (`eventos.routes.ts`, `evento-pessoal-details/`);
+  - alterados: `environments/environment.ts` e `environment.prod.ts` (chaves `EventoPessoal.agenda|obter|criar|atualizar|excluir`), `app/app.routes.ts`;
+  - o placeholder da Etapa 1 foi apagado.
+- Rotas e menu: `rotasFotografo` com `agenda`, `eventos/novo` e `eventos/:id` (lazy); o menu continua só com "Agenda".
+- Agenda: Lista (abaixo de `md`) e Calendário (a partir de `md`, sem `?visao=`), estado em `?mes=&visao=&dia=` (mesmas regras de histórico/`replaceUrl` da Agenda do assinante), ◀ Hoje ▶, "Novo evento" com `?data=` do dia, sem filtros. Uma chamada a `EventoPessoal/Agenda` por mês (grade de 42 dias), `switchMap` cancela a anterior, estados carregando/vazio/erro com "Tentar de novo". Cancelados esmaecidos e riscados; chip de status. Preparo para a Parte B: a tela trabalha com `ItemAgenda` (campo `origem` 'pessoal' | 'equipe' e `etiqueta`); a carga fica em `carregar()` e a navegação em `abrirItem()`.
+- Ficha: página inteira, resolver (`evento` em `data['data']`). Nome*, Data* (datepicker, "yyyy-MM-dd" sem fuso), Hora com "A confirmar", Cidade*, Status (padrão Confirmado), Local, Link (`normalizarUrl` ao sair do campo, `urlHttp`) e Observações. Salvar, Fechar (volta a `/fotografo/agenda?mes=&dia=`) e Excluir (só na edição, confirmação Fuse); erros no snackbar (`mensagemErro`). Pós-Criar navega para `/fotografo/eventos/:id` (como a ficha do evento do assinante); pós-Excluir volta à agenda.
+- Permissões: só o perfil Fotografo (guard do bloco `/fotografo`; a API devolve 403 aos demais).
+- Verificação: `npm run build` sem erros (não testado em navegador nem a 360 px; sem larguras fixas, ficha em 1 coluna no celular).
+- Desvios do plano: nenhum.
+
+### Back-end — Etapa 4
+- Arquivos alterados: `Domain/Entities/Membro.cs` (`MEM_CPF`), `Infra.Data/Mapping/MembroMap.cs` (`HasMaxLength(11)` e índice não único em `MEM_CPF`), `WebApi/Models/Cadastros/MembroModel.cs`, `Validators/Membro/MembroValidator.cs`, `Controllers/MembroController.cs` (normalização só dígitos, unicidade no `GarantirContatoUnicoAsync` depois do telefone, `Aplicar`, `ParaModel`).
+- Arquivos criados: migration `*_MembroCpf.cs` (+ `.Designer.cs`) e snapshot atualizado.
+- Migration: `MembroCpf` (só `AddColumn` `MEM_CPF` `varchar(11)` nula e `CreateIndex` `IX_MEMBROS_MEM_CPF`; o `Down` desfaz só isso). Nada acessou o banco.
+- Endpoints: `Obter`, `Criar` e `Atualizar` de `api/Membro` levam `MEM_CPF`. Erros 400: "CPF inválido." (CNPJ ou dígitos errados) e `Já existe o membro "<Nome>" com este CPF.` (com ` (inativo)` quando for o caso, contando inativos).
+- Privacidade: `MEM_CPF` só no `MembroModel`. `Inativar`/`Ativar` devolvem o `MembroModel` sem CPF (null). Conferidas as projeções que leem `Membro` (`MembroController.Listar`/`Opcoes`, `EscalaConsultas`, `ChatFerramentas`, `DashboardConsultas`, `EventoController`): todas projetam campo a campo, sem CPF. O `MembroController` não lê `ASSINANTES` nem `ASPNETUSERS`; o log não traz CPF.
+- Cadastro rápido da escala (`Membro/Criar` sem CPF) continua válido (CPF opcional).
+- Build: `dotnet build` sem erros e sem avisos.
+- Desvios do plano: nenhum.
+
+### Back-end — Etapa 5
+- Arquivos criados: `WebApi/Services/Escalas/EscalaFotografoConsultas.cs` (única regra do vínculo, scoped), `Controllers/EscalaController.cs`, `Models/Fotografo/EscalaItem.cs` e `EscalaEventoModel.cs`.
+- Arquivos alterados: `Setup.cs` (registro no DI).
+- Endpoints (`[Authorize(Roles = Fotografo)]`, `no-store`): `GET api/Escala/Listar?dataDe=&dataAte=`, `GET Obter?id=<EventoId>`, `GET Arquivo?id=<EventoId>&tipo=2|3`.
+- Regra do vínculo: uma consulta a partir de `EventoMembro` com o CPF da conta (do `FotografoEscopo`; nulo ou sem 11 dígitos = vazio), membro de outro assinante, `ASS_TIPO = Coordenador`, `ASS_ATIVO`, e membro, escala e evento do mesmo assinante; `MEM_ATIVO` não conta. Evento repetido (CPF em 2 membros do mesmo coordenador) aparece uma vez. Removido da escala, evento excluído, CPF trocado/apagado e coordenador bloqueado fazem o evento sumir na leitura seguinte.
+- Migration: nenhuma.
+- Build: `dotnet build` sem erros e sem avisos.
+- Desvios do plano: nenhum (nomes de campo iguais ao `EventoPublicoModel`).
+
+### Front-end — Etapa 3
+- Arquivos alterados (em `AgendaFotografo.WebSPA/src/app/`): `models/entities/Membro.ts` (`MEM_CPF?: string | null`), `modules/assinante/equipe/membro-details/membro-details.component.ts` e `.html`.
+- Campo "CPF" opcional depois do Telefone, na linha inteira (`sm:col-span-2`, sem buraco na grade), `mask="000.000.000-00"`, `inputmode="numeric"`, `GenericValidator.isValidCpf` ("CPF inválido."), enviado com `somenteDigitos` ou null. A dica da P8 vai em `mat-hint` pequeno e secundário, com `subscriptSizing="dynamic"` para quebrar linha em 1 coluna sem sobrepor o campo seguinte.
+- Inativar/Ativar: a API devolve `MEM_CPF = null`; o formulário não é repopulado por essa resposta (o CPF digitado continua) e o `membro` guardado mantém o CPF carregado, então um Salvar depois não apaga o CPF.
+- CPF repetido: o 400 em texto vai ao snackbar (`mensagemErro`), como e-mail e telefone.
+- Lista da Equipe, modal de escala e cadastro rápido não mudaram; nenhum indicador de vínculo em tela do coordenador.
+- Verificação: `npm run build` sem erros (não testado em navegador).
+- Desvios do plano: nenhum.
+
+### Front-end — Etapa 4
+- Arquivos (em `AgendaFotografo.WebSPA/src/`):
+  - novos: `app/services/escala.service.ts` (`Listar`, `Get`, `Arquivo`), `app/models/DTOs/responses/EscalaItem.ts` e `EscalaEventoModel.ts`, `app/modules/fotografo/escala-detalhe/` (`escala-detalhe.routes.ts`, `escala-detalhe.component.ts/html`);
+  - alterados: `environments/environment.ts` e `environment.prod.ts` (`Escala.listar|obter|arquivo`), `app/app.routes.ts` (`escalas` em `rotasFotografo`, lazy), `app/modules/fotografo/agenda/agenda-fotografo.component.ts/html`.
+- Agenda: `carregar()` chama `EventoPessoal/Agenda` e `Escala/Listar` em paralelo (`forkJoin`, cada uma com o próprio `catchError`), junta e ordena por data, hora (null por último) e nome. Falha de uma só: mostra os itens da outra e um aviso âmbar discreto ("Não foi possível carregar os eventos de equipe." / "...os seus eventos.") com "Tentar de novo"; falha das duas: estado de erro de tela cheia. Item de equipe: borda esquerda índigo, ícone de grupo, "Equipe de <Coordenador>" e a posição (`EVM_POSICAO`), sem chip de status (só o selo "Cancelado", com o item esmaecido e riscado), não edita; `abrirItem()` abre `/fotografo/escalas/:id` (`abrirRota`, Ctrl/Cmd+clique em nova guia). No calendário, pílula e marcador índigo distinguem a equipe. "Novo evento" continua criando só evento pessoal.
+- Tela `/fotografo/escalas/:id` (somente leitura, visual do link público sem tocar nele): cabeçalho com coordenador, nome, data com dia da semana, hora ("Hora a confirmar"), cidade/local, "Sua posição", faixa "Evento cancelado"; "Onde fica" (local, largada e chegada com links do Maps por `linkMaps`), Rota (`app-mapa-gpx` lazy com `[carregar]` = `EscalaService.Arquivo(id, 3)`, imagem por blob + `createObjectURL` revogado no `ngOnDestroy`, Maps e Strava), informações, observações para a equipe e fotos. Só interpolação, links só http/https (`urlSegura`) com `rel="noopener noreferrer"`. 404 = "Este evento não está mais na sua agenda." com botão de voltar; erro de rede com "Tentar de novo"; Voltar leva a `/fotografo/agenda?mes=&dia=`.
+- Permissões: só o perfil Fotografo (guard do bloco `/fotografo`; a API devolve 403 aos demais).
+- Desvios do plano: o "Onde fica" usa só links do Maps, sem o iframe incorporado da página pública (evita incorporar terceiros numa área logada); sem equipe, flyer, "Adicionar à agenda" e "Luz e tempo", como pedido. `npm run build` sem erros (não testado em navegador nem a 360 px).
+
+### Back-end — Etapa 6
+- Documentos alterados: `CLAUDE.md` (raiz: Modelo de acesso, Perfis, regra "Vínculo do fotógrafo por CPF", módulos 20 e 21, Subagents), `AgendaFotografo.WebApi/CLAUDE.md` (tabela, Autenticação, `FotografoEscopo`, CPF no Membro, `EventoPessoal`, `Escala`, cadastro com `ASS_TIPO`), `AgendaFotografo.Infra.Data/CLAUDE.md` (`ASS_TIPO`, `EVENTOSPESSOAIS`, `MEM_CPF`, migrations `PerfilFotografo` e `MembroCpf`) e o desenho `docs/superpowers/specs/2026-11-05-agendafotografo-design.md` (notas de 2026-11-21).
+- O `CLAUDE.md` do WebSPA não foi alterado (Etapa 5 do front).
+- Desvios do plano: nenhum.
+
+### Front-end — Etapa 5
+- Arquivo alterado: `AgendaFotografo.WebSPA/CLAUDE.md` (só documentação, sem código).
+- Atualizado: "um SPA só" com três perfis e prefixos; perfis/rotas/guards (bloco `/fotografo`); menu do Fotógrafo; cadastro com escolha de perfil, layout e Admin/Assinantes; Equipe (CPF, dica e Inativar/Ativar com CPF nulo); seção nova "Fotógrafo (plano 20)" (agenda, ficha, `escala-detalhe`, services e chaves de environment); "Divergências em relação ao Portal"; frases que diziam "só Admin e Assinante".
+- Desvios do plano: nenhum.
+
+### Ajustes da revisão (back-end)
+1. `AgendaFotografo.WebApi/CLAUDE.md` alinhado ao código: e-mail diário como módulo 21; `PrecisaConfirmar` e `AssinanteNome` para Assinante e Fotografo; Seed com a role `Fotografo` (e tipos de evento só para Coordenador); `ASS_TIPO` em `CadastroModel`/`CadastroGoogleModel`; `TesteGratis` para os dois perfis; `LoginGoogle` e pedido de nova senha aceitam os dois; lista de controllers com `EventoPessoal` e `Escala`.
+2. `AgendaFotografo.WebSPA/CLAUDE.md` (só as frases de Auth): três perfis e `Role` = `Admin` | `Assinante` | `Fotografo`.
+
 ## 3. Revisão (revisor)
 
+### Revisão completa — Parte A (Rodada 1, 21/11/2026)
+
+Escopo: Back-end Etapas 1 a 3 e Front-end Etapas 1 e 2, sobre `git diff 8ac3d0d` + arquivos novos não rastreados. Parte B (back 4 e 5, front 3 e 4) e documentação (back 6, front 5) ainda não foram construídas e não contam como falha.
+
+- Veredito: **Aprovado, sem ajustes**
+- Build: `dotnet build --no-incremental` OK (0 erros, 0 avisos); `npm run build` em `AgendaFotografo.WebSPA` OK (sem erros nem avisos)
+
+**Pontos fortes**
+- O perfil novo nasce fechado: nenhum `[Authorize(Roles = Assinante)]` mudou (Evento, Membro, Organizador, TipoEvento, PendenciaModelo, Aviso, Dashboard, Chat, Local e LinkPublico seguem só Assinante; o único diff do `EventoController` é a extração do período) e `AssinanteEscopo.cs` não tem diff.
+- `FotografoEscopo.cs` segue o molde: exige `IsFotografo`, lê `AssinanteId` e CPF do banco por PK, memoriza só na requisição, lança `AssinanteSemVinculoException` (403) e não loga nada.
+- Revalidação (`Setup.cs:182`) com `RoleNames.ComConta`: Fotógrafo bloqueado ou sem vínculo cai com 401 como o Assinante.
+- Cadastro (`CadastroValidator.cs:18-36`): perfil 0/1/2, "Perfil inválido." sem erro de documento espúrio, Fotógrafo com "CPF é obrigatório" / "Informe um CPF válido.", Coordenador inalterado; `AssinanteCadastro` grava o tipo, dá a role certa e só prepara tipos de evento para o Coordenador; unicidade global intacta.
+- Boas-vindas bloqueadas para o Fotógrafo no único ponto (`EmailsConta.cs:154-156`), o que cobre `ConfirmarEmail`, `RedefinirSenha`, `LoginGoogle` e `CadastrarGoogle`.
+- Admin: `ASS_TIPO` só na saída (`Aplicar` não o copia), `Criar` força Coordenador, `Atualizar` de Fotógrafo exige CPF pelo tipo do banco, `RedefinirAcesso` aceita os dois perfis.
+- Migration `PerfilFotografo` enxuta (só `AddColumn` com `defaultValue: 1` comentado e `CreateTable` + índice; `Down` simétrico); Designer idêntico ao snapshot.
+- `PeriodoAgenda` reproduz mensagens e ordem do `Evento/Agenda` antigo (contrato inalterado). `EventoPessoalController` carrega tudo por `Id` + conta, ignora conta/Id do body no `Criar`, edita a entidade rastreada (preserva `CreatedAt`), 403 de vínculo antes do `catch`, `ErrorHelper.Seguro`, `AsNoTracking` nas leituras; models sem `EPS_ASSINANTE_ID`/auditoria.
+- Front: o `AuthGuard` genérico já devolve cada perfil à própria área; layout com sino, busca e Assistente só para o Assinante e teste grátis para os dois; escolha de perfil acessível (`radiogroup`/`radio`, `aria-checked`, setas, `role="alert"`), obrigatória nas duas vias e respeitada também na credencial do Google; Admin com mudanças mínimas; agenda e ficha fiéis ao molde (datas sem fuso, `switchMap`, estados de carga/vazio/erro, Fechar no mês e dia gravados) e já preparadas para a Parte B. Sem `console`, storage ou HTML dinâmico novos.
+
+**Cenários simulados (leitura do código)**
+- Assinante antigo após a migration (`ASS_TIPO = 1`): login, `TesteGratis` (pelo `AssinanteEscopo`), boas-vindas e Seed se comportam como antes.
+- Fotógrafo abre `/assinante/agenda`: `AuthGuard` -> `/fotografo/inicio` -> `/fotografo/agenda`. Chamando `api/Evento/Agenda` direto: 403. Assinante chamando `api/EventoPessoal/*`: 403. Admin em `/fotografo/*`: volta a `/admin/inicio`.
+- `Auth/Cadastrar` com `ASS_TIPO = 2` + CNPJ: 400 "Informe um CPF válido."; `ASS_TIPO = 3`: 400 "Perfil inválido."; sem `ASS_TIPO`: Coordenador, como hoje. E-mail ou CPF já usado por qualquer perfil: mesmas mensagens de duplicidade de hoje.
+- `EventoPessoal/Obter`, `Atualizar` e `Excluir` com id de outra conta: 404 "Evento não encontrado". `Agenda` vazia: `[]` e "Nenhum evento em ...". Erro da API: snackbar (`mensagemErro`) e, na agenda, "Tentar de novo".
+- Admin `Criar` com `ASS_TIPO = 2` no body: cria Coordenador. `Atualizar` de Fotógrafo com CNPJ válido: 400 "Informe um CPF válido.".
+- Bloquear um Fotógrafo: `Inativar` invalida o cache e a próxima requisição dá 401.
+
+**Crítico**
+- Nenhum
+
+**Importante**
+- Nenhum
+
+**Menor**
+1. `AgendaFotografo.WebApi/Validators/Assinante/AssinanteValidator.cs:7-8`: dois `<summary>` seguidos; o comentário do `AssinanteValidator` ficou em cima do `AssinanteFotografoValidator`. Mover a linha 7 para cima da classe `AssinanteValidator` (linha 19).
+2. `AgendaFotografo.WebApi/Controllers/AssinanteController.cs:339-340` e `AgendaFotografo.WebApi/Services/Emails/ProcessadorPedidoNovaSenha.cs:32-33`: repetem `IsInRoleAsync(Assinante) || IsInRoleAsync(Fotografo)` em vez de usar o conjunto único `RoleNames.ComConta` (o plano pede o conjunto "usado nos pontos da Etapa 2"; o `AuthController` usa `IsEmPerfilComContaAsync`). Funciona hoje, mas um terceiro perfil exigiria lembrar desses dois lugares. Sugestão: um helper comum (ex.: extensão do `UserManager`) sobre `RoleNames.ComConta`.
+3. `AgendaFotografo.WebApi/Controllers/AssinanteController.cs:231` e `251`: no `Atualizar` de Fotógrafo, o `AssinanteValidator` roda antes, então um CNPJ **inválido** responde "CPF/CNPJ inválido" e só o CNPJ válido chega ao "Informe um CPF válido.". A tela do Admin já impede o caso. Sugestão: validar o Fotógrafo primeiro (ou pular a regra CPF/CNPJ para ele).
+4. `AgendaFotografo.WebSPA/src/app/modules/auth/sign-in/sign-in.component.html:102-104`: o botão transparente sobre o Google recebe foco sem anel visível, e o iframe do Google continua alcançável pelo Tab atrás dele (a credencial é descartada em `aoReceberCredencial` e a pessoa refaz o popup). Sugestão: contorno visível no foco do overlay ou `tabindex="-1"`/`inert` no container do Google enquanto não há escolha.
+5. `AgendaFotografo.WebSPA/src/app/modules/auth/sign-in/escolha-perfil/escolha-perfil.component.ts:30`: a borda do cartão não selecionado (`#d6cfc9`) tem ~1,5:1 sobre o branco; o projeto usa `#8A817C` (≥ 3:1) no contorno dos campos. Sugestão: usar o mesmo `#8A817C`.
+6. `AgendaFotografo.WebSPA/src/app/modules/fotografo/eventos/evento-pessoal-details/evento-pessoal-details.component.ts:156`: com "A confirmar" desmarcado e a hora vazia, o evento é salvo como "a confirmar" sem aviso. É o mesmo comportamento da ficha do coordenador (coerente); se mudar, mudar nas duas.
+7. `AgendaFotografo.WebApi/Controllers/EventoPessoalController.cs:169-173`: o `Excluir` carrega a entidade e o `DeleteAsync` a consulta de novo (duas idas ao banco). Inofensivo; poderia remover a entidade já carregada.
+8. Documentação (para a Etapa 6): `AuthController.cs:171` passou a devolver `AssinanteNome` também ao Fotógrafo (é o nome da própria conta). O `CLAUDE.md` da WebApi diz "AssinanteNome só para o perfil Assinante"; registrar a mudança junto com o resto da Etapa 6.
+
+**Não verificado**
+- Nada rodou no navegador nem a 360 px (o testador confirma: cadastro manual e Google com a escolha, overlay do botão do Google, agenda Lista/Calendário e ficha sem rolagem lateral).
+- A migration não foi aplicada (a API não subiu); confirmar no zeus que os assinantes existentes ficam com `ASS_TIPO = 1` e que `EVENTOSPESSOAIS` é criada.
+- Critério 4 com CNPJ: depende de `CpfValidation.Validate` (pacote DocumentValidator) recusar 14 dígitos; confirmar com `POST Auth/Cadastrar` (`ASS_TIPO = 2` + CNPJ válido) esperando 400 "Informe um CPF válido.".
+- E-mails (código de confirmação para o Fotógrafo e ausência de boas-vindas) e as respostas 403/401 por perfil foram conferidos só lendo o código.
+- Não há rotina agendada nesta entrega (o aviso de IIS não se aplica).
+
+### Revisão completa — Parte B (Rodada 1, 21/11/2026)
+
+Escopo: Back-end Etapas 4, 5 e 6 e Front-end Etapas 3, 4 e 5, sobre `git diff 8ac3d0d` + arquivos novos; conferida também a Parte A (sem regressão: os arquivos da Parte A não mudaram depois da revisão anterior além do registro do `EscalaFotografoConsultas` no `Setup.cs`).
+
+- Veredito: **Precisa de ajustes** (só documentação)
+- Build: `dotnet build --no-incremental` OK (0 erros, 0 avisos); `npm run build` em `AgendaFotografo.WebSPA` OK
+
+**Pontos fortes**
+- `MEM_CPF` não vaza: aparece só em `MembroController` (normalização, unicidade, `Aplicar`, `ParaModel`), `MembroModel`, `MembroValidator` e no filtro do `EscalaFotografoConsultas`. Listas, `Opcoes`, `OpcoesEscala`, equipe da Agenda (`AgendaConsulta.cs:109-117`, projeção campo a campo), link público, Chat, avisos e dashboard projetam campo a campo, sem CPF; nenhum log novo cita CPF. `Inativar`/`Ativar` devolvem `MEM_CPF = null` de propósito.
+- `MembroController` não lê `ASSINANTES` nem `ASPNETUSERS`; a unicidade do CPF é só dentro do assinante, então a resposta não muda conforme o CPF tenha conta.
+- `EscalaFotografoConsultas.cs:23-37` é o único ponto do vínculo: CPF do banco (11 dígitos ASCII, senão nada), membro de outro assinante, `ASS_TIPO = Coordenador`, `ASS_ATIVO`, escala e evento do mesmo assinante do membro; `MEM_ATIVO` ignorado; uma consulta com joins (sem N+1); `DistinctBy` evita duplicar.
+- `EscalaController`: `[Authorize(Roles = Fotografo)]`, `no-store` em todas as respostas, 403 de vínculo antes do `catch`, 404 único "Evento não encontrado." (não distingue inexistente de sem vínculo), `Arquivo` só tipos 2 e 3, filtrado pelo assinante dono do evento, com `nosniff` e `private, no-store`. `EscalaEventoModel` é lista branca (sem notas internas, organizador, inscrição, equipe, status, ids de assinante ou `EVA_CAMINHO`).
+- Migration `MembroCpf` só com a coluna e o índice; Designer idêntico ao snapshot.
+- Front: carga paralela com `forkJoin` e `catchError` por fonte (falha de uma mostra a outra com aviso âmbar; falha das duas = erro de tela cheia); item de equipe distinto (borda/pílula índigo, "Equipe de X · posição", só selo "Cancelado"), abre `/fotografo/escalas/:id` sem edição; `escala-detalhe` só com interpolação, links por `urlSegura`/`linkMaps` com `rel="noopener noreferrer"`, imagem por blob revogada em `ngOnDestroy` e ao recarregar, GPX por `[carregar]`, 404 com "Este evento não está mais na sua agenda."; ficha da Equipe preserva o CPF depois de Inativar/Ativar (`membro-details.component.ts:181`).
+- Documentação da raiz, Infra.Data, desenho e SPA cobre perfis, vínculo por CPF, migrations e telas; sem senha ou segredo.
+
+**Cenários simulados (leitura do código)**
+- Fotógrafo A chama `Escala/Obter` ou `Escala/Arquivo` com o id de um evento em que só o fotógrafo B está escalado: o filtro parte do CPF de A, então 404 igual ao de evento inexistente.
+- Coordenador remove o fotógrafo da escala, exclui o evento, troca/apaga o `MEM_CPF` ou é bloqueado: a próxima leitura já não acha a linha (some). Evento cancelado: continua, com `Cancelado = true`, esmaecido e riscado. Membro inativado: continua.
+- Mesmo CPF em dois membros do mesmo coordenador: aparece uma vez (o cadastro novo já impede pela unicidade).
+- Coordenador grava um CPF que tem conta e um que não tem: mesma resposta 200; CPF repetido na equipe: 400 `Já existe o membro "X" com este CPF.` (com ` (inativo)`).
+- Assinante chamando `api/Escala/*`: 403. Fotógrafo sem CPF válido na conta: lista vazia e 404.
+
+**Crítico**
+- Nenhum
+
+**Importante**
+1. `AgendaFotografo.WebApi/CLAUDE.md:126`, `:141` e `:204` (back-end, documentação): o e-mail diário de lembretes continua chamado de "módulo 20" (no `PendenciaConsultas`, nos Avisos e em "Pendente"), mas o módulo 20 agora é este plano e o e-mail virou o 21 (critério 20 e P13). Quem construir o e-mail diário segue um número errado. Corrigir para "módulo 21". No mesmo arquivo, trechos que contradizem o código e a própria seção nova: `:64` (roles do Seed sem `Fotografo`), `:48` (`PrecisaConfirmar` "Assinante" e "`AssinanteNome` só para o perfil Assinante"), `:160` e `:165` (`CadastroModel`/`CadastroGoogleModel` sem `ASS_TIPO`), `:162` (`TesteGratis` com `[Authorize(Roles = Assinante)]`), `:164` ("não é Assinante" no `LoginGoogle`), `:174` e `:178` ("Assinante" no pedido de nova senha) e `:204` (lista de controllers sem `EventoPessoal` e `Escala`). Ajustar para Assinante e Fotografo (`RoleNames.ComConta`).
+
+**Menor**
+1. `AgendaFotografo.WebSPA/CLAUDE.md:31-32` (front-end, documentação): "comum aos dois perfis" e "`Role` = `Admin` | `Assinante`"; incluir o `Fotografo`.
+2. `AgendaFotografo.WebSPA/src/app/modules/fotografo/escala-detalhe/escala-detalhe.routes.ts:4` (front-end): só existe `:id`; `/fotografo/escalas` sem id cai no 404 do SPA. Sugestão: `{ path: '', pathMatch: 'full', redirectTo: '/fotografo/agenda' }`, como em `eventos.routes.ts`.
+3. `AgendaFotografo.WebSPA/src/app/modules/fotografo/agenda/agenda-fotografo.component.ts:185` (front-end): com as duas fontes falhando, o snackbar usa só a mensagem do erro pessoal (o 403 de vínculo da escala, se vier, some). Inofensivo; poderia preferir a mensagem de qualquer uma das duas.
+4. Os itens Menores da revisão da Parte A seguem abertos (nenhum foi tratado; não disparam ajuste).
+
+**Não verificado**
+- Nada rodou no navegador nem a 360 px (agenda com os dois tipos de item, `escala-detalhe`, ficha da Equipe com a dica quebrando linha em 1 coluna).
+- As migrations não foram aplicadas no banco; os joins do `EscalaFotografoConsultas` (navegações `Membro.Assinante` e `Evento`) e o uso do índice `MEM_CPF` só foram conferidos lendo o código; confirmar com o testador (Parte B do roteiro de "Verificação").
+- `CpfValidation.Validate` com 14 dígitos (DocumentValidator) continua não verificado; o `MembroValidator` já barra pelo tamanho antes (`Length == 11`).
+
+### Conferência (21/11/2026)
+
+1. Importante 1 da Parte B (`AgendaFotografo.WebApi/CLAUDE.md` desatualizado): **RESOLVIDO**, cada trecho comparado com o código atual:
+   - e-mail diário como módulo 21 em `:126`, `:141` e `:204` (nenhum "módulo 20" restante no arquivo);
+   - `:48`: `PrecisaConfirmar` "Assinante ou Fotografo" e `AssinanteNome` para os dois (confere com `AuthController.cs:171` e `:179`);
+   - `:64`: roles do Seed com `Fotografo` (`RoleNames.All`);
+   - `:160` e `:165`: `ASS_TIPO` em `CadastroModel` e `CadastroGoogleModel`;
+   - `:162`: `TesteGratis` com `[Authorize(Roles = Assinante,Fotografo)]` e conta pelo escopo do perfil (confere com `AuthController.cs:312-320`);
+   - `:164`: `LoginGoogle` recusa quem não é Assinante nem Fotografo;
+   - `:174` e `:178`: pedido de nova senha, `EsqueciSenha` e `Login` pendente para os dois perfis (confere com `ProcessadorPedidoNovaSenha.cs:32-33`);
+   - `:204`: lista de controllers com `EventoPessoal` e `Escala`.
+   - Menor 1 também resolvido: `AgendaFotografo.WebSPA/CLAUDE.md:31-33` agora diz "comum aos três perfis", `Role` com `Fotografo` e `AssinanteNome` para os dois.
+
+**Problemas novos da correção**
+- Nenhum (só documentação; o código de controllers e services não mudou desde a revisão).
+
+**Pendências para o colaborador decidir**
+- Nenhuma. Os itens Menores restantes (Parte A 1 a 8 e Parte B 2 e 3) ficam a critério do colaborador.
+
+**Observações fora do escopo**
+- Nenhuma.
+
 ## 4. Testes (testador)
+
+**Não executados** (decisão do colaborador em 21/11/2026). O banco zeus recusou o login (`Access denied for user 'root'`), então a API não subiu e as migrations `PerfilFotografo` e `MembroCpf` ainda não foram aplicadas. Roteiro pendente, para quando o acesso ao zeus voltar:
+
+- **Parte A:** cadastrar um Fotógrafo (manual e Google), entrar e cair em `/fotografo/agenda`, criar, editar e excluir evento pessoal, conferir 403 nas telas do coordenador e ver o perfil na lista e na ficha do Admin. Confirmar também que `POST Auth/Cadastrar` com `ASS_TIPO = 2` e um CNPJ válido responde 400 "Informe um CPF válido.".
+- **Parte B:** como coordenador, gravar o CPF do fotógrafo num membro e escalá-lo. Como fotógrafo, ver o evento na agenda e abrir a tela somente leitura (sem notas, pendências e organizador). Cancelar o evento (continua, marcado) e tirar da escala (some). Conferir que o coordenador não vê sinal de vínculo.
+- Conferir a 360 px a escolha de perfil no cadastro, a agenda do fotógrafo e a tela `escala-detalhe`.
+

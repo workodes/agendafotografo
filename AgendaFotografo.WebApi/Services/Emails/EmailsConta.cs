@@ -151,7 +151,9 @@ public class EmailsConta(
             if (!Ligado) return;
 
             var assinante = await ObterAssinanteAsync(usuario, cancellationToken);
-            if (assinante is null || assinante.ASS_ORIGEM != OrigemAssinante.Autocadastro) return;
+            // Fotógrafo não recebe boas-vindas (plano 20, P10)
+            if (assinante is null || assinante.ASS_ORIGEM != OrigemAssinante.Autocadastro
+                || assinante.ASS_TIPO != TipoAssinante.Coordenador) return;
 
             var diasRestantes = TesteGratis.DiasRestantes(assinante.ASS_TESTE_ATE, DateOnly.FromDateTime(DateTime.Now));
             if (diasRestantes is null or 0)

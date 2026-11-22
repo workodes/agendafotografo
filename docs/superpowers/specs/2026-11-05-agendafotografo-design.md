@@ -13,7 +13,8 @@ O objetivo é um sistema vendável (SaaS) para outros criadores/fotógrafos que 
 
 - Stack e estrutura: **padrão Fartec** (Domain, Infra.Data, CrossCutting, WebApi, WebSPA), igual ao AgroGestor. C# + Angular.
 - Acesso: **Assinante + área administrativa**. Só o assinante (coordenador) faz login. O admin (você) cria, ativa e bloqueia assinantes. A cobrança fica fora do sistema.
-- Equipe **não faz login** na v1. O coordenador registra quem vai. Disponibilidade marcada pelo fotógrafo fica para uma fase futura.
+- **Nota (2026-11-21):** o login do fotógrafo deixou de estar fora do escopo: existe o perfil `Fotografo`, com conta própria, agenda pessoal e eventos dos coordenadores vinculados pelo CPF (somente leitura). Ver o plano 20 (`docs/planos/20 - Perfil Fotógrafo e agenda pessoal.md`).
+- Equipe **não faz login** na v1 (salvo a conta de Fotografo, ver a nota acima). O coordenador registra quem vai. Disponibilidade marcada pelo fotógrafo fica para uma fase futura.
 - **Financeiro: nunca.** Sem valor, pago, repasse ou cliente comercial.
 - Cor principal **#F97316**. Ainda não há logo: usar uma logo provisória com o nome.
 - Uso no **celular e no computador** (telas responsivas). O link público é mobile-first.
@@ -70,7 +71,7 @@ Notas internas, pendências e dados do organizador **não** aparecem.
 - Lista de assinantes: criar, ativar e bloquear, além de redefinir o acesso do usuário assinante.
 
 ## Fora do escopo da v1
-Financeiro (permanente); login e disponibilidade do fotógrafo; cadastro por flyer com IA; integração com a Fotop; WhatsApp; cobrança da assinatura; aviso de evento duplicado; distância entre cidades; brindes.
+Financeiro (permanente); login e disponibilidade do fotógrafo (nota de 2026-11-21: o login do fotógrafo deixou de estar fora, ver o plano 20; a disponibilidade continua fora); cadastro por flyer com IA; integração com a Fotop; WhatsApp; cobrança da assinatura; aviso de evento duplicado; distância entre cidades; brindes.
 
 ## Decisões minhas (para você conferir)
 - **Proteção do código**: 4 números são fáceis de adivinhar no chute. Depois de **5 tentativas erradas**, aquele link fica bloqueado por 15 minutos para o aparelho que errou. Quando o código é aceito, o aparelho fica liberado para aquele evento por 7 dias, sem pedir o código de novo. Regerar o código derruba todos os acessos já liberados.

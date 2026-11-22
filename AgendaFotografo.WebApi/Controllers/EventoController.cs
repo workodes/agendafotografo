@@ -60,7 +60,6 @@ public class EventoController(
     private readonly ILogger<EventoController> _logger = logger;
 
     private const int PageSizeMaximo = 100;
-    private const int DiasMaximosAgenda = 62;
 
     private const string MsgIdObrigatorio = "Id é obrigatório";
     private const string MsgNaoEncontrado = "Evento não encontrado";
@@ -187,13 +186,7 @@ public class EventoController(
 
             if (!ModelState.IsValid) throw new Exception("Filtro inválido");
 
-            if (string.IsNullOrWhiteSpace(dataDe) || string.IsNullOrWhiteSpace(dataAte))
-                throw new Exception("Informe o período");
-
-            var de = ParseData(dataDe, "Data inicial inválida");
-            var ate = ParseData(dataAte, "Data final inválida");
-            if (de > ate) throw new Exception("A data inicial não pode ser maior que a data final");
-            if (ate.DayNumber - de.DayNumber + 1 > DiasMaximosAgenda) throw new Exception("O período não pode passar de 62 dias");
+            var (de, ate) = PeriodoAgenda.Validar(dataDe, dataAte);
 
             var filtro = new AgendaFiltro { De = de, Ate = ate, TipoEventoId = tipoEventoId, Cidade = cidade, MembroId = membroId };
             if (status is not null) filtro.Status = ValidarStatus(status.Value);

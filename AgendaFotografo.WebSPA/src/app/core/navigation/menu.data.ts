@@ -30,6 +30,16 @@ export class MenuData {
                 link: `/${ROLE_NAMES.Admin.toLowerCase()}/assinantes`,
             },
         ]),
+        // Fotógrafo (plano 20): só a Agenda (o início redireciona para ela, então não há item "Início").
+        [ROLE_NAMES.Fotografo]: [
+            {
+                id: 'agenda',
+                title: 'Agenda',
+                type: 'basic',
+                icon: 'heroicons_outline:calendar-days',
+                link: `/${ROLE_NAMES.Fotografo.toLowerCase()}/agenda`,
+            },
+        ],
         [ROLE_NAMES.Assinante]: this.montarMenu(ROLE_NAMES.Assinante.toLowerCase(), [
             {
                 id: 'agenda',

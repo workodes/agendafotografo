@@ -1,0 +1,93 @@
+<div class="absolute inset-0 flex flex-col min-w-0 overflow-hidden bg-white">
+    <!-- Cabeçalho fixo: título à esquerda, ações à direita (compacto no celular) -->
+    <div class="flex items-center justify-between gap-2 sm:gap-3 px-4 sm:px-6 md:px-8 py-2 sm:py-4 border-b shrink-0 bg-white">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 min-w-0">
+            <span class="text-xl sm:text-3xl font-extrabold tracking-tight leading-tight break-words line-clamp-2 sm:truncate min-w-0 text-accent-900">
+                {{ ehNovo ? 'Novo evento' : (evento?.EPS_NOME || 'Evento') }}
+            </span>
+            <span *ngIf="!ehNovo && evento" class="self-start leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center shrink-0"
+                [ngClass]="statusCor[evento.EPS_STATUS]">{{ statusRotulo[evento.EPS_STATUS] }}</span>
+        </div>
+
+        <div class="flex items-center justify-end gap-1 sm:gap-2 shrink-0">
+            <button *ngIf="!ehNovo" mat-stroked-button color="warn" type="button" class="max-sm:!hidden" [disabled]="salvando || excluindo" (click)="excluir()">
+                <mat-icon svgIcon="heroicons_outline:trash"></mat-icon>
+                <span class="ml-2">Excluir</span>
+            </button>
+            <button *ngIf="!ehNovo" mat-icon-button color="warn" type="button" class="sm:!hidden" aria-label="Excluir evento" title="Excluir evento"
+                [disabled]="salvando || excluindo" (click)="excluir()">
+                <mat-icon class="icon-size-5" svgIcon="heroicons_outline:trash"></mat-icon>
+            </button>
+            <button mat-button type="button" class="max-sm:!hidden" [disabled]="salvando" (click)="voltar()">Fechar</button>
+            <button mat-icon-button type="button" class="sm:!hidden" aria-label="Fechar" title="Fechar" [disabled]="salvando" (click)="voltar()">
+                <mat-icon class="icon-size-5" svgIcon="heroicons_outline:x-mark"></mat-icon>
+            </button>
+            <button mat-flat-button color="primary" type="submit" form="form-evento-pessoal" [disabled]="salvando || excluindo">
+                <mat-progress-spinner *ngIf="salvando" diameter="20" mode="indeterminate"></mat-progress-spinner>
+                <span *ngIf="!salvando">Salvar</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="flex-auto min-h-0 overflow-y-auto overflow-x-hidden">
+        <form id="form-evento-pessoal" [formGroup]="form" (ngSubmit)="salvar()" novalidate
+            class="mx-auto w-full max-w-3xl px-4 sm:px-6 md:px-8 py-6 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
+                <mat-label>Nome</mat-label>
+                <input matInput formControlName="EPS_NOME" maxlength="200" autocomplete="off">
+                <mat-error>{{ erro('EPS_NOME') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Data</mat-label>
+                <input matInput [matDatepicker]="pickerData" [min]="dataMin" [max]="dataMax" formControlName="EPS_DATA" placeholder="dd/mm/aaaa" autocomplete="off">
+                <span *ngIf="diaDaSemana" matSuffix class="hidden min-[420px]:inline text-secondary text-sm mr-1 first-letter:uppercase">{{ diaDaSemana }}</span>
+                <mat-datepicker-toggle matIconSuffix [for]="pickerData"></mat-datepicker-toggle>
+                <mat-datepicker #pickerData></mat-datepicker>
+                <mat-error>{{ erro('EPS_DATA') }}</mat-error>
+            </mat-form-field>
+
+            <!-- Hora com a opção "A confirmar" -->
+            <div class="flex items-start gap-3 min-w-0">
+                <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense flex-1 min-w-0">
+                    <mat-label>Hora</mat-label>
+                    <input matInput type="time" formControlName="EPS_HORA">
+                </mat-form-field>
+                <mat-checkbox class="mt-[25px] shrink-0" formControlName="EPS_HORA_A_CONFIRMAR">A confirmar</mat-checkbox>
+            </div>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Cidade</mat-label>
+                <input matInput formControlName="EPS_CIDADE" maxlength="100" autocomplete="off" placeholder="Ex.: Curitiba">
+                <mat-error>{{ erro('EPS_CIDADE') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Status</mat-label>
+                <mat-select formControlName="EPS_STATUS">
+                    <mat-option *ngFor="let s of statusLista" [value]="s.valor">{{ s.rotulo }}</mat-option>
+                </mat-select>
+                <mat-error>{{ erro('EPS_STATUS') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
+                <mat-label>Local</mat-label>
+                <input matInput formControlName="EPS_LOCAL" maxlength="300" autocomplete="off">
+                <mat-error>{{ erro('EPS_LOCAL') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
+                <mat-label>Link</mat-label>
+                <input matInput formControlName="EPS_LINK" type="url" autocomplete="off" autocapitalize="none" spellcheck="false"
+                    placeholder="https://" (blur)="completarLink()">
+                <mat-error>{{ erro('EPS_LINK') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
+                <mat-label>Observações</mat-label>
+                <textarea matInput formControlName="EPS_OBSERVACOES" rows="4" maxlength="2000"></textarea>
+                <mat-error>{{ erro('EPS_OBSERVACOES') }}</mat-error>
+            </mat-form-field>
+        </form>
+    </div>
+</div>

@@ -136,6 +136,8 @@
         text-align: center;
         transform: rotate(-4deg);
     }
+    /* Seta "a lápis" depois da nota: curva com laço, traço + repasse fino; desce da última linha em direção ao mascote. */
+    .qc-seta-mao { display: inline-block; width: 2.4em; height: auto; margin-left: 0.15em; vertical-align: top; margin-top: 0.4em; overflow: visible; }
     .qc-widget {
         align-items: center;
         gap: 10px;
@@ -165,6 +167,8 @@
        (o tênis encosta 4 px no cartão: gap de 24 px da grade + ~14 px vazios no pé do SVG). */
     .qc-nota-celular { font-size: 28px; line-height: 1.05; text-align: left; transform: rotate(-4deg); transform-origin: left center; }
     @media (max-width: 359px) { .qc-nota-celular { font-size: 24px; } }
+    /* No celular o mascote fica à direita da nota: a seta gira para apontar para ele. */
+    .qc-nota-celular .qc-seta-mao { transform: rotate(-24deg); transform-origin: 0 20%; margin-top: 0.75em; }
     .qc-mascote-celular {
         position: relative;
         z-index: 1;

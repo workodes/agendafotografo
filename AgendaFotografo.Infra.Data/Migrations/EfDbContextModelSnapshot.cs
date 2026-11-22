@@ -55,6 +55,9 @@ namespace AgendaFotografo.Infra.Data.Migrations
                     b.Property<DateOnly?>("ASS_TESTE_ATE")
                         .HasColumnType("date");
 
+                    b.Property<int>("ASS_TIPO")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime");
 
@@ -367,6 +370,59 @@ namespace AgendaFotografo.Infra.Data.Migrations
                     b.ToTable("EVENTOPENDENCIAS", (string)null);
                 });
 
+            modelBuilder.Entity("AgendaFotografo.Domain.Entities.EventoPessoal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("EPS_ASSINANTE_ID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("EPS_CIDADE")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateOnly>("EPS_DATA")
+                        .HasColumnType("date");
+
+                    b.Property<TimeOnly?>("EPS_HORA")
+                        .HasColumnType("time");
+
+                    b.Property<string>("EPS_LINK")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("EPS_LOCAL")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<string>("EPS_NOME")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("EPS_OBSERVACOES")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<int>("EPS_STATUS")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EPS_ASSINANTE_ID", "EPS_DATA");
+
+                    b.ToTable("EVENTOSPESSOAIS", (string)null);
+                });
+
             modelBuilder.Entity("AgendaFotografo.Domain.Entities.Membro", b =>
                 {
                     b.Property<Guid>("Id")
@@ -381,6 +437,10 @@ namespace AgendaFotografo.Infra.Data.Migrations
 
                     b.Property<bool>("MEM_ATIVO")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("MEM_CPF")
+                        .HasMaxLength(11)
+                        .HasColumnType("varchar(11)");
 
                     b.Property<string>("MEM_EMAIL")
                         .HasMaxLength(150)
@@ -410,6 +470,8 @@ namespace AgendaFotografo.Infra.Data.Migrations
                         .HasColumnType("datetime");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("MEM_CPF");
 
                     b.HasIndex("MEM_ASSINANTE_ID", "MEM_INSTAGRAM");
 
@@ -882,6 +944,17 @@ namespace AgendaFotografo.Infra.Data.Migrations
                     b.Navigation("Membro");
 
                     b.Navigation("Modelo");
+                });
+
+            modelBuilder.Entity("AgendaFotografo.Domain.Entities.EventoPessoal", b =>
+                {
+                    b.HasOne("AgendaFotografo.Domain.Entities.Assinante", "Assinante")
+                        .WithMany()
+                        .HasForeignKey("EPS_ASSINANTE_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Assinante");
                 });
 
             modelBuilder.Entity("AgendaFotografo.Domain.Entities.Membro", b =>

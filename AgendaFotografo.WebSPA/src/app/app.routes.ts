@@ -36,6 +36,16 @@ const rotasAssinante: Route[] = [
     { path: 'tipos-evento', data: { titulo: 'Tipos de evento' }, loadChildren: () => import('app/modules/assinante/tipos-evento/tipos-evento.routes') },
 ];
 
+// Área do Fotógrafo (plano 20): conta própria com agenda pessoal. O início redireciona para a agenda.
+// Agenda pessoal e ficha do evento pessoal (plano 20, Etapa 2).
+const rotasFotografo: Route[] = [
+    { path: '', pathMatch: 'full', redirectTo: 'agenda' },
+    { path: 'inicio', pathMatch: 'full', redirectTo: 'agenda' },
+    { path: 'agenda', data: { titulo: 'Agenda' }, loadChildren: () => import('app/modules/fotografo/agenda/agenda.routes') },
+    { path: 'eventos', data: { titulo: 'Evento' }, loadChildren: () => import('app/modules/fotografo/eventos/eventos.routes') },
+    { path: 'escalas', data: { titulo: 'Evento' }, loadChildren: () => import('app/modules/fotografo/escala-detalhe/escala-detalhe.routes') },
+];
+
 export const appRoutes: Route[] = [
     { path: '', pathMatch: 'full', redirectTo: 'sign-in' },
 
@@ -87,6 +97,12 @@ export const appRoutes: Route[] = [
                 canActivateChild: [AuthGuard],
                 data: { requiredRoles: [ROLE_NAMES.Assinante] },
                 children: rotasAssinante,
+            },
+            {
+                path: ROLE_NAMES.Fotografo.toLowerCase(),
+                canActivateChild: [AuthGuard],
+                data: { requiredRoles: [ROLE_NAMES.Fotografo] },
+                children: rotasFotografo,
             },
         ],
     },

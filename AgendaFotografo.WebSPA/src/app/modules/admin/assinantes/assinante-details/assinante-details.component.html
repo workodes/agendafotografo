@@ -33,6 +33,10 @@
             </div>
             <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <span class="inline-flex items-center gap-2">
+                    <span class="text-secondary">Perfil:</span>
+                    <span class="font-medium">{{ tipoRotulo[assinante?.ASS_TIPO ?? 1] }}</span>
+                </span>
+                <span class="inline-flex items-center gap-2">
                     <span class="text-secondary">Origem:</span>
                     <span class="font-medium">{{ origemRotulo[assinante?.ASS_ORIGEM ?? 1] }}</span>
                 </span>
@@ -58,8 +62,8 @@
                 <mat-error>{{ erro('ASS_EMAIL') }}</mat-error>
             </mat-form-field>
             <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
-                <mat-label>CPF/CNPJ</mat-label>
-                <input matInput formControlName="ASS_CPF_CNPJ" mask="000.000.000-00||00.000.000/0000-00" inputmode="numeric" autocomplete="off">
+                <mat-label>{{ ehFotografo ? 'CPF' : 'CPF/CNPJ' }}</mat-label>
+                <input matInput formControlName="ASS_CPF_CNPJ" [mask]="ehFotografo ? '000.000.000-00' : '000.000.000-00||00.000.000/0000-00'" inputmode="numeric" autocomplete="off">
                 <mat-error>{{ erro('ASS_CPF_CNPJ') }}</mat-error>
             </mat-form-field>
             <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">

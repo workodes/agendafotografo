@@ -64,7 +64,7 @@ public class EventoValidator : AbstractValidator<EventoModel>
     }
 
     /// <summary>Só URL absoluta http ou https, sem espaços.</summary>
-    private static bool UrlHttpValida(string? valor)
+    internal static bool UrlHttpValida(string? valor)
         => !string.IsNullOrWhiteSpace(valor) && !valor.Any(char.IsWhiteSpace) &&
            Uri.TryCreate(valor, UriKind.Absolute, out var uri) &&
            (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) && !string.IsNullOrEmpty(uri.Host);

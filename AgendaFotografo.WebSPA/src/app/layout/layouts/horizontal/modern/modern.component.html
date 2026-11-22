@@ -40,20 +40,21 @@
         <div class="flex items-center pl-2 ml-auto space-x-0.5 sm:space-x-2">
             <ng-container *ngIf="ehAssinante">
                 <busca-global [modo]="isScreenLarge ? 'campo' : 'barra'"></busca-global>
-                <teste-gratis></teste-gratis>
-                <avisos></avisos>
             </ng-container>
+            <!-- Teste grátis vale para Assinante e Fotógrafo -->
+            <teste-gratis *ngIf="ehAssinante || ehFotografo"></teste-gratis>
+            <avisos *ngIf="ehAssinante"></avisos>
             <user></user>
         </div>
     </div>
 
 
     <!-- Content -->
-    <div class="flex flex-col flex-auto w-full" [ngClass]="{ 'lg:pr-16': assistenteVisivel }">
+    <div class="flex flex-col flex-auto w-full" [ngClass]="{ 'md:pr-16': assistenteVisivel }">
         <router-outlet *ngIf="true"></router-outlet>
     </div>
     <!-- Rodapé: some abaixo de md -->
-    <div class="relative hidden md:flex flex-0 items-center w-full h-14 px-4 md:px-6 z-49 border-t bg-card print:hidden" [ngClass]="{ 'lg:pr-[5.5rem]': assistenteVisivel }">
+    <div class="relative hidden md:flex flex-0 items-center w-full h-14 px-4 md:px-6 z-49 border-t bg-card print:hidden" [ngClass]="{ 'md:pr-[5.5rem]': assistenteVisivel }">
         <span class="font-medium text-secondary">
             quemclica &copy; {{currentYear}}, Todos os Direitos Reservados
         </span>

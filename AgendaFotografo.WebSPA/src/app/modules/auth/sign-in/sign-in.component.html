@@ -1,5 +1,5 @@
 <app-qc-auth-shell layout="dividido" [titulo]="tituloCartao" [subtitulo]="subtituloCartao"
-    tituloArte="Bem-vindo de volta à sua" destaqueArte="agenda" notaArte="oi! bora ver quem clica hoje? ↘"
+    tituloArte="Bem-vindo de volta à sua" destaqueArte="agenda" notaArte="oi! bora ver quem clica hoje?"
     widgetArte="Sáb, 14/03 · 3 provas" widgetDetalheArte="7 fotógrafos">
     <!-- Alerta de erro (ícone + texto, não só cor) -->
     <div *ngIf="showAlert" role="alert" [@shake]="alert.type === 'error'"
@@ -90,8 +90,19 @@
 
         <!-- CADASTRO -->
         <div *ngIf="aba === 'cadastro'" role="tabpanel" aria-labelledby="aba-cadastro">
+            <!-- Perfil (plano 20): obrigatório e sem padrão; vem antes do Google e do formulário -->
+            <p id="rotulo-perfil-cadastro" class="qc-rotulo">Como você vai usar o quemclica?</p>
+            <app-escolha-perfil idRotulo="rotulo-perfil-cadastro" idErro="erro-perfil-cadastro" class="mb-5 block"
+                [valor]="tipoCadastro" [mostrarErro]="escolhaPendente.cadastro && tipoCadastro === null"
+                (valorChange)="escolherTipoCadastro($event)"></app-escolha-perfil>
+
             <ng-container *ngIf="googleClientId">
-                <div #googleBotao class="flex min-h-[44px] w-full justify-center"></div>
+                <div class="relative">
+                    <div #googleBotao class="flex min-h-[44px] w-full justify-center"></div>
+                    <!-- Sem escolha, o clique no botão só mostra a mensagem (e a API também nem é chamada) -->
+                    <button *ngIf="tipoCadastro === null" type="button" class="absolute inset-0 z-10 cursor-pointer opacity-0"
+                        aria-label="Escolha como você vai usar o quemclica antes de continuar com o Google" (click)="exigirEscolhaCadastro()"></button>
+                </div>
                 <p *ngIf="googleIndisponivel" class="qc-suave mt-2 text-center text-sm">Botão do Google indisponível neste navegador. Use e-mail e senha.</p>
                 <div class="my-4 flex items-center gap-3 text-sm qc-suave" aria-hidden="true">
                     <span class="h-px flex-1 bg-[#f0e2d6]"></span><span>ou</span><span class="h-px flex-1 bg-[#f0e2d6]"></span>
@@ -144,9 +155,9 @@
                 </div>
 
                 <div class="mt-4">
-                    <label class="qc-rotulo" for="cad-cpf">CPF/CNPJ</label>
+                    <label class="qc-rotulo" for="cad-cpf">{{ rotuloDocumento(tipoCadastro) }}</label>
                     <input id="cad-cpf" class="qc-campo" type="text" inputmode="numeric" autocomplete="off"
-                        mask="000.000.000-00||00.000.000/0000-00" formControlName="cpfCnpj"
+                        [mask]="mascaraDocumento(tipoCadastro)" formControlName="cpfCnpj"
                         [attr.aria-invalid]="mostrarErro(cadastroForm, 'cpfCnpj', 'cadastro')">
                     <div class="qc-erro" *ngIf="mostrarErro(cadastroForm, 'cpfCnpj', 'cadastro')">
                         <mat-icon class="icon-size-5 shrink-0" [svgIcon]="'heroicons_solid:exclamation-circle'"></mat-icon>
@@ -175,7 +186,8 @@
                     </div>
                 </div>
 
-                <button type="submit" class="qc-btn qc-btn-primario qc-btn-bloco mt-5" [disabled]="ocupado">
+                <button type="submit" class="qc-btn qc-btn-primario qc-btn-bloco mt-5" [disabled]="ocupado"
+                    [attr.aria-describedby]="escolhaPendente.cadastro && tipoCadastro === null ? 'erro-perfil-cadastro' : null">
                     <span *ngIf="!ocupado">Criar conta</span>
                     <mat-progress-spinner *ngIf="ocupado" [diameter]="24" [mode]="'indeterminate'"></mat-progress-spinner>
                 </button>
@@ -211,6 +223,11 @@
 
     <!-- COMPLETAR CADASTRO (Google): sem rota própria; nada foi gravado ainda -->
     <form *ngIf="etapa === 'completar'" [formGroup]="completarForm" (ngSubmit)="concluirGoogle()" novalidate>
+        <p id="rotulo-perfil-google" class="qc-rotulo">Como você vai usar o quemclica?</p>
+        <app-escolha-perfil idRotulo="rotulo-perfil-google" idErro="erro-perfil-google" class="mb-4 block"
+            [valor]="tipoGoogle" [mostrarErro]="escolhaPendente.completar && tipoGoogle === null"
+            (valorChange)="escolherTipoGoogle($event)"></app-escolha-perfil>
+
         <div>
             <label class="qc-rotulo" for="gg-nome">Nome</label>
             <input id="gg-nome" class="qc-campo" type="text" autocomplete="name" maxlength="200" formControlName="nome"
@@ -238,9 +255,9 @@
         </div>
 
         <div class="mt-4">
-            <label class="qc-rotulo" for="gg-cpf">CPF/CNPJ</label>
+            <label class="qc-rotulo" for="gg-cpf">{{ rotuloDocumento(tipoGoogle) }}</label>
             <input id="gg-cpf" class="qc-campo" type="text" inputmode="numeric" autocomplete="off"
-                mask="000.000.000-00||00.000.000/0000-00" formControlName="cpfCnpj"
+                [mask]="mascaraDocumento(tipoGoogle)" formControlName="cpfCnpj"
                 [attr.aria-invalid]="mostrarErro(completarForm, 'cpfCnpj', 'completar')">
             <div class="qc-erro" *ngIf="mostrarErro(completarForm, 'cpfCnpj', 'completar')">
                 <mat-icon class="icon-size-5 shrink-0" [svgIcon]="'heroicons_solid:exclamation-circle'"></mat-icon>

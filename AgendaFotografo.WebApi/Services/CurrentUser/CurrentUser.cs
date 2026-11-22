@@ -15,4 +15,5 @@ public class CurrentUser(IHttpContextAccessor httpContextAccessor) : ICurrentUse
 
     public bool IsAdmin => UserIdentity.Role == RoleNames.Admin;
     public bool IsAssinante => UserIdentity.Role == RoleNames.Assinante;
+    public bool IsFotografo => UserIdentity.Role == RoleNames.Fotografo;
 }

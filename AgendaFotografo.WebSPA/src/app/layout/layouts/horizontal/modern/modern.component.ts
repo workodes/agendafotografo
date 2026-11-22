@@ -175,6 +175,11 @@ export class ModernLayoutComponent implements OnInit, OnDestroy
         return this.authService.getUserRole() === ROLE_NAMES.Assinante;
     }
 
+    /** O Fotógrafo (plano 20) só tem o aviso do teste grátis; o resto do cabeçalho do coordenador dá 403 para ele. */
+    get ehFotografo(): boolean {
+        return this.authService.getUserRole() === ROLE_NAMES.Fotografo;
+    }
+
     private atualizarPaiAtivo(forcar = false): void {
         const url = this._router.url.split(/[?#]/)[0];
         const ativo = this._menuOriginal.find(item =>

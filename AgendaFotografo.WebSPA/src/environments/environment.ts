@@ -71,6 +71,20 @@ export const environment = {
         ativar: `${baseUrl}/PendenciaModelo/Ativar`,
     },
 
+    // Eventos em que um coordenador escalou o Fotógrafo (plano 20, Parte B; só leitura, só perfil Fotografo).
+    Escala: {
+        listar: `${baseUrl}/Escala/Listar`,
+        obter: `${baseUrl}/Escala/Obter`,
+        arquivo: `${baseUrl}/Escala/Arquivo`,
+    },
+    // Agenda pessoal do Fotógrafo (plano 20; só o perfil Fotografo).
+    EventoPessoal: {
+        agenda: `${baseUrl}/EventoPessoal/Agenda`,
+        obter: `${baseUrl}/EventoPessoal/Obter`,
+        criar: `${baseUrl}/EventoPessoal/Criar`,
+        atualizar: `${baseUrl}/EventoPessoal/Atualizar`,
+        excluir: `${baseUrl}/EventoPessoal/Excluir`,
+    },
     Evento: {
         listar: `${baseUrl}/Evento/Listar`,
         obter: `${baseUrl}/Evento/Obter`,

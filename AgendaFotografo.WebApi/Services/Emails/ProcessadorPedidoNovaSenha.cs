@@ -29,7 +29,8 @@ public class ProcessadorPedidoNovaSenha(
 
                     var usuario = await userManager.FindByEmailAsync(email);
                     if (usuario is null
-                        || !await userManager.IsInRoleAsync(usuario, RoleNames.Assinante)
+                        || !(await userManager.IsInRoleAsync(usuario, RoleNames.Assinante)
+                             || await userManager.IsInRoleAsync(usuario, RoleNames.Fotografo))
                         || !await userManager.HasPasswordAsync(usuario)
                         || await codigos.SegundosParaReenviarAsync(usuario, FinalidadeCodigo.NovaSenha) != 0)
                         continue;

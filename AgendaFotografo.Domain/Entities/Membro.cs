@@ -16,6 +16,9 @@ public class Membro : BaseEntity
 
     /// <summary>Telefone somente com dígitos.</summary>
     public string? MEM_TELEFONE { get; set; }
+
+    /// <summary>CPF somente com dígitos (11). Opcional; nunca sai em lista, busca, opções, link público, Assistente nem logs.</summary>
+    public string? MEM_CPF { get; set; }
     public FuncaoMembro MEM_FUNCAO { get; set; }
     public string? MEM_OBSERVACOES { get; set; }
     public bool MEM_ATIVO { get; set; } = true;

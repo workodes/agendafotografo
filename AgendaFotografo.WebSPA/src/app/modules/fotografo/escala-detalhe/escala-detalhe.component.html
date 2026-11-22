@@ -1,0 +1,131 @@
+<ng-template #tituloSecao let-icone="icone" let-titulo="titulo" let-cor="cor">
+    <div class="flex items-center gap-3 min-w-0">
+        <span class="flex items-center justify-center shrink-0 w-9 h-9 rounded-full" [ngClass]="cor">
+            <mat-icon class="icon-size-5 text-current" [svgIcon]="icone"></mat-icon>
+        </span>
+        <h2 class="text-lg font-bold m-0">{{ titulo }}</h2>
+    </div>
+</ng-template>
+
+<div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
+    <div class="mx-auto w-full max-w-2xl flex flex-col gap-4 min-w-0 px-4 py-6">
+
+        <!-- Carregando -->
+        <div *ngIf="estado === 'carregando'" class="flex flex-col items-center gap-4 py-16" aria-busy="true">
+            <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
+            <span class="text-secondary">Carregando...</span>
+        </div>
+
+        <!-- Evento fora da agenda (404: sem vínculo, escala removida, evento excluído...) -->
+        <div *ngIf="estado === 'naoEncontrado'" role="alert" class="flex flex-col items-center gap-3 py-12 text-center">
+            <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:calendar"></mat-icon>
+            <h1 class="text-xl font-bold m-0">Este evento não está mais na sua agenda.</h1>
+            <button mat-flat-button color="primary" type="button" (click)="voltar()">Voltar para a agenda</button>
+        </div>
+
+        <!-- Erro de rede -->
+        <div *ngIf="estado === 'erro'" role="alert" class="flex flex-col items-center gap-3 py-12 text-center">
+            <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
+            <p class="text-secondary m-0">{{ mensagemErroPagina }}</p>
+            <div class="flex flex-wrap justify-center gap-2">
+                <button mat-flat-button color="primary" type="button" (click)="tentarDeNovo()">Tentar de novo</button>
+                <button mat-stroked-button type="button" (click)="voltar()">Voltar para a agenda</button>
+            </div>
+        </div>
+
+        <ng-container *ngIf="estado === 'evento' && evento">
+            <div>
+                <button mat-button type="button" (click)="voltar()">
+                    <mat-icon svgIcon="heroicons_outline:arrow-left"></mat-icon>
+                    <span class="ml-2">Voltar para a agenda</span>
+                </button>
+            </div>
+
+            <!-- Cabeçalho -->
+            <header class="rounded-2xl overflow-hidden border bg-card">
+                <div *ngIf="evento.Cancelado" role="alert" class="bg-red-600 text-white text-center font-bold py-2 px-3">Evento cancelado</div>
+                <div class="bg-gradient-to-br from-[#7c2d12] to-[#431407] border-b-4 border-[#f97316] text-white px-5 pt-5 pb-6 flex flex-col gap-3">
+                    <div class="text-xs font-semibold uppercase tracking-widest text-[#fed7aa] break-words">Equipe de {{ evento.CoordenadorNome }}</div>
+                    <h1 class="text-3xl leading-tight m-0 break-words text-white" style="color:#fff" [class.line-through]="evento.Cancelado">{{ evento.EVE_NOME }}</h1>
+                    <div class="flex flex-wrap gap-2">
+                        <span class="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-sm font-medium">
+                            <mat-icon class="icon-size-4 text-white" svgIcon="heroicons_outline:calendar"></mat-icon>{{ tituloData }}
+                        </span>
+                        <span *ngIf="localCidade" class="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-sm font-medium min-w-0 max-w-full">
+                            <mat-icon class="icon-size-4 text-white shrink-0" svgIcon="heroicons_outline:map-pin"></mat-icon><span class="truncate">{{ localCidade }}</span>
+                        </span>
+                        <span *ngIf="evento.EVM_POSICAO" class="inline-flex items-center gap-1.5 rounded-full bg-[#f97316] px-3 py-1 text-sm font-bold text-[#431407] min-w-0 max-w-full">
+                            <mat-icon class="icon-size-4 text-current shrink-0" svgIcon="heroicons_outline:user"></mat-icon><span class="truncate">Sua posição: {{ evento.EVM_POSICAO }}</span>
+                        </span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Onde fica: links do Maps (local, largada, chegada) -->
+            <section *ngIf="linkLocal || temLargada || temChegada" class="rounded-2xl border bg-card p-5 flex flex-col gap-3">
+                <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:map-pin', titulo: 'Onde fica', cor: 'bg-primary-100 text-primary-700' }"></ng-container>
+                <ul class="list-none p-0 m-0 flex flex-col divide-y">
+                    <li *ngIf="linkLocal" class="flex flex-wrap items-center justify-between gap-3 py-3 min-w-0">
+                        <div class="min-w-0">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-secondary">Local</div>
+                            <div class="font-medium break-words">{{ localCidade }}</div>
+                        </div>
+                        <a mat-stroked-button [href]="linkLocal" target="_blank" rel="noopener noreferrer">Como chegar</a>
+                    </li>
+                    <li *ngIf="temLargada" class="flex flex-wrap items-center justify-between gap-3 py-3 min-w-0">
+                        <div class="min-w-0">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-secondary">Largada</div>
+                            <div class="font-medium break-words">{{ evento.EVE_LARGADA_LOCAL || evento.EVE_CIDADE }}</div>
+                        </div>
+                        <a *ngIf="linkLargada" mat-stroked-button [href]="linkLargada" target="_blank" rel="noopener noreferrer">Abrir no Maps</a>
+                    </li>
+                    <li *ngIf="temChegada" class="flex flex-wrap items-center justify-between gap-3 py-3 min-w-0">
+                        <div class="min-w-0">
+                            <div class="text-xs font-semibold uppercase tracking-wide text-secondary">Chegada</div>
+                            <div class="font-medium break-words">{{ evento.EVE_CHEGADA_LOCAL || evento.EVE_CIDADE }}</div>
+                        </div>
+                        <a *ngIf="linkChegada" mat-stroked-button [href]="linkChegada" target="_blank" rel="noopener noreferrer">Abrir no Maps</a>
+                    </li>
+                </ul>
+            </section>
+
+            <!-- Rota: trajeto do GPX, imagem e links -->
+            <section *ngIf="temRota" class="rounded-2xl border bg-card p-5 flex flex-col gap-4 min-w-0">
+                <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:map', titulo: 'Rota', cor: 'bg-blue-100 text-blue-700' }"></ng-container>
+                <app-mapa-gpx *ngIf="evento.GpxNome" [carregar]="carregarGpx"></app-mapa-gpx>
+                <ng-container *ngIf="evento.TemImagemRota && !rotaFalhou">
+                    <div *ngIf="!rotaUrl" class="flex justify-center py-8"><mat-progress-spinner diameter="24" mode="indeterminate"></mat-progress-spinner></div>
+                    <img *ngIf="rotaUrl" [src]="rotaUrl" alt="Imagem do percurso" class="w-full h-auto rounded-xl">
+                </ng-container>
+                <div class="flex flex-wrap gap-2">
+                    <a *ngIf="linkRotaMaps" mat-stroked-button [href]="linkRotaMaps" target="_blank" rel="noopener noreferrer">
+                        <mat-icon svgIcon="heroicons_outline:arrow-top-right-on-square"></mat-icon><span class="ml-2">Abrir no Maps</span>
+                    </a>
+                    <a *ngIf="linkStrava" mat-stroked-button [href]="linkStrava" target="_blank" rel="noopener noreferrer">
+                        <mat-icon svgIcon="heroicons_outline:arrow-top-right-on-square"></mat-icon><span class="ml-2">Strava</span>
+                    </a>
+                </div>
+            </section>
+
+            <!-- Informações da prova -->
+            <section *ngIf="evento.EVE_INFORMACOES" class="rounded-2xl border bg-card p-5 flex flex-col gap-3">
+                <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:information-circle', titulo: 'Informações da prova', cor: 'bg-blue-100 text-blue-700' }"></ng-container>
+                <div class="whitespace-pre-line break-words leading-relaxed">{{ evento.EVE_INFORMACOES }}</div>
+            </section>
+
+            <!-- Observações para a equipe -->
+            <section *ngIf="evento.EVE_OBSERVACOES_EQUIPE" class="rounded-2xl border border-l-4 border-l-amber-400 bg-card p-5 flex flex-col gap-3">
+                <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:chat-bubble-left-ellipsis', titulo: 'Observações para a equipe', cor: 'bg-amber-100 text-amber-700' }"></ng-container>
+                <div class="whitespace-pre-line break-words leading-relaxed">{{ evento.EVE_OBSERVACOES_EQUIPE }}</div>
+            </section>
+
+            <!-- Fotos -->
+            <section *ngIf="linkFotos" class="rounded-2xl border bg-card p-5 flex flex-wrap items-center justify-between gap-3">
+                <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:photo', titulo: 'Fotos do evento', cor: 'bg-purple-100 text-purple-700' }"></ng-container>
+                <a mat-flat-button color="primary" [href]="linkFotos" target="_blank" rel="noopener noreferrer">
+                    <mat-icon svgIcon="heroicons_outline:photo"></mat-icon><span class="ml-2">Ver fotos</span>
+                </a>
+            </section>
+        </ng-container>
+    </div>
+</div>

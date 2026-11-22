@@ -10,5 +10,7 @@ export class AssinanteListItem {
     LastLogin?: string | null;
     ASS_TESTE_ATE?: string | null;
     ASS_ORIGEM: number;
+    /** TipoAssinante: 1 Coordenador, 2 Fotografo. */
+    ASS_TIPO: number;
     TesteDiasRestantes?: number | null;
 }

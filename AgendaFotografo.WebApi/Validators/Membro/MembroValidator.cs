@@ -23,6 +23,11 @@ public class MembroValidator : AbstractValidator<MembroModel>
         RuleFor(x => x.MEM_TELEFONE!).TelefoneValido()
             .When(x => !string.IsNullOrWhiteSpace(x.MEM_TELEFONE));
 
+        // CPF opcional: exatamente 11 dígitos e dígitos verificadores válidos (CNPJ, com 14 dígitos, é recusado)
+        RuleFor(x => x.MEM_CPF!).Must(c => c.Length == 11).WithMessage("CPF inválido.")
+            .CpfValido().WithMessage("CPF inválido.")
+            .When(x => !string.IsNullOrWhiteSpace(x.MEM_CPF));
+
         RuleFor(x => x.MEM_INSTAGRAM!)
             .MaximumLength(100).WithMessage("Instagram deve ter no máximo 100 caracteres")
             .Matches("^[A-Za-z0-9._]+$").WithMessage("Instagram deve ter apenas letras, números, ponto e sublinhado")

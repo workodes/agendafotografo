@@ -7,6 +7,8 @@ export class Membro {
     MEM_INSTAGRAM?: string | null;
     MEM_EMAIL?: string | null;
     MEM_TELEFONE?: string | null;
+    /** Só dígitos (11) ou null. Vem só no Obter/Criar/Atualizar; Inativar/Ativar devolvem null de propósito (plano 20). */
+    MEM_CPF?: string | null;
     MEM_FUNCAO: number;
     MEM_OBSERVACOES?: string | null;
     MEM_ATIVO?: boolean;

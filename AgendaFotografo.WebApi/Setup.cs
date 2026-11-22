@@ -178,8 +178,8 @@ public static class Setup
                         return;
                     }
 
-                    // Assinante sem vínculo ou com o assinante inativo perde a sessão (401)
-                    if (roleDoToken == RoleNames.Assinante && (sessao.AssinanteId is null || !sessao.AssinanteAtivo))
+                    // Perfil com conta (Assinante ou Fotografo) sem vínculo ou com o assinante inativo perde a sessão (401)
+                    if (RoleNames.ComConta.Contains(roleDoToken) && (sessao.AssinanteId is null || !sessao.AssinanteAtivo))
                         contexto.Fail("Sessão não é mais válida.");
                 }
             };
@@ -200,6 +200,8 @@ public static class Setup
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, CurrentUser>();
         services.AddScoped<AssinanteEscopo>();
+        services.AddScoped<FotografoEscopo>();
+        services.AddScoped<AgendaFotografo.WebApi.Services.Escalas.EscalaFotografoConsultas>();
         services.AddScoped<IAssinanteInicializacao, AssinanteInicializacao>();
         services.AddScoped<AssinanteCadastro>();
         services.AddScoped<TipoEventoPadrao>();

@@ -15,6 +15,7 @@ public class MembroMap : BaseMap<Membro>
         builder.Property(x => x.MEM_INSTAGRAM).HasMaxLength(100);
         builder.Property(x => x.MEM_EMAIL).HasMaxLength(150);
         builder.Property(x => x.MEM_TELEFONE).HasMaxLength(20);
+        builder.Property(x => x.MEM_CPF).HasMaxLength(11);
         builder.Property(x => x.MEM_FUNCAO).IsRequired().HasConversion<int>();
         builder.Property(x => x.MEM_OBSERVACOES).HasMaxLength(2000);
         builder.Property(x => x.MEM_ATIVO).IsRequired();
@@ -27,5 +28,7 @@ public class MembroMap : BaseMap<Membro>
         builder.HasIndex(x => new { x.MEM_ASSINANTE_ID, x.MEM_NOME });
         // Não único: o campo aceita nulo e a unicidade do @instagram por assinante é validada na API
         builder.HasIndex(x => new { x.MEM_ASSINANTE_ID, x.MEM_INSTAGRAM });
+        // Não único: aceita nulo e a unicidade por assinante é validada na API; o índice serve à consulta por CPF
+        builder.HasIndex(x => x.MEM_CPF);
     }
 }

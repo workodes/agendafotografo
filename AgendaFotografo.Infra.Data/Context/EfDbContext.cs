@@ -13,6 +13,7 @@ public class EfDbContext(DbContextOptions<EfDbContext> options) : IdentityDbCont
     public DbSet<EventoArquivo> EventoArquivos => Set<EventoArquivo>();
     public DbSet<EventoLink> EventoLinks => Set<EventoLink>();
     public DbSet<EventoMembro> EventoMembros => Set<EventoMembro>();
+    public DbSet<EventoPessoal> EventosPessoais => Set<EventoPessoal>();
     public DbSet<EventoPendencia> EventoPendencias => Set<EventoPendencia>();
     public DbSet<Membro> Membros => Set<Membro>();
     public DbSet<PendenciaModelo> PendenciaModelos => Set<PendenciaModelo>();
@@ -48,6 +49,7 @@ public class EfDbContext(DbContextOptions<EfDbContext> options) : IdentityDbCont
         modelBuilder.ApplyConfiguration(new EventoLinkMap());
         modelBuilder.ApplyConfiguration(new EventoMembroMap());
         modelBuilder.ApplyConfiguration(new EventoPendenciaMap());
+        modelBuilder.ApplyConfiguration(new EventoPessoalMap());
         modelBuilder.ApplyConfiguration(new MembroMap());
         modelBuilder.ApplyConfiguration(new OrganizadorMap());
         modelBuilder.ApplyConfiguration(new PendenciaModeloMap());

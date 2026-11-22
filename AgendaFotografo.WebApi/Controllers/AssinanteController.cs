@@ -114,6 +114,7 @@ public class AssinanteController(
                     ASS_ATIVO = x.a.ASS_ATIVO,
                     ASS_TESTE_ATE = x.a.ASS_TESTE_ATE,
                     ASS_ORIGEM = x.a.ASS_ORIGEM,
+                    ASS_TIPO = x.a.ASS_TIPO,
                     ExigirTrocaSenha = x.u != null && x.u.ExigirTrocaSenha,
                     LastLogin = x.u != null ? x.u.LastLogin : null
                 })
@@ -182,6 +183,7 @@ public class AssinanteController(
                 Email = model.ASS_EMAIL,
                 Telefone = model.ASS_TELEFONE,
                 CpfCnpj = model.ASS_CPF_CNPJ,
+                Tipo = TipoAssinante.Coordenador, // o Admin não cria fotógrafo; ASS_TIPO do body é ignorado
                 Origem = OrigemAssinante.Admin,
                 TesteAte = model.ASS_TESTE_ATE,
                 EmailConfirmado = true,
@@ -216,7 +218,7 @@ public class AssinanteController(
         }
     }
 
-    /// <summary>Altera nome, CPF/CNPJ, e-mail, telefone e ASS_TESTE_ATE (ignora ASS_ATIVO e ASS_ORIGEM). E-mail e nome acompanham o usuário de login.</summary>
+    /// <summary>Altera nome, CPF/CNPJ, e-mail, telefone e ASS_TESTE_ATE (ignora ASS_ATIVO, ASS_ORIGEM e ASS_TIPO). E-mail e nome acompanham o usuário de login.</summary>
     [HttpPut]
     public async Task<IActionResult> Atualizar([FromBody] AssinanteModel model, CancellationToken cancellationToken)
     {
@@ -242,6 +244,13 @@ public class AssinanteController(
 
             var usuario = await _db.Users.Where(x => x.AssinanteId == assinante.Id).OrderBy(x => x.CreatedAt)
                 .FirstOrDefaultAsync(cancellationToken);
+
+            // Conta de fotógrafo: CPF obrigatório e só CPF (o ASS_TIPO do body é ignorado; vale o do banco)
+            if (assinante.ASS_TIPO == TipoAssinante.Fotografo)
+            {
+                var erroCpf = ValidationHelper.ValidateModel(model, new AssinanteFotografoValidator());
+                if (erroCpf is not null) throw new Exception(erroCpf);
+            }
 
             // Só diferença de caixa não conta como mudança
             var emailMudou = !string.Equals(assinante.ASS_EMAIL, model.ASS_EMAIL, StringComparison.OrdinalIgnoreCase)
@@ -327,7 +336,8 @@ public class AssinanteController(
             var usuario = await _db.Users.Where(x => x.AssinanteId == id).OrderBy(x => x.CreatedAt)
                 .FirstOrDefaultAsync(cancellationToken)
                 ?? throw new Exception(MsgSemUsuario);
-            if (!await _userManager.IsInRoleAsync(usuario, RoleNames.Assinante))
+            if (!await _userManager.IsInRoleAsync(usuario, RoleNames.Assinante)
+                && !await _userManager.IsInRoleAsync(usuario, RoleNames.Fotografo))
                 throw new Exception(MsgSemUsuario);
 
             var senha = SenhaTemporaria.Gerar();
@@ -450,6 +460,7 @@ public class AssinanteController(
         ASS_ATIVO = a.ASS_ATIVO,
         ASS_TESTE_ATE = a.ASS_TESTE_ATE,
         ASS_ORIGEM = a.ASS_ORIGEM,
+        ASS_TIPO = a.ASS_TIPO,
         TesteDiasRestantes = TesteGratis.DiasRestantes(a.ASS_TESTE_ATE, DateOnly.FromDateTime(DateTime.Now)),
         ExigirTrocaSenha = u?.ExigirTrocaSenha ?? false,
         LastLogin = u?.LastLogin,

@@ -25,13 +25,14 @@ using TesteGratisRegra = AgendaFotografo.WebApi.Services.Assinantes.TesteGratis;
 namespace AgendaFotografo.WebApi.Controllers;
 
 public class AuthController(UserManager<Usuario> userManager, IConfiguration configuration, ICurrentUser currentUser, EfDbContext db,
-    AssinanteCadastro cadastro, AssinanteEscopo assinanteEscopo, IUnitOfWork unitOfWork,
+    AssinanteCadastro cadastro, AssinanteEscopo assinanteEscopo, FotografoEscopo fotografoEscopo, IUnitOfWork unitOfWork,
     GoogleSettings googleSettings, IGoogleTokenValidador googleValidador,
     EmailsConta emailsConta, CodigoEmail codigos, FilaPedidoNovaSenha filaPedidoNovaSenha,
     ILogger<AuthController> logger) : AgendaFotografoController
 {
     private readonly AssinanteCadastro _cadastro = cadastro;
     private readonly AssinanteEscopo _assinanteEscopo = assinanteEscopo;
+    private readonly FotografoEscopo _fotografoEscopo = fotografoEscopo;
     private readonly IUnitOfWork _unitOfWork = unitOfWork;
     private readonly GoogleSettings _googleSettings = googleSettings;
     private readonly IGoogleTokenValidador _googleValidador = googleValidador;
@@ -167,15 +168,15 @@ public class AuthController(UserManager<Usuario> userManager, IConfiguration con
 
         // Assinante só entra com vínculo a um assinante ATIVO; checado antes de emitir o token
         string? assinanteNome = null;
-        if (role == RoleNames.Assinante)
+        if (RoleNames.ComConta.Contains(role))
             assinanteNome = await ObterNomeAssinanteAtivoAsync(usuario, cancellationToken);
 
         return new AcessoConferido(role, assinanteNome);
     }
 
-    /// <summary>Só o Assinante com e-mail não confirmado passa pela confirmação, e só com o envio de e-mails ligado.</summary>
+    /// <summary>Só o Assinante e o Fotografo com e-mail não confirmado passa pela confirmação, e só com o envio de e-mails ligado.</summary>
     private bool PrecisaConfirmar(Usuario usuario, string role)
-        => _emailsConta.Ligado && role == RoleNames.Assinante && !usuario.EmailConfirmed;
+        => _emailsConta.Ligado && RoleNames.ComConta.Contains(role) && !usuario.EmailConfirmed;
 
     /// <summary>
     /// Resposta "confirmação pendente" (sem token). Se o último código tem menos de 60 s, não manda outro (o anterior ainda vale) e devolve
@@ -292,6 +293,7 @@ public class AuthController(UserManager<Usuario> userManager, IConfiguration con
 
         var error = ValidationHelper.ValidateModel(model, new CadastroValidator());
         if (error is not null) return BadRequest(error);
+        var tipo = CadastroRegras.ObterTipo(model.ASS_TIPO);
 
         return await CriarAutocadastroAsync(new AssinanteCadastroDados
         {
@@ -299,6 +301,7 @@ public class AuthController(UserManager<Usuario> userManager, IConfiguration con
             Email = model.ASS_EMAIL,
             Telefone = model.ASS_TELEFONE,
             CpfCnpj = model.ASS_CPF_CNPJ,
+            Tipo = tipo,
             Origem = OrigemAssinante.Autocadastro,
             EmailConfirmado = false,
             ExigirTrocaSenha = false
@@ -306,13 +309,15 @@ public class AuthController(UserManager<Usuario> userManager, IConfiguration con
     }
 
     /// <summary>Dias restantes do teste grátis do assinante logado (o cabeçalho do SPA chama uma vez ao montar).</summary>
-    [Authorize(Roles = RoleNames.Assinante)]
+    [Authorize(Roles = $"{RoleNames.Assinante},{RoleNames.Fotografo}")]
     [HttpGet]
     public async Task<IActionResult> TesteGratis(CancellationToken cancellationToken)
     {
         try
         {
-            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+            var assinanteId = _currentUser.IsFotografo
+                ? await _fotografoEscopo.ObterAssinanteIdAsync(cancellationToken)
+                : await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
             var testeAte = await _db.Assinantes.AsNoTracking().Where(a => a.Id == assinanteId)
                 .Select(a => a.ASS_TESTE_ATE).FirstOrDefaultAsync(cancellationToken);
 
@@ -362,8 +367,8 @@ public class AuthController(UserManager<Usuario> userManager, IConfiguration con
             if (usuario is null)
                 return Ok(new LoginGoogleResponse { PrecisaCompletar = true, Nome = google.Nome, Email = google.Email });
 
-            // Só o perfil Assinante entra com o Google (o Admin nunca é ligado)
-            if (!await _userManager.IsInRoleAsync(usuario, RoleNames.Assinante))
+            // Só perfis com conta (Assinante e Fotografo) entram com o Google (o Admin nunca é ligado)
+            if (!await IsEmPerfilComContaAsync(usuario))
                 throw new Exception(MsgGoogleSemPermissao);
 
             if (!jaLigado)
@@ -458,6 +463,7 @@ public class AuthController(UserManager<Usuario> userManager, IConfiguration con
 
         var error = ValidationHelper.ValidateModel(model, new CadastroGoogleValidator());
         if (error is not null) return BadRequest(error);
+        var tipo = CadastroRegras.ObterTipo(model.ASS_TIPO);
 
         return await CriarAutocadastroAsync(new AssinanteCadastroDados
         {
@@ -465,6 +471,7 @@ public class AuthController(UserManager<Usuario> userManager, IConfiguration con
             Email = google.Email,
             Telefone = model.ASS_TELEFONE,
             CpfCnpj = model.ASS_CPF_CNPJ,
+            Tipo = tipo,
             Origem = OrigemAssinante.Autocadastro,
             EmailConfirmado = true,
             ExigirTrocaSenha = false
@@ -482,6 +489,14 @@ public class AuthController(UserManager<Usuario> userManager, IConfiguration con
 
         if (!google.EmailVerificado) throw new Exception(MsgGoogleEmailNaoVerificado);
         return google;
+    }
+
+    /// <summary>Verdadeiro se o usuário tem um dos perfis com conta de assinante (Assinante ou Fotografo).</summary>
+    private async Task<bool> IsEmPerfilComContaAsync(Usuario usuario)
+    {
+        foreach (var role in RoleNames.ComConta)
+            if (await _userManager.IsInRoleAsync(usuario, role)) return true;
+        return false;
     }
 
     /// <summary>Remove a senha da conta, se houver. Devolve verdadeiro quando removeu.</summary>
@@ -513,8 +528,8 @@ public class AuthController(UserManager<Usuario> userManager, IConfiguration con
 
             // E-mail ligado e conta sem e-mail confirmado (cadastro manual): não emite o login; manda o código e responde pendente
             var pendente = _emailsConta.Ligado && !usuario.EmailConfirmed;
-            _logger.LogInformation("Autocadastro concluído. AssinanteId={AssinanteId} Via={Via} ConfirmacaoPendente={ConfirmacaoPendente}",
-                assinante.Id, via, pendente);
+            _logger.LogInformation("Autocadastro concluído. AssinanteId={AssinanteId} Tipo={Tipo} Via={Via} ConfirmacaoPendente={ConfirmacaoPendente}",
+                assinante.Id, dados.Tipo, via, pendente);
 
             if (pendente)
             {
@@ -766,7 +781,7 @@ public class AuthController(UserManager<Usuario> userManager, IConfiguration con
         {
             var usuario = await _userManager.FindByEmailAsync(model.Email);
             if (usuario is null
-                || !await _userManager.IsInRoleAsync(usuario, RoleNames.Assinante)
+                || !await IsEmPerfilComContaAsync(usuario)
                 || !await _userManager.HasPasswordAsync(usuario))
                 throw new Exception(MsgCodigoIncorreto);
 

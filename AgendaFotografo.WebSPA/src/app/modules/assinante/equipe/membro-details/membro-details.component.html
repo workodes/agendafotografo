@@ -48,6 +48,13 @@
                 <mat-error>{{ erro('MEM_TELEFONE') }}</mat-error>
             </mat-form-field>
 
+            <mat-form-field appearance="fill" floatLabel="always" subscriptSizing="dynamic" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2 mb-1">
+                <mat-label>CPF</mat-label>
+                <input matInput formControlName="MEM_CPF" mask="000.000.000-00" inputmode="numeric" autocomplete="off">
+                <mat-hint class="text-xs text-secondary">Se esta pessoa tiver conta de fotógrafo no quemclica com este CPF, os eventos em que você a escalar aparecem automaticamente na agenda dela.</mat-hint>
+                <mat-error>{{ erro('MEM_CPF') }}</mat-error>
+            </mat-form-field>
+
             <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
                 <mat-label>Observações</mat-label>
                 <textarea matInput formControlName="MEM_OBSERVACOES" rows="4" maxlength="2000"></textarea>

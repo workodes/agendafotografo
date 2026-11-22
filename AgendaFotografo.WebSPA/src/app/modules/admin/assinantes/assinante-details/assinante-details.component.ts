@@ -16,6 +16,7 @@ import { Observable, Subject, takeUntil } from 'rxjs';
 import { Assinante } from 'app/models/entities/Assinante';
 import { AssinanteService } from 'app/services/assinante.service';
 import { ORIGEM_ASSINANTE_ROTULO } from 'app/models/enums/OrigemAssinante';
+import { TIPO_ASSINANTE_ROTULO, TipoAssinante } from 'app/models/enums/TipoAssinante';
 import { formatarDataIso, parseDataIso } from 'app/utils/data-evento';
 import { testeEmAlerta, textoTeste } from 'app/utils/teste-gratis';
 import { GenericValidator } from 'app/utils/GenericValidator';
@@ -48,6 +49,7 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
     readonly testeMin = new Date(2000, 0, 1);
     readonly testeMax = new Date(2100, 11, 31);
     readonly origemRotulo = ORIGEM_ASSINANTE_ROTULO;
+    readonly tipoRotulo = TIPO_ASSINANTE_ROTULO;
     readonly textoTeste = textoTeste;
     readonly testeEmAlerta = testeEmAlerta;
     salvando = false;
@@ -63,6 +65,11 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
         private _dialog: MatDialog,
         private _snackBar: MatSnackBar,
     ) { }
+
+    /** Conta de Fotógrafo (plano 20): o documento é só CPF e obrigatório. */
+    get ehFotografo(): boolean {
+        return this.assinante?.ASS_TIPO === TipoAssinante.Fotografo;
+    }
 
     get ehNovo(): boolean {
         return !this.assinante?.Id;
@@ -86,6 +93,11 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
             const assinante = data['data']?.assinante as Assinante | undefined;
             if (assinante) {
                 this.assinante = assinante;
+                // Fotógrafo: CPF obrigatório e só CPF; coordenador: CPF ou CNPJ, opcional (como antes).
+                const cpf = this.form.get('ASS_CPF_CNPJ')!;
+                cpf.setValidators(assinante.ASS_TIPO === TipoAssinante.Fotografo
+                    ? [Validators.required, GenericValidator.isValidCpf()]
+                    : [GenericValidator.isValidCpfOrCnpj()]);
                 this.form.reset({
                     ASS_NOME: assinante.ASS_NOME,
                     ASS_EMAIL: assinante.ASS_EMAIL,
@@ -97,6 +109,7 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
                 this.aplicarSemPrazo(!assinante.ASS_TESTE_ATE);
             } else {
                 this.assinante = undefined;
+                this.form.get('ASS_CPF_CNPJ')!.setValidators([GenericValidator.isValidCpfOrCnpj()]);
                 // Criado pelo Admin: o padrão é sem prazo.
                 this.form.reset({ ASS_NOME: '', ASS_EMAIL: '', ASS_CPF_CNPJ: '', ASS_TELEFONE: '', SEM_PRAZO: true, ASS_TESTE_ATE: null });
                 this.aplicarSemPrazo(true);
@@ -188,8 +201,9 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
         if (e['email']) { return 'E-mail inválido.'; }
         if (e['maxlength']) { return `Máximo de ${e['maxlength'].requiredLength} caracteres.`; }
         if (e['telefone']) { return 'Telefone inválido (informe DDD + número).'; }
+        if (e['cpfNotValid']) { return 'Informe um CPF válido.'; }
         if (e['cpfOrCnpjNotValid']) { return 'CPF/CNPJ inválido.'; }
-        if (e['mask']) { return nome === 'ASS_TELEFONE' ? 'Telefone incompleto (DDD + número).' : 'CPF/CNPJ incompleto.'; }
+        if (e['mask']) { return nome === 'ASS_TELEFONE' ? 'Telefone incompleto (DDD + número).' : (this.ehFotografo ? 'CPF incompleto.' : 'CPF/CNPJ incompleto.'); }
         return 'Valor inválido.';
     }
 

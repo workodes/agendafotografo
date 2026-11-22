@@ -13,6 +13,8 @@ export class Assinante {
     CreatedAt?: string;
     /** Entrada e saída: "yyyy-MM-dd" ou null (sem prazo). */
     ASS_TESTE_ATE?: string | null;
+    /** Só saída (TipoAssinante: 1 Coordenador, 2 Fotografo). */
+    ASS_TIPO?: number;
     /** Só saída (OrigemAssinante). */
     ASS_ORIGEM?: number;
     /** Só saída: null = sem prazo, 0 = encerrado. */

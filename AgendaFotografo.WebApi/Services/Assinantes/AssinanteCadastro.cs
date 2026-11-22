@@ -16,6 +16,7 @@ public class AssinanteCadastroDados
     public string Email { get; set; } = string.Empty;
     public string? Telefone { get; set; }
     public string? CpfCnpj { get; set; }
+    public TipoAssinante Tipo { get; set; } = TipoAssinante.Coordenador;
     public OrigemAssinante Origem { get; set; }
     public DateOnly? TesteAte { get; set; }
     public bool EmailConfirmado { get; set; }
@@ -106,7 +107,7 @@ public class AssinanteCadastro(
     }
 
     /// <summary>
-    /// Cria o assinante (ativo) e o usuário de login com perfil Assinante. Sem <paramref name="senha"/> o usuário nasce sem senha
+    /// Cria o assinante (ativo) e o usuário de login com perfil Assinante (Coordenador) ou Fotografo, conforme o tipo. Sem <paramref name="senha"/> o usuário nasce sem senha
     /// (login só pelo provedor externo). Ordem: e-mail em uso, CPF/CNPJ repetido, assinante, usuário, login externo, perfil e dados iniciais.
     /// </summary>
     public async Task<(Assinante Assinante, Usuario Usuario)> CriarAsync(
@@ -123,6 +124,7 @@ public class AssinanteCadastro(
             ASS_CPF_CNPJ = dados.CpfCnpj,
             ASS_EMAIL = dados.Email,
             ASS_TELEFONE = dados.Telefone,
+            ASS_TIPO = dados.Tipo,
             ASS_ORIGEM = dados.Origem,
             ASS_TESTE_ATE = dados.TesteAte
         };
@@ -153,11 +155,14 @@ public class AssinanteCadastro(
             if (!ligou.Succeeded) throw new Exception("Não foi possível ligar a conta externa ao usuário de acesso.");
         }
 
-        var comRole = await _userManager.AddToRoleAsync(usuario, RoleNames.Assinante);
+        var comRole = await _userManager.AddToRoleAsync(usuario,
+            dados.Tipo == TipoAssinante.Fotografo ? RoleNames.Fotografo : RoleNames.Assinante);
         if (!comRole.Succeeded)
             throw new Exception(TraduzirErros(comRole, "Não foi possível definir o perfil do usuário de acesso.", dados.Origem));
 
-        await _assinanteInicializacao.PrepararNovoAssinanteAsync(assinante.Id, cancellationToken);
+        // Só o coordenador recebe os tipos de evento padrão
+        if (dados.Tipo == TipoAssinante.Coordenador)
+            await _assinanteInicializacao.PrepararNovoAssinanteAsync(assinante.Id, cancellationToken);
         return (assinante, usuario);
     }
 }

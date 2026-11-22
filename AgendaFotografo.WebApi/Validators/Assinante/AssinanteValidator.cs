@@ -5,6 +5,17 @@ using FluentValidation;
 namespace AgendaFotografo.WebApi.Validators.Assinante;
 
 /// <summary>Validação do formato da ficha. A duplicidade de e-mail e de CPF/CNPJ é checada no controller (consulta ao banco).</summary>
+/// <summary>Conta de fotógrafo: CPF obrigatório e só CPF (CNPJ nunca vale). Usado no Atualizar do Admin.</summary>
+public class AssinanteFotografoValidator : AbstractValidator<AssinanteModel>
+{
+    public AssinanteFotografoValidator()
+    {
+        RuleFor(x => x.ASS_CPF_CNPJ!).Cascade(CascadeMode.Stop)
+            .NotEmpty().WithMessage("CPF é obrigatório")
+            .CpfValido().WithMessage("Informe um CPF válido.");
+    }
+}
+
 public class AssinanteValidator : AbstractValidator<AssinanteModel>
 {
     public AssinanteValidator()

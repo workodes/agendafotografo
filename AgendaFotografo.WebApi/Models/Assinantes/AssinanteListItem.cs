@@ -15,6 +15,7 @@ public class AssinanteListItem
     /// <summary>"yyyy-MM-dd"; nulo = sem prazo.</summary>
     public DateOnly? ASS_TESTE_ATE { get; set; }
     public OrigemAssinante ASS_ORIGEM { get; set; }
+    public TipoAssinante ASS_TIPO { get; set; }
 
     /// <summary>Nulo = sem prazo; 0 = teste encerrado.</summary>
     public int? TesteDiasRestantes { get; set; }

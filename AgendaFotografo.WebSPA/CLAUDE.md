@@ -1,13 +1,13 @@
 # AgendaFotografo.WebSPA
 
-SPA único do sistema (Admin, assinante e link público). Angular 18.2 + template Fuse (18.0.0) + Angular Material + Tailwind, a partir do pacote
+SPA único do sistema (Admin, assinante, fotógrafo e link público). Angular 18.2 + template Fuse (18.0.0) + Angular Material + Tailwind, a partir do pacote
 base Fartec e **alinhado à estrutura do SPA do `Fartec.Portal`** (referência somente leitura; onde ele diverge do plugin, vale o Portal). Consome a
 `AgendaFotografo.WebApi`. Visão geral do produto e regras do banco no `CLAUDE.md` da raiz; desenho em
 `docs/superpowers/specs/2026-11-05-agendafotografo-design.md`.
 
 ## Regra: um SPA só, perfis separados por rota
 Decisão do colaborador (prevalece sobre o padrão do plugin, que sugere um SPA por perfil). Existe **uma** WebApi e **um** SPA; quem manda é o `Role`
-devolvido no login, e cada perfil tem seu prefixo de rota (`/admin`, `/assinante`). Perfis **só `Admin` e `Assinante`**: não existe `UsuarioAssinante`,
+devolvido no login, e cada perfil tem seu prefixo de rota (`/admin`, `/assinante`, `/fotografo`). Perfis **`Admin`, `Assinante` (coordenador) e `Fotografo`** (plano 20): não existe `UsuarioAssinante`,
 permissões granulares nem planos. **Não criar SPAs por perfil.**
 
 ## Comandos
@@ -28,21 +28,21 @@ Não há testes automatizados no padrão. Para logar é preciso a API no ar (`do
 - Controllers seguem o nome das tabelas (`api/<Controller>/<Action>`, sem prefixo `api/Admin`); o service do front tem o mesmo nome do controller.
   Todo endpoint novo entra nos dois arquivos de environment, com a mesma chave (objeto por controller, chaves em camelCase: `Auth.login`, `Auth.alterarSenha`).
   JSON com nomes C# exatos (nunca camelCase).
-- Auth (`api/Auth/[action]`, comum aos dois perfis):
-  - `POST Login` (anônimo): `{Email, Password}` -> `{Token, ExpiraEm, Id, FullName, Email, Role, ExigirTrocaSenha, AssinanteNome, TemSenha}`. `Role` = `Admin` | `Assinante`;
-    `AssinanteNome` só para o Assinante; `AssinanteId` não vem mais.
+- Auth (`api/Auth/[action]`, comum aos três perfis):
+  - `POST Login` (anônimo): `{Email, Password}` -> `{Token, ExpiraEm, Id, FullName, Email, Role, ExigirTrocaSenha, AssinanteNome, TemSenha}`. `Role` = `Admin` | `Assinante` | `Fotografo`;
+    `AssinanteNome` para Assinante e Fotografo; `AssinanteId` não vem mais.
   - `POST AlterarSenha` (autenticado): `{SenhaAtual, NovaSenha}` -> `ApiResponse`. Mínimo de 8 caracteres e diferente da atual; zera `ExigirTrocaSenha`.
   - Não existem `Me` nem `ChangePassword`. Erros chegam como texto no corpo do 400 (`error.error`), em pt-BR.
 - Lockout: 5 erros bloqueiam 15 min. Recuperação de senha pelo "Esqueci minha senha" (plano 18, só com `EmailLigado`; seção "E-mails de conta"); sem `EmailLigado` não há recuperação (suporte/Admin). Não há edição de perfil.
 
 ## Perfis, rotas e guards
-- `core/constants/RoleNames.ts`: `Admin`, `Assinante`. Prefixo de rota = role em minúsculas.
+- `core/constants/RoleNames.ts`: `Admin`, `Assinante`, `Fotografo`. Prefixo de rota = role em minúsculas.
 - `app.routes.ts` (ordem importa):
   1. `/e/:token`: rota pública anônima (link público do evento, plano 05), **fora** do layout autenticado, sem guards, layout `empty`
      (`modules/publico/evento-publico/`; ver a seção "Link público"). Rotas públicas novas ficam nesse bloco.
   2. `/sign-in` (aba Entrar) e `/sign-up` (aba Cadastro) com `NoAuthGuard` (já logado vai para a rota inicial da role). Mesmo componente (`modules/auth/sign-in`), `data.aba` = `entrar` | `cadastro` (plano 14; ver "Autocadastro e teste grátis").
   3. Bloco autenticado (`initialDataResolver` = só o menu): `/sign-out` (qualquer role) e um bloco por role com `AuthGuard` + `data.requiredRoles`:
-     `/admin` (`rotasAdmin`) e `/assinante` (`rotasAssinante`). O Admin parte de `rotasComuns` (hoje só o `inicio` placeholder); o Assinante tem o próprio `inicio` (`modules/assinante/inicio`, plano 08).
+     `/admin` (`rotasAdmin`), `/assinante` (`rotasAssinante`) e `/fotografo` (`rotasFotografo`: `agenda`, `eventos/novo`, `eventos/:id`, `escalas/:id`; `''` e `inicio` redirecionam para `agenda`, então `getRotaInicial()` não mudou). O Admin parte de `rotasComuns` (hoje só o `inicio` placeholder); o Assinante tem o próprio `inicio` (`modules/assinante/inicio`, plano 08).
   4. `404-not-found` e `**`.
 - A rota `''` (redireciona para `sign-in`) só vale na navegação interna do Angular. Em produção, quem abre `/` direto é o Nginx, que entrega a landing page (plano 13) e nunca chega ao SPA; em `npm start`, `/` continua indo para o login.
 - Rota nova entra no array da(s) role(s) que a acessa **e** no menu da role em `core/navigation/menu.data.ts`.
@@ -63,7 +63,7 @@ Não há testes automatizados no padrão. Para logar é preciso a API no ar (`do
 
 ## Menu
 `NavigationService.get()` escolhe o menu pelo role do token (`MenuData.porRole[role]`): o usuário só vê os itens do próprio perfil. Sem mecanismo de itens ocultos:
-só aparece o que existe. Hoje o Admin tem **Início** e **Assinantes**; o Assinante tem **Início** (plano 08), **Agenda** (plano 04; no lugar de "Eventos"), **Visão da semana** (plano 03; antes "Visão do dia", hoje abre na semana), **Pendências** (plano 06) e o grupo `collapsable` **Cadastros** (Equipe, Organizadores, Tipos de evento; plano 02; **Checklist padrão**, plano 07).
+só aparece o que existe. O Fotógrafo tem só **Agenda** (sem Início). Hoje o Admin tem **Início** e **Assinantes**; o Assinante tem **Início** (plano 08), **Agenda** (plano 04; no lugar de "Eventos"), **Visão da semana** (plano 03; antes "Visão do dia", hoje abre na semana), **Pendências** (plano 06) e o grupo `collapsable` **Cadastros** (Equipe, Organizadores, Tipos de evento; plano 02; **Checklist padrão**, plano 07).
 Os demais módulos entram com seus planos: criar a rota e o item de menu juntos (`MenuData.montarMenu(prefixo, extras)`). `Navigation` tem só `horizontal` (usado também na gaveta do celular).
 
 ## Estrutura (`src/app/`)
@@ -114,6 +114,10 @@ Os demais módulos entram com seus planos: criar a rota e o item de menu juntos 
 - **Aviso do teste** (`layout/common/teste-gratis/`, `<teste-gratis>`, `OnPush`, no bloco `ehAssinante` do `modern.component.html`, depois da busca e antes do sino): chama `AuthService.TesteGratis()` uma vez ao montar o layout (cada F5); `DiasRestantes` nulo ou erro = nada. Mais de 3 dias: "Teste grátis: N dias restantes" neutro; de 3 a 1: âmbar; 0: "Teste encerrado" em âmbar; tooltip "Teste grátis até dd/MM/aaaa"; abaixo de `sm` (600 px) só um selo compacto (ícone de relógio + número; encerrado = ícone de alerta; até ~48 px), de `sm` até `lg` o texto curto ("N dias de teste") e o texto completo só de `lg` em diante; `aria-label` sempre com o texto completo. Não é clicável. Os dias vêm da API; `utils/teste-gratis.ts` só formata e decide o destaque (`testeEmAlerta`: 0 a 3).
 - **Admin / Assinantes**: `ASS_TESTE_ATE` ("yyyy-MM-dd" sem fuso), `ASS_ORIGEM` (enum `models/enums/OrigemAssinante.ts`: 1 Admin, 2 Autocadastro, com `ORIGEM_ASSINANTE_ROTULO`) e `TesteDiasRestantes` em `Assinante` e `AssinanteListItem`. A ficha tem o datepicker "Teste grátis até" (2000 a 2100, data passada permitida) com a caixa "Sem prazo" (padrão em `novo`; marcada envia `null`) e, na edição, mostra Origem e a situação do teste. A lista ganhou as colunas Origem e Teste (somem abaixo de `md`; âmbar de 3 a 0).
 
+- **Cadastro com escolha de perfil (plano 20)**: `modules/auth/sign-in/escolha-perfil/` (`app-escolha-perfil`, `radiogroup` de dois cartões "Coordeno uma equipe" | "Sou fotógrafo", teclado com setas, `aria-checked`), **obrigatória e sem padrão**, na aba Cadastro (antes do Google e do formulário) e na etapa "Complete seu cadastro" (marcada só se a pessoa veio da aba Cadastro com escolha feita). Sem escolha, "Criar conta" e o Google não seguem ("Escolha como você vai usar o quemclica."; o botão do Google fica coberto até a escolha e a credencial é ignorada). Envia `ASS_TIPO` (enum `models/enums/TipoAssinante.ts`: 1 Coordenador, 2 Fotografo, com rótulos); com Fotógrafo o campo vira "CPF" (`000.000.000-00`, `GenericValidator.isValidCpf`, "Informe um CPF válido.").
+- **Layout (plano 20)**: sino, busca global, Assistente e `ChatService.CarregarStatus` só para o Assinante (`ehAssinante`); `<teste-gratis>` para Assinante e Fotógrafo (`ehFotografo`), porque o Fotógrafo recebe 403 nos endpoints do coordenador.
+- **Admin / Assinantes (plano 20)**: `Assinante` e `AssinanteListItem` têm `ASS_TIPO` (só saída). Coluna "Perfil" na lista (some abaixo de `md`) e linha "Perfil:" na ficha (junto de Origem); na ficha de conta Fotógrafo o campo é "CPF", obrigatório e só CPF. "Novo" cria sempre coordenador (sem escolha de perfil).
+
 ## E-mails de conta (plano 18)
 Confirmação do e-mail com código de 6 números, "Esqueci minha senha" e nova senha, tudo na tela de acesso (`modules/auth/sign-in/`, dentro do `qc-auth-shell`), **sem rota nova**.
 - **`EmailLigado`**: vem do `GET Auth/ConfiguracaoLogin` (`ConfiguracaoLogin.EmailLigado`). Sem ele não aparece o link "Esqueci minha senha" nem o atalho do aviso de e-mail repetido. Se a API responder pendente mesmo assim, a etapa do código abre (a resposta manda).
@@ -152,7 +156,7 @@ Conta criada só com o Google (`TemSenha === false`) define uma senha pelo menu 
 - **Sem zoom ao focar campo no iPhone**: em tela de toque (`(hover: none) and (pointer: coarse)`), `input` (exceto checkbox/radio/range/file), `textarea` e `select` têm 16 px (`styles.scss`, prefixo `:root` para vencer o `text-sm` do Tailwind). Não usar `maximum-scale`/`user-scalable=no` no viewport: travaria o zoom de pinça no Android.
 
 ## Divergências em relação ao Portal
-- Dois perfis (`Admin`, `Assinante`) em vez de três; bloco público `/e/:token` (o Portal não tem).
+- Três perfis (`Admin`, `Assinante`, `Fotografo`; o Portal tem outro conjunto); bloco público `/e/:token` (o Portal não tem).
 - Modal de senha feito só com Angular Material + `MatSnackBar` (o Portal usa `ModalBaseComponent`, `AlertaComponent` e `ToastService`, que não foram trazidos).
 - Interceptor ignora 401 quando não há token guardado (link público anônimo); o Portal recarrega sempre.
 - Mantém o layout e o tema próprios (menu em gaveta no celular, logo e paleta do AgendaFotografo); `ng serve` fixa a porta 4200. Chave `urlApi` derivada de `baseUrl`, como o Portal.
@@ -168,6 +172,8 @@ Conta criada só com o Google (`TemSenha === false`) define uma senha pelo menu 
 `modules/assinante/equipe/` (`equipe.routes.ts`, `membro-index`, `membro-details`), `MembroService` (`api/Membro/*`, `GetAllPaginated(..., funcao?)`), `membro.resolver.ts`, `Membro`/`MembroListItem`,
 `utils/format-telefone.ts`. Mesmo desenho de Tipos de evento, com dois filtros no painel (Situação e Função) e ficha em grade 1 coluna (celular) / 2 colunas (`sm`+). Instagram exibido com "@" e enviado sem;
 telefone mascarado e enviado só com dígitos; e-mail com `emailTolerante`. Abaixo de `md` a lista mostra só Nome (com o @instagram embaixo), Função e Status.
+
+- **CPF na ficha (plano 20)**: campo "CPF" opcional depois do Telefone (`mask 000.000.000-00`, `isValidCpf`, enviado só com dígitos ou null; `Membro.MEM_CPF`) com a dica em `mat-hint`: "Se esta pessoa tiver conta de fotógrafo no quemclica com este CPF, os eventos em que você a escalar aparecem automaticamente na agenda dela.". O CPF só trafega no Obter/Criar/Atualizar (nunca na lista, `Opcoes`, escala ou cadastro rápido) e **nenhuma tela do coordenador indica se há conta/vínculo**. `Inativar`/`Ativar` devolvem `MEM_CPF = null` de propósito: a ficha não repopula o formulário com essa resposta e mantém o CPF carregado, então Salvar depois não o apaga. CPF repetido = 400 em texto no snackbar.
 
 ## Organizadores (assinante, plano 02 Etapa 8)
 `modules/assinante/organizadores/` (`organizadores.routes.ts`, `organizador-index`, `organizador-details`), `OrganizadorService` (`api/Organizador/*`), `organizador.resolver.ts`,
@@ -361,7 +367,7 @@ Painel de chat com IA (provedor configurável na API, `IA:*`; o SPA só fala com
 - **`ChatService`** (`services/chat.service.ts`): `status$` (null até consultar), `CarregarStatus()` (chamado uma vez pelo `ModernLayoutComponent` quando `ehAssinante`; falha = desligado), `AtualizarContador()` (depois de cada envio), `Enviar`, `Historico()`, `Opcoes()` (tipos e organizadores ativos, uma vez por conversa)
   e o estado da conversa. **Conversa em `sessionStorage`, chave `agf_assistente_conversa`** (`ChatMensagem[]`, regravada a cada mudança; avisos de sistema não são guardados); `Limpar()` apaga (botão "Nova conversa") e `AuthService.signOut` chama `Limpar(true)` (apaga a conversa e esquece o status).
 - **Layout**: `layout/common/assistente/` (`<assistente>`, standalone) sobre o `FuseDrawer` (`name="assistente"`, `mode="over"`, `position="right"`, `fixed`; a largura vem de `--fuse-drawer-width` no `.scss`: 100vw abaixo de `sm`, 30rem a partir de `sm`). Entra no `modern.component.html` só com `ehAssinante` e `Status.Ligado` (`assistenteVisivel`).
-  A partir de `lg`: faixa fixa de 64 px à direita (`top-16 bottom-0`, ícone e "Assistente" na vertical) e o conteúdo e o rodapé reservam o espaço (`lg:pr-16`). Abaixo de `lg`: botão flutuante `fixed bottom-4 right-4` (escondido com o painel aberto). A conversa continua ao trocar de tela porque o componente vive no layout.
+  A partir de `md` (960 px, onde o rodapé aparece; antes era `lg`, mas o mascote flutuante ficava cortado pelo rodapé e cobria o "Salvar" das fichas): faixa fixa de 64 px à direita (`top-16 bottom-0`, `z-50` para passar sobre o rodapé, ícone e "Assistente" na vertical) e o conteúdo e o rodapé reservam o espaço (`md:pr-16`). Abaixo de `md` (sem rodapé): botão flutuante `fixed bottom-3 right-3` (escondido com o painel aberto e também com a ficha lateral de uma tela aberta, `body:has(.mat-drawer.mat-drawer-opened)` no `.scss`, para não cobrir o "Salvar"). A conversa continua ao trocar de tela porque o componente vive no layout.
   Painel: cabeçalho (Assistente, Nova conversa, fechar; ESC fecha), estado vazio só com a apresentação (os exemplos clicáveis saíram a pedido do colaborador); o rosto do Assistente é o mascote (`app-mascote` só-cabeça na faixa, no cabeçalho e no "digitando..."; corpo inteiro na apresentação e como o próprio botão flutuante, sem a bolinha), no lugar do ícone sparkles; tamanhos no `.scss`, bolhas (usuário à direita na cor principal, assistente em cinza, avisos de erro em vermelho), "digitando...", textarea que cresce (Enter envia, Shift+Enter quebra), contador "N de X mensagens hoje".
   O 429 desabilita o campo; em erro, o texto digitado volta ao campo e o motivo aparece na conversa. **Só interpolação, nunca `innerHTML`.** No template, o `@` literal precisa de `&#64;` (Angular 17+ trata `@` como bloco).
 - **Card do rascunho** (`assistente-rascunho/`, `app-assistente-rascunho`, um por resposta): nome, tipo, status, data (datepicker), hora com "A confirmar", cidade, local e organizador editáveis; membros com posição editável, remover e alerta âmbar de conflito (`textoOutrosEventos`); `Avisos` da IA. Cada edição volta para a mensagem e para o `sessionStorage`.
@@ -374,6 +380,13 @@ Painel de chat com IA (provedor configurável na API, `IA:*`; o SPA só fala com
   **Nada de base64 no `sessionStorage`**: `ChatMensagem` guarda só `TemImagem`; a miniatura é um object URL num mapa em memória do `ChatService` (revogado em `Limpar`, sign-out e `ngOnDestroy`). Depois do F5 a bolha mostra o chip "Imagem enviada". Bolha do usuário: miniatura clicável (amplia no painel) e o texto embaixo. No histórico, a mensagem anterior com imagem vai só com o texto + marcador "[imagem do flyer enviada]", sem `Imagem`. Em erro de envio, a imagem volta para a pré-visualização junto com o texto. **O flyer não é anexado ao evento** (serve só para a IA ler).
 - **Só o último rascunho confirmável**: `ChatService.RascunhoVigente(m)` (sem `Lancamento` e sem resposta posterior do assistente com rascunho); o card não vigente mostra "Substituído", sem Confirmar nem "Abrir no formulário" e com os campos desabilitados (`ngDoCheck` reaplica o estado). `Historico()` envia só o rascunho vigente.
 - **"Nova conversa" bloqueado durante o Confirmar**: contador `ChatService.confirmando` (`IniciarConfirmacao`/`EncerrarConfirmacao`, controlado pelo card, inclusive em erro e `ngOnDestroy`). Abaixo de `sm` o botão vira só ícone (`aria-label`/`title`). Linha Hora + "A confirmar" ocupa as duas colunas do card (`sm:col-span-2`), com o campo Hora de largura fixa (`w-40`).
+
+## Fotógrafo (plano 20)
+Perfil `Fotografo`: conta própria (autocadastro, 15 dias de teste) com agenda pessoal e, quando um coordenador o escala pelo CPF da Equipe, os eventos dele em modo leitura. Só `/fotografo/*`; os controllers do coordenador devolvem 403 a ele.
+- **Environments**: `EventoPessoal.agenda|obter|criar|atualizar|excluir` e `Escala.listar|obter|arquivo` (nos dois arquivos). Services: `services/evento-pessoal.service.ts` (`Agenda`, `Get`, `Add`, `Update`, `Delete`, `alterado$`/`NotificarAlteracao`) e `services/escala.service.ts` (`Listar`, `Get`, `Arquivo` por blob com Bearer). Models: `entities/EventoPessoal`, `DTOs/responses/EventoPessoalListItem`, `EscalaItem`, `EscalaEventoModel`; resolver `resolvers/evento-pessoal.resolver.ts`.
+- **Agenda** (`modules/fotografo/agenda/`, menu "Agenda"): molde enxuto da Agenda do assinante, **sem filtros**; Lista abaixo de `md` e Calendário a partir de `md`, estado em `?mes=&visao=&dia=`, ◀ Hoje ▶, "Novo evento" (`?data=`, cria só evento pessoal). Uma carga por mês (grade de 42 dias) com `EventoPessoal/Agenda` e `Escala/Listar` **em paralelo**, cada uma com o próprio erro: se só uma falha, mostra a outra com aviso âmbar e "Tentar de novo"; as duas falham = erro de tela cheia. A tela trabalha com `ItemAgenda` (`origem` 'pessoal' | 'equipe'), ordenado por data, hora (sem hora por último) e nome. Itens de equipe: borda/pílula/marcador **índigo**, ícone de grupo, "Equipe de <Coordenador>" e a posição, só o selo "Cancelado" (esmaecido e riscado), somente leitura; abrem `/fotografo/escalas/:id`. Cancelados pessoais seguem o chip de status.
+- **Ficha do evento pessoal** (`modules/fotografo/eventos/evento-pessoal-details/`, `/fotografo/eventos/novo` e `/:id`, página inteira): Nome, Data (datepicker, "yyyy-MM-dd" sem fuso), Hora com "A confirmar", Cidade, Status (padrão Confirmado), Local, Link (`normalizarUrl`, `urlHttp`) e Observações. Fechar e pós-Excluir voltam à agenda no mês/dia do evento; pós-Criar abre `:id`; Excluir com confirmação Fuse.
+- **Evento da equipe** (`modules/fotografo/escala-detalhe/`, `/fotografo/escalas/:id`): somente leitura, no visual do link público (a página pública não foi alterada). Mostra só a lista branca da API: cabeçalho (coordenador, nome, data, hora, local, "Sua posição", faixa de cancelado), "Onde fica" com **links** do Maps (sem iframe incorporado), Rota (`app-mapa-gpx` com `[carregar]` e imagem por blob revogado no `ngOnDestroy`, Maps e Strava), informações, observações e fotos. Só interpolação, links só http/https com `rel="noopener noreferrer"`. 404 = "Este evento não está mais na sua agenda." com botão de voltar; erro de rede com "Tentar de novo". Sem equipe, flyer, "Adicionar à agenda" e "Luz e tempo".
 
 ## Landing page (plano 13)
 Página pública de apresentação em `https://quemclica.com.br/`, HTML estático **fora do Angular**. Os botões "Começar" levam a `/sign-up` (o login fica em `/sign-in`). Desenho: `docs/superpowers/specs/2026-11-10-landing-page-design.md`.
@@ -400,6 +413,7 @@ Página pública de apresentação em `https://quemclica.com.br/`, HTML estátic
 - **Regras ao mexer na landing**:
   - **Nunca espelhar o mascote** (sem escala negativa nem rotação em Y, nem no `#cabeca` nem no SVG de uma pose). Só o tênis espelhado dentro de `#pernas` é parte do desenho.
   - O traço (rabisco) é `#7C2D12`, de 20 px, com pontas redondas.
+  - **Seta das notas à mão = SVG "a lápis"**, nunca o caractere (↘ e afins): a Caveat não tem o glifo e o iPhone desenha um emoji. Curva com laço, traço de 3 + repasse fino a 45%, `currentColor` (cor da nota), `aria-hidden`; `.seta-mao` na landing (hero) e `.qc-seta-mao` no `qc-auth-shell` (o shell desenha a seta depois de qualquer `notaArte`; no celular ela gira -24° para mirar no mascote à direita). Sem `filter` no SVG: com `<base href>` o `url(#id)` quebra no Safari/Firefox.
   - **Textos só sobre o que o sistema faz**: ao mudar uma funcionalidade citada na landing, revisar a página.
   - O JSON-LD (`@graph` com WebSite, WebApplication e FAQPage) tem o FAQ **igual** ao texto da seção Dúvidas; mudou um, muda o outro. Sem `offers` (não há preço) nem avaliações.
   - Sem framework e **sem requisição externa** (fontes locais; o único domínio citado é `https://quemclica.com.br` nas metas e no JSON-LD). Só os dois scripts inline (app instalado e o × da faixa). Sem cor fora da paleta da página.
