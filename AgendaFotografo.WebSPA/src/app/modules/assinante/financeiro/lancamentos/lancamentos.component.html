@@ -55,9 +55,9 @@
             <input matInput [formControl]="busca" autocomplete="off" placeholder="Buscar por título ou observação" aria-label="Buscar lançamentos">
         </mat-form-field>
 
-        <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-dense fuse-mat-rounded w-full lg:w-52" subscriptSizing="dynamic">
-            <mat-label>Ordenar por</mat-label>
-            <mat-select [formControl]="ordenacao">
+        <mat-form-field class="fuse-mat-dense fuse-mat-rounded w-full lg:w-56" subscriptSizing="dynamic">
+            <mat-icon class="icon-size-5" svgIcon="heroicons_outline:arrows-up-down" matPrefix></mat-icon>
+            <mat-select [formControl]="ordenacao" aria-label="Ordenar por">
                 <mat-option *ngFor="let o of ordenacoes" [value]="o.valor">{{ o.rotulo }}</mat-option>
             </mat-select>
         </mat-form-field>
