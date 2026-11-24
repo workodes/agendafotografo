@@ -128,6 +128,27 @@ export const environment = {
     },
     Dashboard: {
         resumo: `${baseUrl}/Dashboard/Resumo`,
+        financeiro: `${baseUrl}/Dashboard/Financeiro`,
+    },
+    // Financeiro do coordenador (plano 22; só o Assinante).
+    Lancamento: {
+        listar: `${baseUrl}/Lancamento/Listar`,
+        resumo: `${baseUrl}/Lancamento/Resumo`,
+        obter: `${baseUrl}/Lancamento/Obter`,
+        criar: `${baseUrl}/Lancamento/Criar`,
+        atualizar: `${baseUrl}/Lancamento/Atualizar`,
+        excluir: `${baseUrl}/Lancamento/Excluir`,
+    },
+    GastoFixo: {
+        listar: `${baseUrl}/GastoFixo/Listar`,
+        resumo: `${baseUrl}/GastoFixo/Resumo`,
+        obter: `${baseUrl}/GastoFixo/Obter`,
+        criar: `${baseUrl}/GastoFixo/Criar`,
+        atualizar: `${baseUrl}/GastoFixo/Atualizar`,
+        inativar: `${baseUrl}/GastoFixo/Inativar`,
+        ativar: `${baseUrl}/GastoFixo/Ativar`,
+        excluir: `${baseUrl}/GastoFixo/Excluir`,
+        gerarLancamentos: `${baseUrl}/GastoFixo/GerarLancamentos`,
     },
     Local: {
         buscar: `${baseUrl}/Local/Buscar`,

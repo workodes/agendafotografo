@@ -1,0 +1,23 @@
+<div class="flex flex-col w-full min-w-0 p-4 sm:p-5 md:p-6 gap-4">
+
+    <div *ngIf="estado === 'carregando' && !dados" class="flex items-center justify-center py-16" role="status" aria-label="Carregando">
+        <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
+    </div>
+
+    <div *ngIf="estado === 'erro'" role="alert" class="flex flex-col items-center gap-2 py-12 text-center text-secondary">
+        <div>{{ erro }}</div>
+        <button mat-stroked-button type="button" (click)="carregar()">Tentar de novo</button>
+    </div>
+
+    <div *ngIf="estado !== 'erro' && vazio" class="flex flex-col items-center gap-1 py-16 text-center text-secondary">
+        <div class="text-lg font-medium">Sem lançamentos no período</div>
+        <div class="text-sm">Escolha outro período ou cadastre receitas e despesas na aba Lançamentos.</div>
+    </div>
+
+    <div *ngIf="estado !== 'erro' && dados && !vazio" class="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0 transition-opacity"
+        [class.opacity-60]="estado === 'carregando'" [attr.aria-busy]="estado === 'carregando'">
+        <app-financeiro-grafico-mensal class="lg:col-span-2 min-w-0" [dados]="dados"></app-financeiro-grafico-mensal>
+        <app-financeiro-grafico-saldo class="min-w-0" [dados]="dados"></app-financeiro-grafico-saldo>
+        <app-financeiro-grafico-categorias class="min-w-0" [dados]="dados"></app-financeiro-grafico-categorias>
+    </div>
+</div>

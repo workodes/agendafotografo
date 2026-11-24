@@ -423,6 +423,100 @@ namespace AgendaFotografo.Infra.Data.Migrations
                     b.ToTable("EVENTOSPESSOAIS", (string)null);
                 });
 
+            modelBuilder.Entity("AgendaFotografo.Domain.Entities.GastoFixo", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("GAF_ASSINANTE_ID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("GAF_ATIVO")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("GAF_CATEGORIA")
+                        .HasColumnType("int");
+
+                    b.Property<int>("GAF_DIA")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly?>("GAF_GERADO_ATE")
+                        .HasColumnType("date");
+
+                    b.Property<string>("GAF_TITULO")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<decimal>("GAF_VALOR")
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GAF_ASSINANTE_ID", "GAF_ATIVO");
+
+                    b.ToTable("GASTOSFIXOS", (string)null);
+                });
+
+            modelBuilder.Entity("AgendaFotografo.Domain.Entities.Lancamento", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<Guid>("LAN_ASSINANTE_ID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("LAN_CATEGORIA")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly>("LAN_DATA")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("LAN_GASTO_FIXO_ID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("LAN_OBSERVACOES")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<DateOnly?>("LAN_REFERENCIA")
+                        .HasColumnType("date");
+
+                    b.Property<int>("LAN_TIPO")
+                        .HasColumnType("int");
+
+                    b.Property<string>("LAN_TITULO")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<decimal>("LAN_VALOR")
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LAN_ASSINANTE_ID", "LAN_DATA");
+
+                    b.HasIndex("LAN_GASTO_FIXO_ID", "LAN_REFERENCIA")
+                        .IsUnique();
+
+                    b.ToTable("LANCAMENTOS", (string)null);
+                });
+
             modelBuilder.Entity("AgendaFotografo.Domain.Entities.Membro", b =>
                 {
                     b.Property<Guid>("Id")
@@ -955,6 +1049,35 @@ namespace AgendaFotografo.Infra.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Assinante");
+                });
+
+            modelBuilder.Entity("AgendaFotografo.Domain.Entities.GastoFixo", b =>
+                {
+                    b.HasOne("AgendaFotografo.Domain.Entities.Assinante", "Assinante")
+                        .WithMany()
+                        .HasForeignKey("GAF_ASSINANTE_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Assinante");
+                });
+
+            modelBuilder.Entity("AgendaFotografo.Domain.Entities.Lancamento", b =>
+                {
+                    b.HasOne("AgendaFotografo.Domain.Entities.Assinante", "Assinante")
+                        .WithMany()
+                        .HasForeignKey("LAN_ASSINANTE_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AgendaFotografo.Domain.Entities.GastoFixo", "GastoFixo")
+                        .WithMany()
+                        .HasForeignKey("LAN_GASTO_FIXO_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Assinante");
+
+                    b.Navigation("GastoFixo");
                 });
 
             modelBuilder.Entity("AgendaFotografo.Domain.Entities.Membro", b =>

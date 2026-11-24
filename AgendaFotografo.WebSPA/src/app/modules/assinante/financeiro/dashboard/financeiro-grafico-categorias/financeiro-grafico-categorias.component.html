@@ -1,0 +1,29 @@
+<section class="flex flex-col min-w-0 p-4 rounded-2xl shadow bg-card" aria-label="Despesas por categoria">
+    <h2 class="m-0 mb-2 text-lg font-semibold text-accent-900">Despesas por categoria</h2>
+
+    <div *ngIf="vazio" class="flex flex-1 items-center justify-center px-4 py-8 text-center text-secondary">Nenhuma despesa neste período.</div>
+
+    <div *ngIf="!vazio" class="min-w-0" role="img" [attr.aria-label]="descricao">
+        <div class="min-w-0" aria-hidden="true">
+            <apx-chart
+                [series]="series"
+                [chart]="chart"
+                [colors]="colors"
+                [plotOptions]="plotOptions"
+                [dataLabels]="dataLabels"
+                [xaxis]="xaxis"
+                [yaxis]="yaxis"
+                [grid]="grid"
+                [legend]="legend"
+                [tooltip]="tooltip"
+                [responsive]="responsive"></apx-chart>
+        </div>
+    </div>
+
+    <!-- Alternativa por teclado e leitor de tela: lista com os valores (visível só no foco) -->
+    <div *ngIf="!vazio" class="sr-only focus:not-sr-only focus:mt-2" tabindex="0" role="region" aria-label="Valores de despesas por categoria">
+        <ul class="m-0 p-0 list-none text-sm">
+            <li *ngFor="let b of barras">{{ b.nome }}: {{ formatar(b.total) }}</li>
+        </ul>
+    </div>
+</section>

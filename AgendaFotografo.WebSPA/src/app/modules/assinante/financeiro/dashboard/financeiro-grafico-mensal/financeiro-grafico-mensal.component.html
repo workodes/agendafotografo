@@ -1,0 +1,31 @@
+<section class="flex flex-col min-w-0 p-4 rounded-2xl shadow bg-card" [attr.aria-label]="titulo">
+    <h2 class="m-0 mb-2 text-lg font-semibold text-accent-900">{{ titulo }}</h2>
+
+    <div class="min-w-0" role="img" [attr.aria-label]="descricao">
+        <div class="min-w-0" aria-hidden="true">
+            <apx-chart
+                [series]="series"
+                [chart]="chart"
+                [colors]="colors"
+                [plotOptions]="plotOptions"
+                [dataLabels]="dataLabels"
+                [stroke]="stroke"
+                [xaxis]="xaxis"
+                [yaxis]="yaxis"
+                [grid]="grid"
+                [legend]="legend"
+                [tooltip]="tooltip"></apx-chart>
+        </div>
+    </div>
+
+    <!-- Alternativa por teclado e leitor de tela: tabela com os valores (visível só no foco) -->
+    <div class="sr-only focus:not-sr-only focus:mt-2 focus:max-h-64 focus:overflow-auto" tabindex="0" role="region" [attr.aria-label]="'Valores de ' + titulo">
+        <table class="w-full text-sm">
+            <caption class="text-left font-medium">{{ titulo }}</caption>
+            <thead><tr><th scope="col" class="text-left">Período</th><th scope="col" class="text-right">Receitas</th><th scope="col" class="text-right">Despesas</th></tr></thead>
+            <tbody>
+                <tr *ngFor="let l of linhas"><th scope="row" class="text-left font-normal">{{ l.extenso }}</th><td class="text-right">{{ l.receitas }}</td><td class="text-right">{{ l.despesas }}</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>

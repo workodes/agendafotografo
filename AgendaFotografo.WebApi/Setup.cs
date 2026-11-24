@@ -16,6 +16,7 @@ using AgendaFotografo.WebApi.Services.Chat;
 using AgendaFotografo.WebApi.Services.Dashboard;
 using AgendaFotografo.WebApi.Services.Emails;
 using AgendaFotografo.WebApi.Services.Eventos;
+using AgendaFotografo.WebApi.Services.Financeiro;
 using AgendaFotografo.WebApi.Services.LinkPublico;
 using AgendaFotografo.WebApi.Services.Locais;
 using AgendaFotografo.WebApi.Services.Pendencias;
@@ -210,6 +211,8 @@ public static class Setup
         services.AddScoped<AgendaConsulta>();
         services.AddScoped<AvisoConsultas>();
         services.AddScoped<DashboardConsultas>();
+        services.AddScoped<FinanceiroConsultas>();
+        services.AddScoped<GastoFixoGeracao>();
         services.AddScoped<PendenciaChecklistPadrao>();
 
         // Assistente com IA (OpenAI ou Azure OpenAI): IA:Provedor, ApiKey, Modelo (e Endpoint no Azure); configuração incompleta desliga o chat (sem quebrar a subida)

@@ -14,9 +14,9 @@ O objetivo é um sistema vendável (SaaS) para outros criadores/fotógrafos que 
 - Stack e estrutura: **padrão Fartec** (Domain, Infra.Data, CrossCutting, WebApi, WebSPA), igual ao AgroGestor. C# + Angular.
 - Acesso: **Assinante + área administrativa**. Só o assinante (coordenador) faz login. O admin (você) cria, ativa e bloqueia assinantes. A cobrança fica fora do sistema.
 - **Nota (2026-11-21):** o login do fotógrafo deixou de estar fora do escopo: existe o perfil `Fotografo`, com conta própria, agenda pessoal e eventos dos coordenadores vinculados pelo CPF (somente leitura). Ver o plano 20 (`docs/planos/20 - Perfil Fotógrafo e agenda pessoal.md`).
-- **Nota (2026-11-23):** o plano 21 (`docs/planos/21 - Fotógrafo grátis só com a escala.md`) mudou o perfil `Fotografo`: a conta é grátis, sem teste de 15 dias, e a agenda pessoal do plano 20 foi desligada e guardada (código e tabela ficam); o fotógrafo vê só os eventos em que um coordenador o escalou pelo CPF. O e-mail diário de lembretes passou a ser o módulo 22.
+- **Nota (2026-11-23):** o plano 21 (`docs/planos/21 - Fotógrafo grátis só com a escala.md`) mudou o perfil `Fotografo`: a conta é grátis, sem teste de 15 dias, e a agenda pessoal do plano 20 foi desligada e guardada (código e tabela ficam); o fotógrafo vê só os eventos em que um coordenador o escalou pelo CPF. O e-mail diário de lembretes passou a ser o módulo 23 (o 22 é o Financeiro).
 - Equipe **não faz login** na v1 (salvo a conta de Fotografo, ver a nota acima). O coordenador registra quem vai. Disponibilidade marcada pelo fotógrafo fica para uma fase futura.
-- **Financeiro: nunca.** Sem valor, pago, repasse ou cliente comercial.
+- **Financeiro (nota de 2026-11-23): deixou de ser "nunca".** O coordenador ganhou uma carteira própria (receitas, despesas e gastos fixos), ver `docs/superpowers/specs/2026-11-23-financeiro-carteira-design.md` e `docs/planos/22 - Financeiro (carteira do coordenador).md`. Continua sem valor, pago, repasse ou cliente comercial **dentro dos eventos** (nada de vínculo entre evento e dinheiro).
 - Cor principal **#F97316**. Ainda não há logo: usar uma logo provisória com o nome.
 - Uso no **celular e no computador** (telas responsivas). O link público é mobile-first.
 - Lembretes: **painel ao abrir + e-mail diário**.
@@ -72,7 +72,7 @@ Notas internas, pendências e dados do organizador **não** aparecem.
 - Lista de assinantes: criar, ativar e bloquear, além de redefinir o acesso do usuário assinante.
 
 ## Fora do escopo da v1
-Financeiro (permanente); login e disponibilidade do fotógrafo (nota de 2026-11-21: o login do fotógrafo deixou de estar fora, ver o plano 20; a disponibilidade continua fora); cadastro por flyer com IA; integração com a Fotop; WhatsApp; cobrança da assinatura; aviso de evento duplicado; distância entre cidades; brindes.
+login e disponibilidade do fotógrafo (nota de 2026-11-21: o login do fotógrafo deixou de estar fora, ver o plano 20; a disponibilidade continua fora); cadastro por flyer com IA; integração com a Fotop; WhatsApp; cobrança da assinatura; aviso de evento duplicado; distância entre cidades; brindes.
 
 ## Decisões minhas (para você conferir)
 - **Proteção do código**: 4 números são fáceis de adivinhar no chute. Depois de **5 tentativas erradas**, aquele link fica bloqueado por 15 minutos para o aparelho que errou. Quando o código é aceito, o aparelho fica liberado para aquele evento por 7 dias, sem pedir o código de novo. Regerar o código derruba todos os acessos já liberados.

@@ -1,0 +1,55 @@
+<h2 mat-dialog-title class="!pb-0">{{ edicao ? 'Editar gasto fixo' : 'Novo gasto fixo' }}</h2>
+<div class="px-6 pb-1 text-sm text-secondary">Vira um lançamento de Despesa todo mês.</div>
+
+<mat-dialog-content class="!pt-3">
+    <div *ngIf="carregando" class="flex items-center justify-center py-10" role="status" aria-label="Carregando">
+        <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
+    </div>
+
+    <div *ngIf="erroCarga" role="alert" class="p-3 rounded-lg border border-red-200 bg-red-50 text-red-800 text-sm">
+        <div>{{ erroCarga }}</div>
+        <button mat-button type="button" class="mt-1" (click)="carregar()">Tentar de novo</button>
+    </div>
+
+    <ng-container *ngIf="!carregando && !erroCarga">
+        <div *ngIf="erroApi" role="alert" class="mb-3 p-3 rounded-lg border border-red-200 bg-red-50 text-red-800 text-sm">{{ erroApi }}</div>
+
+        <form id="form-gasto-fixo" class="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
+                <mat-label>Título</mat-label>
+                <input matInput formControlName="GAF_TITULO" maxlength="200" autocomplete="off" placeholder="Ex.: Assinatura do Lightroom">
+                <mat-error>{{ erro('GAF_TITULO') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Valor</mat-label>
+                <span matTextPrefix class="text-secondary">R$&nbsp;</span>
+                <input matInput formControlName="GAF_VALOR" inputmode="decimal" autocomplete="off" placeholder="0,00"
+                    mask="separator.2" thousandSeparator="." decimalMarker="," [allowNegativeNumbers]="false">
+                <mat-error>{{ erro('GAF_VALOR') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Dia do mês</mat-label>
+                <input matInput type="number" inputmode="numeric" min="1" max="31" step="1" formControlName="GAF_DIA" autocomplete="off" placeholder="1 a 31">
+                <mat-hint>Nos meses sem esse dia, vale o último dia do mês.</mat-hint>
+                <mat-error>{{ erro('GAF_DIA') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2 mt-2">
+                <mat-label>Categoria</mat-label>
+                <mat-select formControlName="GAF_CATEGORIA">
+                    <mat-option *ngFor="let c of categorias" [value]="c.valor">{{ c.rotulo }}</mat-option>
+                </mat-select>
+            </mat-form-field>
+        </form>
+    </ng-container>
+</mat-dialog-content>
+
+<mat-dialog-actions class="!flex-wrap !justify-end gap-2">
+    <button mat-button type="button" [disabled]="salvando" (click)="cancelar()">Cancelar</button>
+    <button mat-flat-button color="primary" type="submit" form="form-gasto-fixo" [disabled]="salvando || carregando || !!erroCarga">
+        <mat-progress-spinner *ngIf="salvando" diameter="20" mode="indeterminate"></mat-progress-spinner>
+        <span *ngIf="!salvando">Salvar</span>
+    </button>
+</mat-dialog-actions>

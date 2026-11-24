@@ -21,7 +21,7 @@ const rotasAdmin: Route[] = [
     { path: 'assinantes', loadChildren: () => import('app/modules/admin/assinantes/assinantes.routes') },
 ];
 
-// Área do Assinante (coordenador): Equipe, Organizadores e Tipos de evento (plano 02); Eventos e Visão do dia (plano 03); Agenda (plano 04); Pendências (plano 06); Checklist padrão (plano 07); Início (plano 08). Link público etc. entram aqui, um plano por módulo.
+// Área do Assinante (coordenador): Equipe, Organizadores e Tipos de evento (plano 02); Eventos e Visão do dia (plano 03); Agenda (plano 04); Pendências (plano 06); Checklist padrão (plano 07); Início (plano 08); Financeiro (plano 22). Link público etc. entram aqui, um plano por módulo.
 const rotasAssinante: Route[] = [
     { path: '', pathMatch: 'full', redirectTo: 'inicio' },
     // Início próprio do assinante (plano 08): números do dia, próximos 7 dias e avisos. O Admin continua com o placeholder de rotasComuns.
@@ -30,6 +30,8 @@ const rotasAssinante: Route[] = [
     { path: 'eventos', data: { titulo: 'Eventos' }, loadChildren: () => import('app/modules/assinante/eventos/eventos.routes') },
     { path: 'visao-do-dia', data: { titulo: 'Visão da semana' }, loadChildren: () => import('app/modules/assinante/visao-do-dia/visao-do-dia.routes') },
     { path: 'pendencias', data: { titulo: 'Pendências' }, loadChildren: () => import('app/modules/assinante/pendencias/pendencias.routes') },
+    // Financeiro (plano 22): carteira do coordenador (Lançamentos, Dashboard e Fixos). Só no bloco do Assinante.
+    { path: 'financeiro', data: { titulo: 'Financeiro' }, loadChildren: () => import('app/modules/assinante/financeiro/financeiro.routes') },
     { path: 'equipe', data: { titulo: 'Equipe' }, loadChildren: () => import('app/modules/assinante/equipe/equipe.routes') },
     { path: 'organizadores', data: { titulo: 'Organizadores' }, loadChildren: () => import('app/modules/assinante/organizadores/organizadores.routes') },
     { path: 'checklist-padrao', data: { titulo: 'Checklist padrão' }, loadChildren: () => import('app/modules/assinante/checklist-padrao/checklist-padrao.routes') },

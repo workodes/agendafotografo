@@ -335,6 +335,18 @@
     .widget-hero{white-space:normal;max-width:96%;font-size:13px;padding:6px 12px 6px 6px}
     .widget .bola{width:26px;height:26px;flex:0 0 26px;font-size:13px}
   }
+  .telas{padding:96px 0 56px;background:var(--branco)}
+  .telas h2{font-size:48px;font-weight:800;text-align:center}
+  .telas-sub{text-align:center;color:var(--texto-suave);margin:12px 0 40px}
+  .telas-grade{display:grid;grid-template-columns:repeat(2,1fr);gap:28px}
+  .tela img{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--borda);box-shadow:var(--sombra-media)}
+  .tela figcaption{margin-top:14px;color:var(--texto-suave);font-size:15px}
+  .tela figcaption strong{display:block;font-family:var(--fonte-display);font-size:20px;color:var(--marrom-fundo);letter-spacing:.01em}
+  @media (max-width:860px){
+    .telas{padding:64px 0 32px}
+    .telas h2{font-size:34px}
+    .telas-grade{grid-template-columns:1fr}
+  }
 </style>
 </head>
 <body>
@@ -479,6 +491,24 @@
           <div class="eu">o que tem no fim de semana?</div>
         </div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- 3b. Veja por dentro -->
+<section class="telas" id="telas">
+  <div class="wrap">
+    <h2>Veja o <span class="destaque">quemclica</span> por dentro</h2>
+    <p class="telas-sub">Telas reais do sistema, com a agenda de uma equipe de verdade.</p>
+    <div class="telas-grade">
+      <figure class="tela">
+        <img src="/landing/tela-inicio.png" width="1440" height="900" loading="lazy" alt="Tela Início do quemclica: eventos de hoje e de amanhã, próximos 7 dias, números do mês e escala da equipe">
+        <figcaption><strong>Início</strong> O que acontece hoje, o que ainda está sem equipe e os números do mês.</figcaption>
+      </figure>
+      <figure class="tela">
+        <img src="/landing/tela-agenda.png" width="1440" height="900" loading="lazy" alt="Tela Agenda do quemclica em calendário mensal, com os eventos coloridos por status">
+        <figcaption><strong>Agenda</strong> O mês inteiro num calendário, com o status de cada evento.</figcaption>
+      </figure>
     </div>
   </div>
 </section>

@@ -9,6 +9,8 @@ namespace AgendaFotografo.Infra.Data.Context;
 public class EfDbContext(DbContextOptions<EfDbContext> options) : IdentityDbContext<Usuario>(options)
 {
     public DbSet<Assinante> Assinantes => Set<Assinante>();
+    public DbSet<GastoFixo> GastosFixos => Set<GastoFixo>();
+    public DbSet<Lancamento> Lancamentos => Set<Lancamento>();
     public DbSet<Evento> Eventos => Set<Evento>();
     public DbSet<EventoArquivo> EventoArquivos => Set<EventoArquivo>();
     public DbSet<EventoLink> EventoLinks => Set<EventoLink>();
@@ -50,6 +52,8 @@ public class EfDbContext(DbContextOptions<EfDbContext> options) : IdentityDbCont
         modelBuilder.ApplyConfiguration(new EventoMembroMap());
         modelBuilder.ApplyConfiguration(new EventoPendenciaMap());
         modelBuilder.ApplyConfiguration(new EventoPessoalMap());
+        modelBuilder.ApplyConfiguration(new GastoFixoMap());
+        modelBuilder.ApplyConfiguration(new LancamentoMap());
         modelBuilder.ApplyConfiguration(new MembroMap());
         modelBuilder.ApplyConfiguration(new OrganizadorMap());
         modelBuilder.ApplyConfiguration(new PendenciaModeloMap());

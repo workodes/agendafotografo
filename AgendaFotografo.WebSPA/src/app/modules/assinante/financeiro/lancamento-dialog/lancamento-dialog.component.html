@@ -1,0 +1,76 @@
+<h2 mat-dialog-title class="!pb-0">{{ edicao ? 'Editar lançamento' : 'Novo lançamento' }}</h2>
+<div *ngIf="gerado" class="px-6 pb-1 text-sm text-secondary">Criado por um gasto fixo. Você pode editar ou excluir como qualquer lançamento.</div>
+
+<mat-dialog-content class="!pt-3">
+    <div *ngIf="carregando" class="flex items-center justify-center py-10" role="status" aria-label="Carregando">
+        <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
+    </div>
+
+    <div *ngIf="erroCarga" role="alert" class="p-3 rounded-lg border border-red-200 bg-red-50 text-red-800 text-sm">
+        <div>{{ erroCarga }}</div>
+        <button mat-button type="button" class="mt-1" (click)="carregar()">Tentar de novo</button>
+    </div>
+
+    <ng-container *ngIf="!carregando && !erroCarga">
+        <div *ngIf="erroApi" role="alert" class="mb-3 p-3 rounded-lg border border-red-200 bg-red-50 text-red-800 text-sm">{{ erroApi }}</div>
+
+        <form id="form-lancamento" class="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+            <div class="sm:col-span-2 mb-2">
+                <mat-button-toggle-group formControlName="LAN_TIPO" class="w-full" aria-label="Tipo do lançamento">
+                    <mat-button-toggle *ngFor="let t of tipos" [value]="t.valor" class="flex-1">{{ t.rotulo }}</mat-button-toggle>
+                </mat-button-toggle-group>
+            </div>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
+                <mat-label>Título</mat-label>
+                <input matInput formControlName="LAN_TITULO" maxlength="200" autocomplete="off" placeholder="Ex.: Cobertura da corrida">
+                <mat-error>{{ erro('LAN_TITULO') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Valor</mat-label>
+                <span matTextPrefix class="text-secondary">R$&nbsp;</span>
+                <input matInput formControlName="LAN_VALOR" inputmode="decimal" autocomplete="off" placeholder="0,00"
+                    mask="separator.2" thousandSeparator="." decimalMarker="," [allowNegativeNumbers]="false">
+                <mat-error>{{ erro('LAN_VALOR') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Data</mat-label>
+                <input matInput [matDatepicker]="pickerData" [min]="dataMin" [max]="dataMax" formControlName="LAN_DATA" placeholder="dd/mm/aaaa" autocomplete="off">
+                <mat-datepicker-toggle matIconSuffix [for]="pickerData"></mat-datepicker-toggle>
+                <mat-datepicker #pickerData></mat-datepicker>
+                <mat-error>{{ erro('LAN_DATA') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
+                <mat-label>Categoria</mat-label>
+                <mat-select formControlName="LAN_CATEGORIA">
+                    <mat-option *ngFor="let c of categorias" [value]="c.valor">{{ c.rotulo }}</mat-option>
+                </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
+                <mat-label>Observações (opcional)</mat-label>
+                <textarea matInput formControlName="LAN_OBSERVACOES" rows="3" maxlength="2000"></textarea>
+                <mat-error>{{ erro('LAN_OBSERVACOES') }}</mat-error>
+            </mat-form-field>
+        </form>
+    </ng-container>
+</mat-dialog-content>
+
+<mat-dialog-actions class="!flex-wrap !justify-between gap-2">
+    <button *ngIf="edicao && !carregando && !erroCarga" mat-stroked-button color="warn" type="button" [disabled]="ocupado" (click)="excluir()">
+        <mat-progress-spinner *ngIf="excluindo" diameter="20" mode="indeterminate"></mat-progress-spinner>
+        <ng-container *ngIf="!excluindo">
+            <mat-icon svgIcon="heroicons_outline:trash"></mat-icon>
+            <span class="ml-2">Excluir</span>
+        </ng-container>
+    </button>
+    <span class="flex-1"></span>
+    <button mat-button type="button" [disabled]="ocupado" (click)="cancelar()">Cancelar</button>
+    <button mat-flat-button color="primary" type="submit" form="form-lancamento" [disabled]="ocupado || carregando || !!erroCarga">
+        <mat-progress-spinner *ngIf="salvando" diameter="20" mode="indeterminate"></mat-progress-spinner>
+        <span *ngIf="!salvando">Salvar</span>
+    </button>
+</mat-dialog-actions>
