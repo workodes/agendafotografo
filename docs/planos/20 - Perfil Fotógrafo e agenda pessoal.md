@@ -3,6 +3,7 @@
 - Data: 21/11/2026
 - Commit de partida: 8ac3d0d
 - Status: Concluído com pendências (revisão aprovada; testes no navegador não executados)
+- **Nota (23/11/2026):** o plano 21 (`21 - Fotógrafo grátis só com a escala.md`) desligou a Parte A (agenda pessoal: o `EventoPessoalController` responde 403 por constante, e o SPA deixou de usá-la; código, entidade e tabela ficam), revogou a decisão P3 (15 dias de teste grátis do fotógrafo: agora é grátis e sem teste) e a P10 (landing sem mudança: a landing agora cita o fotógrafo grátis). O e-mail diário de lembretes passou a ser o módulo 22.
 
 ## Contexto
 Hoje o quemclica atende só o coordenador de equipe (perfil Assinante). O colaborador quer atender também o **fotógrafo que trabalha sozinho** ou para vários coordenadores:

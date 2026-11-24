@@ -170,14 +170,9 @@ export class ModernLayoutComponent implements OnInit, OnDestroy
         return this.authService.getRotaInicial();
     }
 
-    /** Sino de avisos, busca global e "+ Novo evento" são só do Assinante; o Admin mantém o cabeçalho enxuto. */
+    /** Sino de avisos, busca global, aviso do teste grátis e Assistente são só do Assinante (o Fotógrafo recebe 403 nos endpoints do coordenador); o Admin mantém o cabeçalho enxuto. */
     get ehAssinante(): boolean {
         return this.authService.getUserRole() === ROLE_NAMES.Assinante;
-    }
-
-    /** O Fotógrafo (plano 20) só tem o aviso do teste grátis; o resto do cabeçalho do coordenador dá 403 para ele. */
-    get ehFotografo(): boolean {
-        return this.authService.getUserRole() === ROLE_NAMES.Fotografo;
     }
 
     private atualizarPaiAtivo(forcar = false): void {

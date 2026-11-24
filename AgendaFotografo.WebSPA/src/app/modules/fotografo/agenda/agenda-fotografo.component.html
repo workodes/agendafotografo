@@ -1,20 +1,26 @@
-<!-- Item da agenda (Lista no celular e painel do dia): hora e status, nome, local · cidade -->
+<!-- Estado vazio do mês: explica o vínculo pelo CPF (plano 21) -->
+<ng-template #vazio>
+    <div class="flex flex-col items-center gap-3 py-8 text-center min-w-0">
+        <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:calendar"></mat-icon>
+        <div class="text-lg text-secondary">{{ mensagemVazia }}</div>
+        <p class="max-w-md text-secondary break-words">Quando um coordenador escalar você, o evento aparece aqui. Peça para ele gravar o seu CPF na Equipe do quemclica.</p>
+    </div>
+</ng-template>
+
+<!-- Item da agenda (Lista no celular e painel do dia): hora, selo de cancelado, nome, local · cidade e equipe -->
 <ng-template #itemAgenda let-i>
     <div role="link" tabindex="0"
-        class="flex flex-col gap-1 p-3 rounded-lg border bg-white cursor-pointer hover:shadow-md transition-shadow min-w-0"
-        [class.border-l-4]="i.origem === 'equipe'" [class.border-l-indigo-500]="i.origem === 'equipe'"
+        class="flex flex-col gap-1 p-3 rounded-lg border border-l-4 border-l-indigo-500 bg-white cursor-pointer hover:shadow-md transition-shadow min-w-0"
         [class.opacity-60]="i.status === cancelado"
         (click)="abrirItem(i, $event)" (auxclick)="abrirItem(i, $event)" (keydown.enter)="abrirItem(i)">
         <div class="flex items-center justify-between gap-2">
             <span class="font-bold whitespace-nowrap" [class.text-secondary]="!i.hora" [class.line-through]="i.status === cancelado">{{ formatarHora(i.hora) }}</span>
-            <!-- Pessoal: chip de status. Equipe: só o selo "Cancelado" (somente leitura) -->
-            <span *ngIf="i.origem === 'pessoal'" class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center shrink-0"
-                [ngClass]="statusCor[i.status]">{{ statusRotulo[i.status] }}</span>
-            <span *ngIf="i.origem === 'equipe' && i.status === cancelado" class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center shrink-0 bg-gray-200 text-gray-700">Cancelado</span>
+            <!-- Somente leitura: só o selo "Cancelado" -->
+            <span *ngIf="i.status === cancelado" class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center shrink-0 bg-gray-200 text-gray-700">Cancelado</span>
         </div>
         <div class="font-semibold break-words" [class.line-through]="i.status === cancelado">{{ i.nome }}</div>
         <div *ngIf="localCidade(i)" class="text-sm text-secondary break-words">{{ localCidade(i) }}</div>
-        <div *ngIf="i.origem === 'equipe'" class="flex items-start gap-1.5 text-xs text-indigo-900 break-words">
+        <div class="flex items-start gap-1.5 text-xs text-indigo-900 break-words">
             <mat-icon class="icon-size-4 shrink-0 text-current" svgIcon="heroicons_outline:user-group"></mat-icon>
             <span>{{ i.etiqueta }}<span *ngIf="i.posicao"> · {{ i.posicao }}</span></span>
         </div>
@@ -22,7 +28,7 @@
 </ng-template>
 
 <div class="absolute inset-0 flex flex-col min-w-0 overflow-hidden bg-white">
-    <!-- Cabeçalho: título e mês, navegação, visão e novo evento. Abaixo de sm empilha. -->
+    <!-- Cabeçalho: título e mês, navegação e visão. Abaixo de sm empilha. -->
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 px-4 sm:px-6 md:px-8 py-3 sm:py-4 border-b shrink-0">
         <div class="flex flex-col min-w-0">
             <div class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight text-accent-900">Agenda</div>
@@ -45,11 +51,6 @@
                     <mat-button-toggle value="lista">Lista</mat-button-toggle>
                     <mat-button-toggle value="calendario">Calendário</mat-button-toggle>
                 </mat-button-toggle-group>
-
-                <button mat-flat-button color="primary" type="button" class="max-sm:!min-w-0 max-sm:!px-3" aria-label="Novo evento" title="Novo evento" (click)="novoEvento()">
-                    <mat-icon class="max-sm:!mr-0" svgIcon="heroicons_outline:plus"></mat-icon>
-                    <span class="ml-2 hidden sm:inline">Novo evento</span>
-                </button>
             </div>
         </div>
     </div>
@@ -57,14 +58,6 @@
     <div #rolagem class="flex-auto min-h-0 overflow-y-auto overflow-x-hidden" [attr.aria-busy]="loading">
         <div *ngIf="loading" class="flex items-center justify-center py-2">
             <mat-progress-spinner diameter="24" mode="indeterminate"></mat-progress-spinner>
-        </div>
-
-        <!-- Falha de uma das fontes: mostra a outra e avisa de forma discreta -->
-        <div *ngIf="(avisoPessoal || avisoEquipe) && !loading" role="status"
-            class="mx-4 sm:mx-6 md:mx-8 mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-900">
-            <mat-icon class="icon-size-4 shrink-0 text-current" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
-            <span class="min-w-0">{{ avisoEquipe ? 'Não foi possível carregar os eventos de equipe.' : 'Não foi possível carregar os seus eventos.' }}</span>
-            <button type="button" class="font-semibold underline min-h-[32px]" (click)="tentarDeNovo()">Tentar de novo</button>
         </div>
 
         <!-- Falha ao carregar: no lugar do estado vazio -->
@@ -76,14 +69,9 @@
 
         <!-- ===== Lista: dias do mês com eventos ===== -->
         <div *ngIf="visao === 'lista' && !erroCarga" class="flex flex-col gap-5 w-full px-4 sm:px-6 md:px-8 py-4 transition-opacity" [class.opacity-60]="loading">
-            <div *ngIf="!loading && grupos.length === 0" class="flex flex-col items-center gap-3 py-8 text-center">
-                <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:calendar"></mat-icon>
-                <div class="text-lg text-secondary">{{ mensagemVazia }}</div>
-                <button mat-flat-button color="primary" type="button" (click)="novoEvento()">
-                    <mat-icon svgIcon="heroicons_outline:plus"></mat-icon>
-                    <span class="ml-2">Novo evento</span>
-                </button>
-            </div>
+            <ng-container *ngIf="!loading && grupos.length === 0">
+                <ng-container *ngTemplateOutlet="vazio"></ng-container>
+            </ng-container>
 
             <section *ngFor="let g of grupos; trackBy: trackGrupo" [id]="'dia-' + g.data" class="flex flex-col gap-2 min-w-0">
                 <div class="flex items-center gap-2 min-w-0">
@@ -141,12 +129,6 @@
             <aside class="flex flex-col gap-3 min-w-0 px-2 sm:px-0">
                 <ng-container *ngIf="dia; else semDia">
                     <h2 class="text-lg font-bold">{{ tituloDia }}</h2>
-                    <div class="flex flex-wrap gap-2">
-                        <button mat-stroked-button type="button" (click)="novoEvento()">
-                            <mat-icon svgIcon="heroicons_outline:plus"></mat-icon>
-                            <span class="ml-2">Novo evento</span>
-                        </button>
-                    </div>
                     <div *ngIf="itensDoDiaSelecionado.length === 0" class="text-sm text-secondary">Nada marcado neste dia</div>
                     <ng-container *ngFor="let i of itensDoDiaSelecionado; trackBy: trackItem">
                         <ng-container *ngTemplateOutlet="itemAgenda; context: { $implicit: i }"></ng-container>
@@ -156,6 +138,11 @@
                     <div class="text-sm text-secondary">Toque num dia para ver os eventos</div>
                 </ng-template>
             </aside>
+        </div>
+
+        <!-- Calendário de mês vazio: mesmo texto da Lista -->
+        <div *ngIf="visao === 'calendario' && !erroCarga && !loading && grupos.length === 0" class="px-4 sm:px-6 md:px-8 pb-4">
+            <ng-container *ngTemplateOutlet="vazio"></ng-container>
         </div>
     </div>
 </div>

@@ -144,8 +144,19 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
             return 'Informe o e-mail da sua conta para receber um código.';
         if (this.etapa === 'nova-senha')
             return `Código enviado para ${this.emailNovaSenha}.`;
-        return this.aba === 'entrar' ? 'Acesse a agenda da sua equipe.' : `${this.textoDias}, sem cartão.`;
+        if (this.aba === 'entrar')
+            return 'Acesse a agenda da sua equipe.';
+        // Plano 21: a conta de fotógrafo é grátis e não tem teste; sem escolha ou com Coordenador, como antes.
+        return this.tipoCadastro === TipoAssinante.Fotografo ? 'Grátis para ver as suas escalas.' : `${this.textoDias}, sem cartão.`;
     }
+
+    /** Frase abaixo de "Criar conta" (plano 21): por perfil; na etapa do Google vale o perfil escolhido lá. */
+    fraseGratis(tipo: TipoAssinante | null): string {
+        return tipo === TipoAssinante.Fotografo ? 'Conta de fotógrafo grátis, sem cartão.' : `${this.textoDias}, sem cartão.`;
+    }
+
+    /** Dica do campo de CPF do fotógrafo (plano 21): o vínculo com a escala é pelo CPF gravado pelo coordenador. */
+    readonly dicaCpfFotografo = 'Use o mesmo CPF que o coordenador grava na Equipe.';
 
     get textoDias(): string {
         return this.diasGratis === 1 ? '1 dia grátis' : `${this.diasGratis} dias grátis`;

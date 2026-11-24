@@ -158,11 +158,13 @@
                     <label class="qc-rotulo" for="cad-cpf">{{ rotuloDocumento(tipoCadastro) }}</label>
                     <input id="cad-cpf" class="qc-campo" type="text" inputmode="numeric" autocomplete="off"
                         [mask]="mascaraDocumento(tipoCadastro)" formControlName="cpfCnpj"
-                        [attr.aria-invalid]="mostrarErro(cadastroForm, 'cpfCnpj', 'cadastro')">
+                        [attr.aria-invalid]="mostrarErro(cadastroForm, 'cpfCnpj', 'cadastro')"
+                        [attr.aria-describedby]="tipoCadastro === tipos.Fotografo ? 'cad-cpf-dica' : null">
                     <div class="qc-erro" *ngIf="mostrarErro(cadastroForm, 'cpfCnpj', 'cadastro')">
                         <mat-icon class="icon-size-5 shrink-0" [svgIcon]="'heroicons_solid:exclamation-circle'"></mat-icon>
                         <span>{{ erro(cadastroForm, 'cpfCnpj') }}</span>
                     </div>
+                    <p *ngIf="tipoCadastro === tipos.Fotografo" id="cad-cpf-dica" class="qc-suave mt-1 text-sm">{{ dicaCpfFotografo }}</p>
                 </div>
 
                 <div class="mt-4">
@@ -191,7 +193,7 @@
                     <span *ngIf="!ocupado">Criar conta</span>
                     <mat-progress-spinner *ngIf="ocupado" [diameter]="24" [mode]="'indeterminate'"></mat-progress-spinner>
                 </button>
-                <p class="qc-suave mt-2 text-center text-sm">{{ textoDias }}, sem cartão.</p>
+                <p class="qc-suave mt-2 text-center text-sm">{{ fraseGratis(tipoCadastro) }}</p>
             </form>
         </div>
     </ng-container>
@@ -258,18 +260,20 @@
             <label class="qc-rotulo" for="gg-cpf">{{ rotuloDocumento(tipoGoogle) }}</label>
             <input id="gg-cpf" class="qc-campo" type="text" inputmode="numeric" autocomplete="off"
                 [mask]="mascaraDocumento(tipoGoogle)" formControlName="cpfCnpj"
-                [attr.aria-invalid]="mostrarErro(completarForm, 'cpfCnpj', 'completar')">
+                [attr.aria-invalid]="mostrarErro(completarForm, 'cpfCnpj', 'completar')"
+                [attr.aria-describedby]="tipoGoogle === tipos.Fotografo ? 'gg-cpf-dica' : null">
             <div class="qc-erro" *ngIf="mostrarErro(completarForm, 'cpfCnpj', 'completar')">
                 <mat-icon class="icon-size-5 shrink-0" [svgIcon]="'heroicons_solid:exclamation-circle'"></mat-icon>
                 <span>{{ erro(completarForm, 'cpfCnpj') }}</span>
             </div>
+            <p *ngIf="tipoGoogle === tipos.Fotografo" id="gg-cpf-dica" class="qc-suave mt-1 text-sm">{{ dicaCpfFotografo }}</p>
         </div>
 
         <button type="submit" class="qc-btn qc-btn-primario qc-btn-bloco mt-5" [disabled]="ocupado">
             <span *ngIf="!ocupado">Criar conta</span>
             <mat-progress-spinner *ngIf="ocupado" [diameter]="24" [mode]="'indeterminate'"></mat-progress-spinner>
         </button>
-        <p class="qc-suave mt-2 text-center text-sm">{{ textoDias }}, sem cartão.</p>
+        <p class="qc-suave mt-2 text-center text-sm">{{ fraseGratis(tipoGoogle) }}</p>
         <button type="button" class="qc-btn qc-btn-fantasma qc-btn-bloco mt-3" [disabled]="ocupado" (click)="voltarDoGoogle()">Voltar</button>
     </form>
 </app-qc-auth-shell>

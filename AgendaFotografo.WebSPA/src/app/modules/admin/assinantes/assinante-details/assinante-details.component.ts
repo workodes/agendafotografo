@@ -106,7 +106,10 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
                     SEM_PRAZO: !assinante.ASS_TESTE_ATE,
                     ASS_TESTE_ATE: parseDataIso(assinante.ASS_TESTE_ATE),
                 });
-                this.aplicarSemPrazo(!assinante.ASS_TESTE_ATE);
+                // Conta de Fotógrafo não tem teste (plano 21): o controle fica sem prazo e desabilitado (fora da validação).
+                const semPrazo = assinante.ASS_TIPO === TipoAssinante.Fotografo || !assinante.ASS_TESTE_ATE;
+                this.form.get('SEM_PRAZO')!.setValue(semPrazo, { emitEvent: false });
+                this.aplicarSemPrazo(semPrazo);
             } else {
                 this.assinante = undefined;
                 this.form.get('ASS_CPF_CNPJ')!.setValidators([GenericValidator.isValidCpfOrCnpj()]);
@@ -139,7 +142,8 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
             ASS_EMAIL: (v.ASS_EMAIL ?? '').trim(),
             ASS_CPF_CNPJ: v.ASS_CPF_CNPJ || null,
             ASS_TELEFONE: v.ASS_TELEFONE || null,
-            ASS_TESTE_ATE: v.SEM_PRAZO || !v.ASS_TESTE_ATE ? null : formatarDataIso(v.ASS_TESTE_ATE),
+            // Fotógrafo não tem teste (plano 21): sempre null.
+            ASS_TESTE_ATE: this.ehFotografo || v.SEM_PRAZO || !v.ASS_TESTE_ATE ? null : formatarDataIso(v.ASS_TESTE_ATE),
         };
 
         this.salvando = true;

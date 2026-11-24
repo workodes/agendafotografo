@@ -8,12 +8,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, ParamMap, Router, RouterModule } from '@angular/router';
-import { Observable, Subject, catchError, forkJoin, map, of, switchMap, takeUntil, tap } from 'rxjs';
+import { Subject, catchError, map, of, switchMap, takeUntil, tap } from 'rxjs';
 import { EscalaItem } from 'app/models/DTOs/responses/EscalaItem';
-import { EventoPessoalListItem } from 'app/models/DTOs/responses/EventoPessoalListItem';
-import { STATUS_EVENTO_COR, STATUS_EVENTO_PONTO, STATUS_EVENTO_ROTULO, StatusEvento } from 'app/models/enums/StatusEvento';
+import { StatusEvento } from 'app/models/enums/StatusEvento';
 import { EscalaService } from 'app/services/escala.service';
-import { EventoPessoalService } from 'app/services/evento-pessoal.service';
 import {
     CABECALHO_SEMANA, DiaDaGrade, gradeDoMes, intervaloDaGrade, mesAnterior, mesAtual, mesDaData, mesSeguinte, mesValido, nomeDoMes,
 } from 'app/utils/calendario';
@@ -24,12 +22,11 @@ import { abrirRota } from 'app/utils/navegar';
 type Visao = 'lista' | 'calendario';
 
 /**
- * Item da agenda do Fotógrafo: 'pessoal' (evento lançado por ele, editável) ou 'equipe' (evento de um coordenador
- * em que foi escalado; somente leitura, abre `/fotografo/escalas/:id`).
+ * Item da agenda do Fotógrafo: evento de um coordenador em que ele foi escalado (pelo CPF gravado na Equipe).
+ * Somente leitura; abre `/fotografo/escalas/:id`.
  */
 export interface ItemAgenda {
     chave: string;
-    origem: 'pessoal' | 'equipe';
     id: string;
     nome: string;
     /** "yyyy-MM-dd" */
@@ -37,25 +34,19 @@ export interface ItemAgenda {
     hora: string | null;
     cidade: string;
     local: string | null;
+    /** `StatusEvento.Cancelado` quando cancelado; 0 nos demais (a equipe não vê o status). */
     status: number;
-    /** Só 'equipe': "Equipe de <Coordenador>" e a posição do fotógrafo (quando houver). */
-    etiqueta?: string;
-    posicao?: string | null;
+    /** "Equipe de <Coordenador>" e a posição do fotógrafo (quando houver). */
+    etiqueta: string;
+    posicao: string | null;
 }
 
 interface Celula { dia: DiaDaGrade; itens: ItemAgenda[]; rotulo: string; }
 interface GrupoDia { data: string; titulo: string; itens: ItemAgenda[]; }
 
-function doPessoal(e: EventoPessoalListItem): ItemAgenda {
-    return {
-        chave: `pessoal:${e.Id}`, origem: 'pessoal', id: e.Id, nome: e.EPS_NOME, data: (e.EPS_DATA ?? '').substring(0, 10),
-        hora: e.EPS_HORA ?? null, cidade: e.EPS_CIDADE, local: e.EPS_LOCAL ?? null, status: e.EPS_STATUS,
-    };
-}
-
 function daEquipe(e: EscalaItem): ItemAgenda {
     return {
-        chave: `equipe:${e.EventoId}`, origem: 'equipe', id: e.EventoId, nome: e.EVE_NOME, data: (e.EVE_DATA ?? '').substring(0, 10),
+        chave: `equipe:${e.EventoId}`, id: e.EventoId, nome: e.EVE_NOME, data: (e.EVE_DATA ?? '').substring(0, 10),
         hora: e.EVE_HORA ?? null, cidade: e.EVE_CIDADE, local: e.EVE_LOCAL ?? null,
         // Só o cancelado tem selo; o resto da equipe não mostra status.
         status: e.Cancelado ? StatusEvento.Cancelado : 0,
@@ -71,9 +62,10 @@ function comparar(a: ItemAgenda, b: ItemAgenda): number {
         || a.chave.localeCompare(b.chave);
 }
 
-interface ResultadoCarga { itens: ItemAgenda[]; erroPessoal: any; erroEquipe: any; }
-
-/** Agenda pessoal do Fotógrafo (plano 20, Etapas 2 e 4): molde enxuto da Agenda do assinante, sem filtros. */
+/**
+ * Agenda do Fotógrafo (planos 20 e 21): molde enxuto da Agenda do assinante, sem filtros, só com os eventos em que
+ * algum coordenador o escalou pelo CPF (uma carga por mês: `Escala/Listar`). A agenda pessoal foi desligada no plano 21.
+ */
 @Component({
     selector: 'agenda-fotografo',
     templateUrl: './agenda-fotografo.component.html',
@@ -91,21 +83,15 @@ export class AgendaFotografoComponent implements OnInit, OnDestroy {
     celulas: Celula[] = [];
     grupos: GrupoDia[] = [];
     loading = false;
-    // Erro só quando as DUAS fontes falham; se só uma falha, mostra a outra e um aviso discreto.
     erroCarga = false;
-    avisoPessoal = false;
-    avisoEquipe = false;
 
-    statusCor = STATUS_EVENTO_COR;
-    statusPonto = STATUS_EVENTO_PONTO;
-    statusRotulo = STATUS_EVENTO_ROTULO;
     cancelado = StatusEvento.Cancelado;
-    /** Pílula do calendário (md+): azul-acinzentado para os de equipe; o status do pessoal dá a cor do outro. */
+    /** Pílula do calendário (md+): índigo; cancelado em cinza. */
     pilula(i: ItemAgenda): string {
-        return i.origem === 'equipe' ? (i.status === StatusEvento.Cancelado ? 'bg-gray-200 text-gray-600' : 'bg-indigo-100 text-indigo-900') : this.statusCor[i.status];
+        return i.status === StatusEvento.Cancelado ? 'bg-gray-200 text-gray-600' : 'bg-indigo-100 text-indigo-900';
     }
     ponto(i: ItemAgenda): string {
-        return i.origem === 'equipe' ? (i.status === StatusEvento.Cancelado ? 'bg-gray-400' : 'bg-indigo-500') : this.statusPonto[i.status];
+        return i.status === StatusEvento.Cancelado ? 'bg-gray-400' : 'bg-indigo-500';
     }
     cabecalho = CABECALHO_SEMANA;
     formatarHora = formatarHora;
@@ -124,7 +110,6 @@ export class AgendaFotografoComponent implements OnInit, OnDestroy {
     constructor(
         private _route: ActivatedRoute,
         private _router: Router,
-        private _service: EventoPessoalService,
         private _escalaService: EscalaService,
         private _snackBar: MatSnackBar,
         private _cdr: ChangeDetectorRef,
@@ -145,8 +130,9 @@ export class AgendaFotografoComponent implements OnInit, OnDestroy {
         return this.mes === mesAtual();
     }
 
+    // "Nenhum evento em novembro." (só o nome do mês, sem o ano).
     get mensagemVazia(): string {
-        return `Nenhum evento em ${nomeDoMes(this.mes, false)}`;
+        return `Nenhum evento em ${nomeDoMes(this.mes, false).split(' ')[0]}.`;
     }
 
     get itensDoDiaSelecionado(): ItemAgenda[] {
@@ -176,13 +162,10 @@ export class AgendaFotografoComponent implements OnInit, OnDestroy {
             takeUntil(this._destroy$),
         ).subscribe(r => {
             this.loading = false;
-            this.avisoPessoal = !!r.erroPessoal;
-            this.avisoEquipe = !!r.erroEquipe;
-            this.erroCarga = this.avisoPessoal && this.avisoEquipe;
+            this.erroCarga = !!r.erro;
             this.itens = r.itens;
-            if (this.erroCarga) {
-                this.avisoPessoal = this.avisoEquipe = false;
-                this._snackBar.open(mensagemErro(r.erroPessoal, 'Não foi possível carregar a agenda.'), 'X', { duration: 6000 });
+            if (r.erro) {
+                this._snackBar.open(mensagemErro(r.erro, 'Não foi possível carregar a agenda.'), 'X', { duration: 6000 });
             }
             this.montar();
             this.rolarParaDia();
@@ -211,9 +194,6 @@ export class AgendaFotografoComponent implements OnInit, OnDestroy {
             }
             this._cdr.markForCheck();
         });
-
-        // Evento criado/alterado/excluído: recarrega o mês.
-        this._service.alterado$.pipe(takeUntil(this._destroy$)).subscribe(() => this._carga$.next());
     }
 
     ngOnDestroy(): void {
@@ -221,17 +201,13 @@ export class AgendaFotografoComponent implements OnInit, OnDestroy {
         this._destroy$.complete();
     }
 
-    /** Carga do mês (grade de 42 dias): eventos pessoais e da equipe em paralelo, cada um com o próprio erro. */
-    private carregar(): Observable<ResultadoCarga> {
+    /** Carga do mês (grade de 42 dias): uma chamada só (`Escala/Listar`); o erro vira a tela cheia com "Tentar de novo". */
+    private carregar() {
         const { dataDe, dataAte } = intervaloDaGrade(this.mes);
-        const guardar = <T>(obs: Observable<T[]>, conv: (x: T) => ItemAgenda) => obs.pipe(
-            map(lista => ({ itens: lista.map(conv), erro: null as any })),
+        return this._escalaService.Listar(dataDe, dataAte).pipe(
+            map(lista => ({ itens: lista.map(daEquipe).sort(comparar), erro: null as any })),
             catchError(erro => of({ itens: [] as ItemAgenda[], erro })),
         );
-        return forkJoin([
-            guardar(this._service.Agenda(dataDe, dataAte), doPessoal),
-            guardar(this._escalaService.Listar(dataDe, dataAte), daEquipe),
-        ]).pipe(map(([p, e]) => ({ itens: [...p.itens, ...e.itens].sort(comparar), erroPessoal: p.erro, erroEquipe: e.erro })));
     }
 
     // ---- Navegação (escreve a query string) ----
@@ -260,15 +236,10 @@ export class AgendaFotografoComponent implements OnInit, OnDestroy {
         }
     }
 
-    /** 'pessoal' abre a ficha editável; 'equipe' abre a tela somente leitura. */
+    /** Abre a tela somente leitura do evento da equipe. */
     abrirItem(item: ItemAgenda, event?: MouseEvent): void {
         event?.stopPropagation();
-        const base = item.origem === 'equipe' ? '/fotografo/escalas' : '/fotografo/eventos';
-        abrirRota(this._router, this._route, [base, item.id], event);
-    }
-
-    novoEvento(): void {
-        this._router.navigate(['/fotografo/eventos/novo'], { queryParams: this.dia ? { data: this.dia } : {} });
+        abrirRota(this._router, this._route, ['/fotografo/escalas', item.id], event);
     }
 
     // ---- Apresentação ----

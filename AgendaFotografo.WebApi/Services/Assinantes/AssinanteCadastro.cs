@@ -126,7 +126,8 @@ public class AssinanteCadastro(
             ASS_TELEFONE = dados.Telefone,
             ASS_TIPO = dados.Tipo,
             ASS_ORIGEM = dados.Origem,
-            ASS_TESTE_ATE = dados.TesteAte
+            // Fotógrafo é grátis, sem teste (plano 21)
+            ASS_TESTE_ATE = dados.Tipo == TipoAssinante.Fotografo ? null : dados.TesteAte
         };
         await _repAssinante.InsertTransactionAsync(assinante, cancellationToken);
 

@@ -315,9 +315,15 @@ public class AuthController(UserManager<Usuario> userManager, IConfiguration con
     {
         try
         {
-            var assinanteId = _currentUser.IsFotografo
-                ? await _fotografoEscopo.ObterAssinanteIdAsync(cancellationToken)
-                : await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
+            // Fotógrafo não tem teste (plano 21): confere o vínculo, mas não lê a data
+            if (_currentUser.IsFotografo)
+            {
+                await _fotografoEscopo.ObterAssinanteIdAsync(cancellationToken);
+                MarcarSemCache();
+                return Ok(new TesteGratisResponse { ASS_TESTE_ATE = null, DiasRestantes = null });
+            }
+
+            var assinanteId = await _assinanteEscopo.ObterAssinanteIdAsync(cancellationToken);
             var testeAte = await _db.Assinantes.AsNoTracking().Where(a => a.Id == assinanteId)
                 .Select(a => a.ASS_TESTE_ATE).FirstOrDefaultAsync(cancellationToken);
 
@@ -518,8 +524,11 @@ public class AuthController(UserManager<Usuario> userManager, IConfiguration con
         await _unitOfWork.BeginTransactionAsync(cancellationToken);
         try
         {
-            dados.TesteAte = TesteGratisRegra.CalcularTesteAte(
-                DateOnly.FromDateTime(DateTime.Now), TesteGratisRegra.ObterDiasGratis(_configuration));
+            // Só o coordenador tem teste grátis; o fotógrafo é grátis, sem prazo (plano 21)
+            dados.TesteAte = dados.Tipo == TipoAssinante.Fotografo
+                ? null
+                : TesteGratisRegra.CalcularTesteAte(
+                    DateOnly.FromDateTime(DateTime.Now), TesteGratisRegra.ObterDiasGratis(_configuration));
 
             var (assinante, usuario) = await _cadastro.CriarAsync(dados, senha, loginExterno, cancellationToken);
 

@@ -72,6 +72,8 @@
                 <mat-error>{{ erro('ASS_TELEFONE') }}</mat-error>
             </mat-form-field>
 
+            <!-- Conta de Fotógrafo é grátis e não tem teste (plano 21): sem data e sem "Sem prazo" -->
+            <ng-container *ngIf="!ehFotografo">
             <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
                 <mat-label>Teste grátis até</mat-label>
                 <input matInput [matDatepicker]="pickerTeste" [min]="testeMin" [max]="testeMax" formControlName="ASS_TESTE_ATE" placeholder="dd/mm/aaaa" autocomplete="off">
@@ -81,6 +83,7 @@
                 <mat-error>{{ erro('ASS_TESTE_ATE') }}</mat-error>
             </mat-form-field>
             <mat-checkbox formControlName="SEM_PRAZO" class="mt-2">Sem prazo</mat-checkbox>
+            </ng-container>
         </form>
 
         <p *ngIf="ehNovo" class="text-sm text-secondary mt-2">

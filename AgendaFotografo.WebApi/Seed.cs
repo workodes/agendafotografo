@@ -30,6 +30,9 @@ public class Seed(RoleManager<IdentityRole> roleManager, UserManager<Usuario> us
 
         // Roda sempre, depois do admin
         await GarantirTiposEventoPadraoAsync();
+
+        // Roda sempre: fotógrafo não tem teste grátis (plano 21)
+        await ZerarTesteDosFotografosAsync();
     }
 
     private async Task GarantirAdminAsync()
@@ -89,5 +92,24 @@ public class Seed(RoleManager<IdentityRole> roleManager, UserManager<Usuario> us
             await db.SaveChangesAsync();
 
         logger.LogInformation("Tipos de evento padrão criados para {Quantidade} assinante(s).", assinantesSemTipos.Count);
+    }
+
+    /// <summary>
+    /// Idempotente (plano 21): contas Fotografo não têm teste grátis; zera ASS_TESTE_ATE das que ainda têm prazo. Um único SaveChanges.
+    /// O log traz só a quantidade.
+    /// </summary>
+    private async Task ZerarTesteDosFotografosAsync()
+    {
+        var fotografos = await db.Assinantes
+            .Where(a => a.ASS_TIPO == TipoAssinante.Fotografo && a.ASS_TESTE_ATE != null)
+            .ToListAsync();
+
+        foreach (var fotografo in fotografos)
+            fotografo.ASS_TESTE_ATE = null;
+
+        if (fotografos.Count > 0)
+            await db.SaveChangesAsync();
+
+        logger.LogInformation("Teste grátis zerado para {Quantidade} conta(s) de fotógrafo.", fotografos.Count);
     }
 }

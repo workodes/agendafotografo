@@ -123,7 +123,11 @@ public class AssinanteController(
             // Dias restantes do teste: calculado depois de ler a página, nunca no SQL
             var hoje = DateOnly.FromDateTime(DateTime.Now);
             foreach (var item in dados)
+            {
+                // Fotógrafo não tem teste grátis (plano 21): nunca devolve prazo, mesmo que ainda exista no banco
+                if (item.ASS_TIPO == TipoAssinante.Fotografo) item.ASS_TESTE_ATE = null;
                 item.TesteDiasRestantes = TesteGratis.DiasRestantes(item.ASS_TESTE_ATE, hoje);
+            }
 
             return Ok(new PaginatedResponse<AssinanteListItem>
             {
@@ -244,6 +248,9 @@ public class AssinanteController(
 
             var usuario = await _db.Users.Where(x => x.AssinanteId == assinante.Id).OrderBy(x => x.CreatedAt)
                 .FirstOrDefaultAsync(cancellationToken);
+
+            // Fotógrafo não tem teste grátis (plano 21): o prazo do body é ignorado e grava nulo (decidido pelo tipo do banco)
+            if (assinante.ASS_TIPO == TipoAssinante.Fotografo) model.ASS_TESTE_ATE = null;
 
             // Conta de fotógrafo: CPF obrigatório e só CPF (o ASS_TIPO do body é ignorado; vale o do banco)
             if (assinante.ASS_TIPO == TipoAssinante.Fotografo)
@@ -458,10 +465,13 @@ public class AssinanteController(
         ASS_EMAIL = a.ASS_EMAIL,
         ASS_TELEFONE = a.ASS_TELEFONE,
         ASS_ATIVO = a.ASS_ATIVO,
-        ASS_TESTE_ATE = a.ASS_TESTE_ATE,
+        // Fotógrafo não tem teste grátis (plano 21): prazo e dias restantes sempre nulos
+        ASS_TESTE_ATE = a.ASS_TIPO == TipoAssinante.Fotografo ? null : a.ASS_TESTE_ATE,
         ASS_ORIGEM = a.ASS_ORIGEM,
         ASS_TIPO = a.ASS_TIPO,
-        TesteDiasRestantes = TesteGratis.DiasRestantes(a.ASS_TESTE_ATE, DateOnly.FromDateTime(DateTime.Now)),
+        TesteDiasRestantes = a.ASS_TIPO == TipoAssinante.Fotografo
+            ? null
+            : TesteGratis.DiasRestantes(a.ASS_TESTE_ATE, DateOnly.FromDateTime(DateTime.Now)),
         ExigirTrocaSenha = u?.ExigirTrocaSenha ?? false,
         LastLogin = u?.LastLogin,
         CreatedAt = a.CreatedAt

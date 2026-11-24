@@ -14,6 +14,7 @@ O objetivo é um sistema vendável (SaaS) para outros criadores/fotógrafos que 
 - Stack e estrutura: **padrão Fartec** (Domain, Infra.Data, CrossCutting, WebApi, WebSPA), igual ao AgroGestor. C# + Angular.
 - Acesso: **Assinante + área administrativa**. Só o assinante (coordenador) faz login. O admin (você) cria, ativa e bloqueia assinantes. A cobrança fica fora do sistema.
 - **Nota (2026-11-21):** o login do fotógrafo deixou de estar fora do escopo: existe o perfil `Fotografo`, com conta própria, agenda pessoal e eventos dos coordenadores vinculados pelo CPF (somente leitura). Ver o plano 20 (`docs/planos/20 - Perfil Fotógrafo e agenda pessoal.md`).
+- **Nota (2026-11-23):** o plano 21 (`docs/planos/21 - Fotógrafo grátis só com a escala.md`) mudou o perfil `Fotografo`: a conta é grátis, sem teste de 15 dias, e a agenda pessoal do plano 20 foi desligada e guardada (código e tabela ficam); o fotógrafo vê só os eventos em que um coordenador o escalou pelo CPF. O e-mail diário de lembretes passou a ser o módulo 22.
 - Equipe **não faz login** na v1 (salvo a conta de Fotografo, ver a nota acima). O coordenador registra quem vai. Disponibilidade marcada pelo fotógrafo fica para uma fase futura.
 - **Financeiro: nunca.** Sem valor, pago, repasse ou cliente comercial.
 - Cor principal **#F97316**. Ainda não há logo: usar uma logo provisória com o nome.

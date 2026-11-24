@@ -41,8 +41,8 @@
             <ng-container *ngIf="ehAssinante">
                 <busca-global [modo]="isScreenLarge ? 'campo' : 'barra'"></busca-global>
             </ng-container>
-            <!-- Teste grátis vale para Assinante e Fotógrafo -->
-            <teste-gratis *ngIf="ehAssinante || ehFotografo"></teste-gratis>
+            <!-- Teste grátis só do Assinante (o Fotógrafo é grátis e não tem teste, plano 21) -->
+            <teste-gratis *ngIf="ehAssinante"></teste-gratis>
             <avisos *ngIf="ehAssinante"></avisos>
             <user></user>
         </div>

@@ -9,6 +9,7 @@ using AgendaFotografo.WebApi.Services.Eventos;
 using AgendaFotografo.WebApi.Validators.EventoPessoal;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
 
 namespace AgendaFotografo.WebApi.Controllers;
@@ -29,8 +30,26 @@ public class EventoPessoalController(
     private readonly FotografoEscopo _fotografoEscopo = fotografoEscopo;
     private readonly ILogger<EventoPessoalController> _logger = logger;
 
+    /// <summary>
+    /// Liga/desliga da agenda pessoal. DESLIGADA desde o plano 21 ("Fotógrafo grátis só com a escala"): toda action responde 403
+    /// antes de tocar no banco. Código, entidade <c>EventoPessoal</c> e tabela <c>EVENTOSPESSOAIS</c> ficam guardados.
+    /// Para religar: trocar para <c>true</c> (e religar rotas/telas do SPA e o teste grátis do fotógrafo, que são outra obra).
+    /// </summary>
+    private const bool AgendaPessoalLigada = false;
+
+    private const string MsgAgendaPessoalDesligada = "A agenda pessoal não está disponível.";
     private const string MsgIdObrigatorio = "Id é obrigatório";
     private const string MsgNaoEncontrado = "Evento não encontrado";
+
+    /// <summary>Com a agenda pessoal desligada, recusa qualquer action (403 em texto) antes de consultar o banco.</summary>
+    public override void OnActionExecuting(ActionExecutingContext context)
+    {
+#pragma warning disable CS0162 // código inalcançável: a constante é o liga/desliga
+        if (!AgendaPessoalLigada)
+            context.Result = StatusCode(StatusCodes.Status403Forbidden, MsgAgendaPessoalDesligada);
+#pragma warning restore CS0162
+        base.OnActionExecuting(context);
+    }
 
     private IActionResult SemVinculo() => StatusCode(StatusCodes.Status403Forbidden, AssinanteEscopo.MensagemSemVinculo);
 

@@ -51,7 +51,7 @@ export class EscolhaPerfilComponent {
 
     readonly opcoes: OpcaoPerfil[] = [
         { valor: TipoAssinante.Coordenador, titulo: 'Coordeno uma equipe', descricao: 'Escalo fotógrafos nos eventos' },
-        { valor: TipoAssinante.Fotografo, titulo: 'Sou fotógrafo', descricao: 'Minha agenda de eventos' },
+        { valor: TipoAssinante.Fotografo, titulo: 'Sou fotógrafo', descricao: 'Grátis, para ver os eventos em que você for escalado' },
     ];
 
     /** Sem escolha, só o primeiro cartão entra na ordem do Tab. */

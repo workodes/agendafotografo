@@ -36,13 +36,17 @@ const rotasAssinante: Route[] = [
     { path: 'tipos-evento', data: { titulo: 'Tipos de evento' }, loadChildren: () => import('app/modules/assinante/tipos-evento/tipos-evento.routes') },
 ];
 
-// Área do Fotógrafo (plano 20): conta própria com agenda pessoal. O início redireciona para a agenda.
-// Agenda pessoal e ficha do evento pessoal (plano 20, Etapa 2).
+// Área do Fotógrafo (plano 20, ajustada pelo plano 21): conta grátis que só vê os eventos em que um coordenador o
+// escalou pelo CPF. A agenda pessoal (rotas "eventos", plano 20) foi desligada e guardada pelo plano 21: os arquivos
+// em modules/fotografo/eventos/ continuam no projeto, mas fora das rotas; as URLs antigas voltam para a agenda.
+// Para religar, recolocar a rota "eventos" aqui (e rodar o build para conferir os arquivos guardados).
 const rotasFotografo: Route[] = [
     { path: '', pathMatch: 'full', redirectTo: 'agenda' },
     { path: 'inicio', pathMatch: 'full', redirectTo: 'agenda' },
     { path: 'agenda', data: { titulo: 'Agenda' }, loadChildren: () => import('app/modules/fotografo/agenda/agenda.routes') },
-    { path: 'eventos', data: { titulo: 'Evento' }, loadChildren: () => import('app/modules/fotografo/eventos/eventos.routes') },
+    { path: 'eventos', pathMatch: 'full', redirectTo: 'agenda' },
+    { path: 'eventos/novo', pathMatch: 'full', redirectTo: 'agenda' },
+    { path: 'eventos/:id', pathMatch: 'full', redirectTo: 'agenda' },
     { path: 'escalas', data: { titulo: 'Evento' }, loadChildren: () => import('app/modules/fotografo/escala-detalhe/escala-detalhe.routes') },
 ];
 
