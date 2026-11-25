@@ -252,7 +252,7 @@ public class AssinanteController(
             // Fotógrafo não tem teste grátis (plano 21): o prazo do body é ignorado e grava nulo (decidido pelo tipo do banco)
             if (assinante.ASS_TIPO == TipoAssinante.Fotografo) model.ASS_TESTE_ATE = null;
 
-            // Conta de fotógrafo: CPF obrigatório e só CPF (o ASS_TIPO do body é ignorado; vale o do banco)
+            // Conta de fotógrafo: CPF/CNPJ obrigatório, CPF ou CNPJ válido (o ASS_TIPO do body é ignorado; vale o do banco)
             if (assinante.ASS_TIPO == TipoAssinante.Fotografo)
             {
                 var erroCpf = ValidationHelper.ValidateModel(model, new AssinanteFotografoValidator());

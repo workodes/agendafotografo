@@ -533,8 +533,8 @@ namespace AgendaFotografo.Infra.Data.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("MEM_CPF")
-                        .HasMaxLength(11)
-                        .HasColumnType("varchar(11)");
+                        .HasMaxLength(14)
+                        .HasColumnType("varchar(14)");
 
                     b.Property<string>("MEM_EMAIL")
                         .HasMaxLength(150)

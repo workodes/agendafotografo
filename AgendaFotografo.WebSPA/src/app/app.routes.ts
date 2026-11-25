@@ -21,7 +21,7 @@ const rotasAdmin: Route[] = [
     { path: 'assinantes', loadChildren: () => import('app/modules/admin/assinantes/assinantes.routes') },
 ];
 
-// Área do Assinante (coordenador): Equipe, Organizadores e Tipos de evento (plano 02); Eventos e Visão do dia (plano 03); Agenda (plano 04); Pendências (plano 06); Checklist padrão (plano 07); Início (plano 08); Financeiro (plano 22). Link público etc. entram aqui, um plano por módulo.
+// Área do Assinante (coordenador): Equipe, Organizadores e Tipos de evento (plano 02); Eventos e Visão do dia (plano 03); Agenda (plano 04); Pendências (plano 06); Checklist padrão (plano 07); Início (plano 08); Financeiro (plano 22); Evento de outra equipe (plano 23). Link público etc. entram aqui, um plano por módulo.
 const rotasAssinante: Route[] = [
     { path: '', pathMatch: 'full', redirectTo: 'inicio' },
     // Início próprio do assinante (plano 08): números do dia, próximos 7 dias e avisos. O Admin continua com o placeholder de rotasComuns.
@@ -36,10 +36,13 @@ const rotasAssinante: Route[] = [
     { path: 'organizadores', data: { titulo: 'Organizadores' }, loadChildren: () => import('app/modules/assinante/organizadores/organizadores.routes') },
     { path: 'checklist-padrao', data: { titulo: 'Checklist padrão' }, loadChildren: () => import('app/modules/assinante/checklist-padrao/checklist-padrao.routes') },
     { path: 'tipos-evento', data: { titulo: 'Tipos de evento' }, loadChildren: () => import('app/modules/assinante/tipos-evento/tipos-evento.routes') },
+    // Evento de OUTRA equipe em que o coordenador foi escalado (plano 23): detalhe somente leitura, aberto pela Agenda; sem item de menu.
+    // Reaproveita o detalhe do Fotógrafo, que escolhe o service pelo perfil da sessão. Só no bloco do Assinante.
+    { path: 'escalas', data: { titulo: 'Evento' }, loadChildren: () => import('app/modules/fotografo/escala-detalhe/escala-detalhe.routes') },
 ];
 
 // Área do Fotógrafo (plano 20, ajustada pelo plano 21): conta grátis que só vê os eventos em que um coordenador o
-// escalou pelo CPF. A agenda pessoal (rotas "eventos", plano 20) foi desligada e guardada pelo plano 21: os arquivos
+// escalou pelo documento (CPF ou CNPJ, plano 23). A agenda pessoal (rotas "eventos", plano 20) foi desligada e guardada pelo plano 21: os arquivos
 // em modules/fotografo/eventos/ continuam no projeto, mas fora das rotas; as URLs antigas voltam para a agenda.
 // Para religar, recolocar a rota "eventos" aqui (e rodar o build para conferir os arquivos guardados).
 const rotasFotografo: Route[] = [

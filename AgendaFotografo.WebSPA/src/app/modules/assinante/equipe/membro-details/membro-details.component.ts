@@ -60,8 +60,8 @@ export class MembroDetailsComponent implements OnInit, OnDestroy {
             MEM_INSTAGRAM: ['', [instagramValido]],
             MEM_EMAIL: ['', [emailTolerante, Validators.maxLength(150)]],
             MEM_TELEFONE: [''],
-            // CPF opcional (plano 20): só CPF, 11 dígitos válidos.
-            MEM_CPF: ['', [GenericValidator.isValidCpf()]],
+            // Documento opcional (plano 23): CPF (11 dígitos) ou CNPJ (14), com dígitos verificadores válidos.
+            MEM_CPF: ['', [GenericValidator.isValidCpfOrCnpj()]],
             MEM_OBSERVACOES: ['', [Validators.maxLength(2000)]],
         });
 
@@ -150,8 +150,8 @@ export class MembroDetailsComponent implements OnInit, OnDestroy {
         if (e['required']) { return 'Campo obrigatório.'; }
         if (e['email']) { return 'E-mail inválido.'; }
         if (e['instagram']) { return 'Use só letras, números, ponto e sublinhado.'; }
-        if (e['cpfNotValid']) { return 'CPF inválido.'; }
-        if (e['mask']) { return nome === 'MEM_CPF' ? 'CPF inválido.' : 'Telefone incompleto (DDD + número).'; }
+        if (e['cpfOrCnpjNotValid']) { return 'CPF/CNPJ inválido.'; }
+        if (e['mask']) { return nome === 'MEM_CPF' ? 'CPF/CNPJ inválido.' : 'Telefone incompleto (DDD + número).'; }
         if (e['maxlength']) { return `Máximo de ${e['maxlength'].requiredLength} caracteres.`; }
         return 'Valor inválido.';
     }

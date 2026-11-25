@@ -20,7 +20,7 @@ export class EscalaService {
         return this._httpClient.get<EscalaEventoModel>(environment.Escala.obter, { params: new HttpParams().set('id', eventoId) });
     }
 
-    // tipo = TipoArquivoEvento (2 ImagemRota, 3 Gpx). Erros chegam como Blob: usar extrairMensagemErroBlob.
+    // tipo = TipoArquivoEvento (1 Flyer, 2 ImagemRota, 3 Gpx; o flyer vale desde o plano 23). Erros chegam como Blob: usar extrairMensagemErroBlob.
     Arquivo(eventoId: string, tipo: number): Observable<Blob> {
         return this._httpClient.get(environment.Escala.arquivo, {
             params: new HttpParams().set('id', eventoId).set('tipo', tipo),

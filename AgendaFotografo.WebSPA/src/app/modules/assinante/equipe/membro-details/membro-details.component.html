@@ -49,9 +49,9 @@
             </mat-form-field>
 
             <mat-form-field appearance="fill" floatLabel="always" subscriptSizing="dynamic" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2 mb-1">
-                <mat-label>CPF</mat-label>
-                <input matInput formControlName="MEM_CPF" mask="000.000.000-00" inputmode="numeric" autocomplete="off">
-                <mat-hint class="text-xs text-secondary">Se esta pessoa tiver conta de fotógrafo no quemclica com este CPF, os eventos em que você a escalar aparecem automaticamente na agenda dela.</mat-hint>
+                <mat-label>CPF/CNPJ</mat-label>
+                <input matInput formControlName="MEM_CPF" mask="000.000.000-00||00.000.000/0000-00" inputmode="numeric" autocomplete="off">
+                <mat-hint class="text-xs text-secondary">Use o mesmo CPF ou CNPJ da conta da pessoa no quemclica (CPF com CPF, CNPJ com CNPJ). Se ela tiver conta, os eventos em que você a escalar aparecem automaticamente na agenda dela.</mat-hint>
                 <mat-error>{{ erro('MEM_CPF') }}</mat-error>
             </mat-form-field>
 

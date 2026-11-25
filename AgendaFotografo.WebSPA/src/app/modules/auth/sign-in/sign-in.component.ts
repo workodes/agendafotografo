@@ -155,8 +155,8 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
         return tipo === TipoAssinante.Fotografo ? 'Conta de fotógrafo grátis, sem cartão.' : `${this.textoDias}, sem cartão.`;
     }
 
-    /** Dica do campo de CPF do fotógrafo (plano 21): o vínculo com a escala é pelo CPF gravado pelo coordenador. */
-    readonly dicaCpfFotografo = 'Use o mesmo CPF que o coordenador grava na Equipe.';
+    /** Dica do documento do fotógrafo (planos 21 e 23): o vínculo com a escala é pelo documento gravado pelo coordenador. */
+    readonly dicaCpfFotografo = 'Use o mesmo CPF ou CNPJ que o coordenador grava na Equipe (CPF com CPF, CNPJ com CNPJ).';
 
     get textoDias(): string {
         return this.diasGratis === 1 ? '1 dia grátis' : `${this.diasGratis} dias grátis`;
@@ -215,26 +215,14 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
         this.google.credencial$.pipe(takeUntil(this._destroy$)).subscribe(token => this.aoReceberCredencial(token));
     }
 
-    /** Fotógrafo: o documento é só CPF (11 dígitos); coordenador: CPF ou CNPJ. */
-    private aplicarValidadorDocumento(form: UntypedFormGroup, tipo: TipoAssinante | null): void {
-        const c = form.get('cpfCnpj')!;
-        c.setValidators([Validators.required, tipo === TipoAssinante.Fotografo ? GenericValidator.isValidCpf() : GenericValidator.isValidCpfOrCnpj()]);
-        // O CNPJ não cabe na máscara do CPF: descarta o excesso ao trocar para Fotógrafo.
-        if (tipo === TipoAssinante.Fotografo && this.digitos(c.value).length > 11)
-            c.setValue(this.digitos(c.value).slice(0, 11));
-        c.updateValueAndValidity();
-    }
-
     escolherTipoCadastro(tipo: TipoAssinante): void {
         this.tipoCadastro = tipo;
         this.escolhaPendente.cadastro = false;
-        this.aplicarValidadorDocumento(this.cadastroForm, tipo);
     }
 
     escolherTipoGoogle(tipo: TipoAssinante): void {
         this.tipoGoogle = tipo;
         this.escolhaPendente.completar = false;
-        this.aplicarValidadorDocumento(this.completarForm, tipo);
     }
 
     /** O botão do Google fica coberto até a escolha; o clique no aviso só mostra a mensagem. */
@@ -243,13 +231,9 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
         this._cdr.markForCheck();
     }
 
-    rotuloDocumento(tipo: TipoAssinante | null): string {
-        return tipo === TipoAssinante.Fotografo ? 'CPF' : 'CPF/CNPJ';
-    }
-
-    mascaraDocumento(tipo: TipoAssinante | null): string {
-        return tipo === TipoAssinante.Fotografo ? '000.000.000-00' : '000.000.000-00||00.000.000/0000-00';
-    }
+    /** Plano 23: coordenador e fotógrafo usam o mesmo documento (CPF ou CNPJ), com o mesmo rótulo e a mesma máscara. */
+    readonly rotuloDocumento = 'CPF/CNPJ';
+    readonly mascaraDocumento = '000.000.000-00||00.000.000/0000-00';
 
     ngOnDestroy(): void {
         this._idToken = null;
@@ -432,7 +416,6 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
                 // Vem marcada só se a pessoa partiu da aba Cadastro com a escolha feita; da aba Entrar, sem marca.
                 this.tipoGoogle = this.aba === 'cadastro' ? this.tipoCadastro : null;
                 this.escolhaPendente.completar = false;
-                this.aplicarValidadorDocumento(this.completarForm, this.tipoGoogle);
                 this.enviado.completar = false;
                 this.etapa = 'completar';
                 this.ocupado = false;
@@ -516,12 +499,10 @@ export class AuthSignInComponent implements OnInit, OnDestroy {
         if (e['minlength']) { return `Mínimo de ${e['minlength'].requiredLength} caracteres.`; }
         if (e['maxlength']) { return `Máximo de ${e['maxlength'].requiredLength} caracteres.`; }
         if (e['telefone']) { return 'Telefone inválido (informe DDD + número).'; }
-        if (e['cpfNotValid']) { return 'Informe um CPF válido.'; }
         if (e['cpfOrCnpjNotValid']) { return 'CPF/CNPJ inválido.'; }
         if (e['mask']) {
             if (campo === 'telefone') { return 'Telefone incompleto (DDD + número).'; }
-            const tipo = form === this.completarForm ? this.tipoGoogle : this.tipoCadastro;
-            return tipo === TipoAssinante.Fotografo ? 'CPF incompleto.' : 'CPF/CNPJ incompleto.';
+            return 'CPF/CNPJ incompleto.';
         }
         return 'Valor inválido.';
     }

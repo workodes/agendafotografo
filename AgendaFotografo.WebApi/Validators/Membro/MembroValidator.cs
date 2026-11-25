@@ -23,9 +23,8 @@ public class MembroValidator : AbstractValidator<MembroModel>
         RuleFor(x => x.MEM_TELEFONE!).TelefoneValido()
             .When(x => !string.IsNullOrWhiteSpace(x.MEM_TELEFONE));
 
-        // CPF opcional: exatamente 11 dígitos e dígitos verificadores válidos (CNPJ, com 14 dígitos, é recusado)
-        RuleFor(x => x.MEM_CPF!).Must(c => c.Length == 11).WithMessage("CPF inválido.")
-            .CpfValido().WithMessage("CPF inválido.")
+        // Documento opcional (plano 23): CPF (11 dígitos) ou CNPJ (14), com dígitos verificadores válidos
+        RuleFor(x => x.MEM_CPF!).CpfOuCnpjValido().WithMessage("CPF/CNPJ inválido.")
             .When(x => !string.IsNullOrWhiteSpace(x.MEM_CPF));
 
         RuleFor(x => x.MEM_INSTAGRAM!)

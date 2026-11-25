@@ -107,6 +107,15 @@
                 </div>
             </section>
 
+            <!-- Flyer (fotógrafo e coordenador): imagem por blob autenticado; tocar abre em nova guia -->
+            <section *ngIf="evento.TemFlyer && !flyerFalhou" class="rounded-2xl border bg-card p-5 flex flex-col gap-3 min-w-0">
+                <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:photo', titulo: 'Flyer', cor: 'bg-primary-100 text-primary-700' }"></ng-container>
+                <div *ngIf="!flyerUrl" class="flex justify-center py-8"><mat-progress-spinner diameter="24" mode="indeterminate"></mat-progress-spinner></div>
+                <a *ngIf="flyerUrl" [href]="flyerUrl" target="_blank" rel="noopener noreferrer" class="block" aria-label="Abrir o flyer em nova guia">
+                    <img [src]="flyerUrl" alt="Flyer do evento" class="w-full h-auto rounded-xl">
+                </a>
+            </section>
+
             <!-- Informações da prova -->
             <section *ngIf="evento.EVE_INFORMACOES" class="rounded-2xl border bg-card p-5 flex flex-col gap-3">
                 <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:information-circle', titulo: 'Informações da prova', cor: 'bg-blue-100 text-blue-700' }"></ng-container>

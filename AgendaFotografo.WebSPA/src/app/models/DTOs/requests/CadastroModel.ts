@@ -6,6 +6,6 @@ export class CadastroModel {
     ASS_TELEFONE: string;
     ASS_CPF_CNPJ: string;
     Senha: string;
-    /** TipoAssinante: 1 Coordenador, 2 Fotografo (com 2, ASS_CPF_CNPJ precisa ser CPF). */
+    /** TipoAssinante: 1 Coordenador, 2 Fotografo (plano 23: ASS_CPF_CNPJ aceita CPF ou CNPJ para os dois perfis). */
     ASS_TIPO: number;
 }

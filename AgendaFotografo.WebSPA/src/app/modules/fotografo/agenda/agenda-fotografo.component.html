@@ -1,9 +1,9 @@
-<!-- Estado vazio do mês: explica o vínculo pelo CPF (plano 21) -->
+<!-- Estado vazio do mês: explica o vínculo pelo documento (planos 21 e 23) -->
 <ng-template #vazio>
     <div class="flex flex-col items-center gap-3 py-8 text-center min-w-0">
         <mat-icon class="icon-size-10 text-secondary" svgIcon="heroicons_outline:calendar"></mat-icon>
         <div class="text-lg text-secondary">{{ mensagemVazia }}</div>
-        <p class="max-w-md text-secondary break-words">Quando um coordenador escalar você, o evento aparece aqui. Peça para ele gravar o seu CPF na Equipe do quemclica.</p>
+        <p class="max-w-md text-secondary break-words">Quando um coordenador escalar você, o evento aparece aqui. Peça para ele gravar o seu CPF ou CNPJ na Equipe do quemclica, o mesmo documento da sua conta.</p>
     </div>
 </ng-template>
 
@@ -144,5 +144,8 @@
         <div *ngIf="visao === 'calendario' && !erroCarga && !loading && grupos.length === 0" class="px-4 sm:px-6 md:px-8 pb-4">
             <ng-container *ngTemplateOutlet="vazio"></ng-container>
         </div>
+
+        <!-- Nota fixa no rodapé da área rolável (plano 23) -->
+        <p *ngIf="!erroCarga" class="px-4 sm:px-6 md:px-8 py-4 text-xs text-secondary break-words">O evento aparece quando o coordenador grava na Equipe o mesmo documento da sua conta (CPF com CPF, CNPJ com CNPJ).</p>
     </div>
 </div>

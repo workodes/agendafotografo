@@ -17,7 +17,7 @@ namespace AgendaFotografo.WebApi.Controllers;
 /// <summary>
 /// Eventos dos coordenadores em que o fotógrafo está escalado (somente leitura). A regra do vínculo mora só em
 /// <see cref="EscalaFotografoConsultas"/>. Evento sem vínculo (de outro fotógrafo, fora da escala, excluído, coordenador bloqueado)
-/// responde sempre o mesmo 404. Respostas com <c>no-store</c>. Nunca loga CPF.
+/// responde sempre o mesmo 404. Respostas com <c>no-store</c>. Nunca loga o documento.
 /// </summary>
 [Authorize(Roles = RoleNames.Fotografo)]
 public class EscalaController(
@@ -70,9 +70,10 @@ public class EscalaController(
             if (model is null) return NotFound(MsgNaoEncontrado);
 
             var arquivos = await _repEventoArquivo.SelectContext().AsNoTracking()
-                .Where(x => x.EVA_EVENTO_ID == id && (x.EVA_TIPO == TipoArquivoEvento.ImagemRota || x.EVA_TIPO == TipoArquivoEvento.Gpx))
+                .Where(x => x.EVA_EVENTO_ID == id)
                 .Select(x => new { x.EVA_TIPO, x.EVA_NOME_ORIGINAL })
                 .ToListAsync(cancellationToken);
+            model.TemFlyer = arquivos.Any(x => x.EVA_TIPO == TipoArquivoEvento.Flyer);
             model.TemImagemRota = arquivos.Any(x => x.EVA_TIPO == TipoArquivoEvento.ImagemRota);
             model.GpxNome = arquivos.FirstOrDefault(x => x.EVA_TIPO == TipoArquivoEvento.Gpx)?.EVA_NOME_ORIGINAL;
 
@@ -85,13 +86,13 @@ public class EscalaController(
         }
     }
 
-    /// <summary>Imagem da rota (2) ou GPX (3) do evento vinculado. Outro tipo (inclusive o flyer), sem vínculo ou ausente = 404.</summary>
+    /// <summary>Flyer (1), imagem da rota (2) ou GPX (3) do evento vinculado (plano 23: o flyer vale para fotógrafo e coordenador). Outro tipo, sem vínculo ou ausente = 404.</summary>
     [HttpGet]
     public async Task<IActionResult> Arquivo(Guid id, int tipo, CancellationToken cancellationToken)
     {
         try
         {
-            if (tipo is not ((int)TipoArquivoEvento.ImagemRota or (int)TipoArquivoEvento.Gpx))
+            if (tipo is not ((int)TipoArquivoEvento.Flyer or (int)TipoArquivoEvento.ImagemRota or (int)TipoArquivoEvento.Gpx))
                 return NotFound(MsgArquivoNaoEncontrado);
             var tipoArquivo = (TipoArquivoEvento)tipo;
 

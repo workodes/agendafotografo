@@ -3,6 +3,7 @@
 - Data: 23/11/2026
 - Commit de partida: 1cbf899
 - Status: Construído e revisado (rodada 1: Aprovado, sem ajustes, 23/11/2026); testes no navegador pendentes
+- **Nota (24/11/2026):** o plano 23 (`23 - Coordenador escalado por outro coordenador.md`) trocou "CPF" por "CPF ou CNPJ" nas dicas, nos textos, no cadastro do fotógrafo e na ficha do Admin; a restrição "Fotógrafo: só CPF" deste plano não vale mais.
 
 ## 1. Plano (engenheiro)
 

@@ -24,15 +24,12 @@ internal static class CadastroRegras
     public static void Perfil<T>(AbstractValidator<T> v, System.Linq.Expressions.Expression<Func<T, int>> campo)
         => v.RuleFor(campo).Must(PerfilValido).WithMessage("Perfil inválido.");
 
-    /// <summary>Coordenador: CPF/CNPJ. Fotógrafo: só CPF (CNPJ nunca vale). Perfil inválido não gera erro de documento.</summary>
+    /// <summary>CPF ou CNPJ válido e obrigatório para qualquer perfil (plano 23). Perfil inválido não gera erro de documento.</summary>
     public static void CpfCnpj<T>(AbstractValidator<T> v, System.Linq.Expressions.Expression<Func<T, string>> campo,
         Func<T, int> tipo)
     {
         v.RuleFor(campo).Cascade(CascadeMode.Stop).NotEmpty().WithMessage("CPF/CNPJ é obrigatório").CpfOuCnpjValido()
-            .When(x => PerfilValido(tipo(x)) && ObterTipo(tipo(x)) == TipoAssinante.Coordenador);
-        v.RuleFor(campo).Cascade(CascadeMode.Stop).NotEmpty().WithMessage("CPF é obrigatório")
-            .CpfValido().WithMessage("Informe um CPF válido.")
-            .When(x => PerfilValido(tipo(x)) && ObterTipo(tipo(x)) == TipoAssinante.Fotografo);
+            .When(x => PerfilValido(tipo(x)));
     }
 }
 

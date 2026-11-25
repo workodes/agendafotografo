@@ -19,7 +19,7 @@ public class MembroModel
     /// <summary>Opcional. Trafega só com dígitos.</summary>
     public string? MEM_TELEFONE { get; set; }
 
-    /// <summary>Opcional. Trafega só com 11 dígitos (CPF). Só existe neste model (Obter, Criar e Atualizar).</summary>
+    /// <summary>Opcional. Documento: CPF (11) ou CNPJ (14), só dígitos (plano 23; o nome foi mantido). Só existe neste model (Obter, Criar e Atualizar).</summary>
     public string? MEM_CPF { get; set; }
     public FuncaoMembro MEM_FUNCAO { get; set; }
     public string? MEM_OBSERVACOES { get; set; }

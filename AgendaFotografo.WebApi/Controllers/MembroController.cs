@@ -323,7 +323,7 @@ public class MembroController(
     }
 
     /// <summary>
-    /// E-mail, telefone e CPF (quando preenchidos) não podem repetir em outro membro do mesmo assinante, ativo ou inativo.
+    /// E-mail, telefone e documento CPF/CNPJ (quando preenchidos) não podem repetir em outro membro do mesmo assinante, ativo ou inativo.
     /// Valores já normalizados (e-mail em minúsculas, telefone só dígitos).
     /// </summary>
     private async Task GarantirContatoUnicoAsync(Guid assinanteId, string? email, string? telefone, string? cpf, Guid? idAtual, CancellationToken cancellationToken)
@@ -361,7 +361,7 @@ public class MembroController(
                 .OrderBy(x => x.MEM_ATIVO ? 0 : 1).ThenBy(x => x.MEM_NOME)
                 .Select(x => new { x.MEM_NOME, x.MEM_ATIVO })
                 .FirstOrDefaultAsync(cancellationToken);
-            if (existente is not null) throw new Exception(MsgDuplicado(existente.MEM_NOME, existente.MEM_ATIVO, "CPF"));
+            if (existente is not null) throw new Exception(MsgDuplicado(existente.MEM_NOME, existente.MEM_ATIVO, "CPF/CNPJ"));
         }
     }
 
@@ -393,7 +393,7 @@ public class MembroController(
         e.MEM_OBSERVACOES = m.MEM_OBSERVACOES;
     }
 
-    /// <summary>Ficha do membro. O CPF só vai nas respostas de Obter, Criar e Atualizar (<paramref name="comCpf"/>).</summary>
+    /// <summary>Ficha do membro. O documento (CPF/CNPJ) só vai nas respostas de Obter, Criar e Atualizar (<paramref name="comCpf"/>).</summary>
     private static MembroModel ParaModel(Membro e, bool comCpf = true) => new()
     {
         Id = e.Id,

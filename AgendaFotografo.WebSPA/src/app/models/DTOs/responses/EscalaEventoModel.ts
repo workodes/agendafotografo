@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-// Detalhe somente leitura do evento em que o Fotógrafo foi escalado (lista branca da API).
+// Detalhe somente leitura do evento em que o Fotógrafo (ou, plano 23, outro coordenador) foi escalado (lista branca da API).
 export class EscalaEventoModel {
     EventoId: string;
     EVE_NOME: string;
@@ -19,6 +19,8 @@ export class EscalaEventoModel {
     EVE_OBSERVACOES_EQUIPE?: string | null;
     TemImagemRota: boolean;
     GpxNome?: string | null;
+    /** Plano 23: o evento tem flyer (baixado por `Arquivo` com tipo 1). */
+    TemFlyer?: boolean;
     EVM_POSICAO?: string | null;
     CoordenadorNome: string;
 }

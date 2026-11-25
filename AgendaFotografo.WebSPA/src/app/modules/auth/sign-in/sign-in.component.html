@@ -155,9 +155,9 @@
                 </div>
 
                 <div class="mt-4">
-                    <label class="qc-rotulo" for="cad-cpf">{{ rotuloDocumento(tipoCadastro) }}</label>
+                    <label class="qc-rotulo" for="cad-cpf">{{ rotuloDocumento }}</label>
                     <input id="cad-cpf" class="qc-campo" type="text" inputmode="numeric" autocomplete="off"
-                        [mask]="mascaraDocumento(tipoCadastro)" formControlName="cpfCnpj"
+                        [mask]="mascaraDocumento" formControlName="cpfCnpj"
                         [attr.aria-invalid]="mostrarErro(cadastroForm, 'cpfCnpj', 'cadastro')"
                         [attr.aria-describedby]="tipoCadastro === tipos.Fotografo ? 'cad-cpf-dica' : null">
                     <div class="qc-erro" *ngIf="mostrarErro(cadastroForm, 'cpfCnpj', 'cadastro')">
@@ -257,9 +257,9 @@
         </div>
 
         <div class="mt-4">
-            <label class="qc-rotulo" for="gg-cpf">{{ rotuloDocumento(tipoGoogle) }}</label>
+            <label class="qc-rotulo" for="gg-cpf">{{ rotuloDocumento }}</label>
             <input id="gg-cpf" class="qc-campo" type="text" inputmode="numeric" autocomplete="off"
-                [mask]="mascaraDocumento(tipoGoogle)" formControlName="cpfCnpj"
+                [mask]="mascaraDocumento" formControlName="cpfCnpj"
                 [attr.aria-invalid]="mostrarErro(completarForm, 'cpfCnpj', 'completar')"
                 [attr.aria-describedby]="tipoGoogle === tipos.Fotografo ? 'gg-cpf-dica' : null">
             <div class="qc-erro" *ngIf="mostrarErro(completarForm, 'cpfCnpj', 'completar')">

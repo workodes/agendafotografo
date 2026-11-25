@@ -12,8 +12,9 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, ParamMap, Router, RouterModule } from '@angular/router';
-import { Subject, catchError, map, of, switchMap, takeUntil, tap } from 'rxjs';
+import { Subject, catchError, forkJoin, map, of, switchMap, takeUntil, tap } from 'rxjs';
 import { AgendaFiltro } from 'app/models/DTOs/filters/AgendaFiltro';
+import { EscalaItem } from 'app/models/DTOs/responses/EscalaItem';
 import { EventoListItem } from 'app/models/DTOs/responses/EventoListItem';
 import { Opcao } from 'app/models/DTOs/responses/Opcao';
 import { STATUS_EVENTO, STATUS_EVENTO_COR, STATUS_EVENTO_PONTO, STATUS_EVENTO_ROTULO, StatusEvento } from 'app/models/enums/StatusEvento';
@@ -22,6 +23,7 @@ import { FiltroPainelComponent } from 'app/modules/shared/components/filtro-pain
 import { FecharComEscDirective } from 'app/modules/shared/directives/fechar-com-esc.directive';
 import { CustomSearchSelectComponent } from 'app/modules/shared/components/custom-select/custom-select.component';
 import { OpcoesSelect } from 'app/utils/opcoes-select';
+import { EscalaCoordenadorService } from 'app/services/escala-coordenador.service';
 import { EventoService } from 'app/services/evento.service';
 import {
     CABECALHO_SEMANA, DiaDaGrade, gradeDoMes, intervaloDaGrade, mesAnterior, mesAtual, mesDaData, mesSeguinte, mesValido, nomeDoMes,
@@ -36,23 +38,53 @@ type Visao = 'lista' | 'calendario';
 
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// Célula do calendário: o dia da grade e os eventos dele.
-interface Celula {
-    dia: DiaDaGrade;
-    eventos: EventoListItem[];
-    rotulo: string; // aria-label: "14 de novembro, 3 eventos"
+/**
+ * Item desenhado na Agenda (plano 23): evento próprio ou evento de OUTRA equipe em que o coordenador foi escalado
+ * (somente leitura, vindo de `EscalaCoordenador/Listar`). A junção é só visual e só no SPA; nada é gravado nem enviado à API.
+ */
+interface ItemProprio {
+    origem: 'proprio';
+    chave: string;
+    data: string; // "yyyy-MM-dd"
+    hora: string | null;
+    evento: EventoListItem;
 }
 
-// Grupo da Lista: um dia do mês com eventos.
+interface ItemEquipe {
+    origem: 'equipe';
+    chave: string;
+    data: string;
+    hora: string | null;
+    escala: EscalaItem;
+    /** "Evento da equipe de <Coordenador>": texto sempre visível, nunca só cor. */
+    etiqueta: string;
+}
+
+type ItemAgenda = ItemProprio | ItemEquipe;
+
+// Célula do calendário: o dia da grade e os itens dele.
+interface Celula {
+    dia: DiaDaGrade;
+    itens: ItemAgenda[];
+    rotulo: string; // aria-label: "14 de novembro, 3 eventos, 1 de outras equipes"
+}
+
+// Grupo da Lista: um dia do mês com itens.
 interface GrupoDia {
     data: string;
     titulo: string; // "Sábado, 14/11"
-    eventos: EventoListItem[];
+    itens: ItemAgenda[];
+}
+
+// Igualdade de cidade sem diferenciar maiúsculas e acentos (o filtro de cidade também vale para os eventos de outras equipes).
+function semAcento(t: string | null | undefined): string {
+    return (t ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
 }
 
 // Agenda: os eventos de um mês em duas visões (Lista e Calendário). O estado (mês, visão, filtros e dia) fica na query string
 // (?mes=yyyy-MM&visao=lista|calendario&status=&tipoEventoId=&cidade=&membroId=&dia=yyyy-MM-dd). A API é chamada uma vez por
 // mês/filtros, sempre com o intervalo da grade de 42 dias (segunda a domingo); trocar de visão ou de dia não chama a API.
+// Plano 23: junto com os eventos próprios vem (`forkJoin`) a escala de OUTRAS equipes (`EscalaCoordenador/Listar`), só para desenhar.
 @Component({
     standalone: true,
     selector: 'agenda',
@@ -74,7 +106,9 @@ export class AgendaComponent implements OnInit, OnDestroy {
     membroId: string | null = null;
 
     // ---- Dados ----
-    eventos: EventoListItem[] = [];
+    proprios: EventoListItem[] = [];
+    equipeBruta: EscalaItem[] = []; // eventos de outras equipes, sem filtro de cidade (o filtro é aplicado em montar())
+    equipeFalhou = false; // só a chamada de outras equipes falhou: os próprios aparecem e uma linha avisa
     celulas: Celula[] = [];
     grupos: GrupoDia[] = [];
     loading = false;
@@ -123,6 +157,7 @@ export class AgendaComponent implements OnInit, OnDestroy {
         private _route: ActivatedRoute,
         private _router: Router,
         private _service: EventoService,
+        private _escalaCoordenador: EscalaCoordenadorService,
         private _snackBar: MatSnackBar,
         private _cdr: ChangeDetectorRef,
         private _title: Title,
@@ -153,8 +188,13 @@ export class AgendaComponent implements OnInit, OnDestroy {
         return `Nenhum evento em ${nomeDoMes(this.mes, false)}${this.filtrosAtivos ? ' com estes filtros' : ''}`;
     }
 
-    get eventosDoDiaSelecionado(): EventoListItem[] {
-        return this.dia ? this.celulas.find(c => c.dia.data === this.dia)?.eventos ?? [] : [];
+    // Status, tipo e membro não existem nos eventos de outras equipes: com qualquer um ativo só os próprios aparecem.
+    get filtraSoProprios(): boolean {
+        return this.status !== null || !!this.tipoEventoId || !!this.membroId;
+    }
+
+    get itensDoDiaSelecionado(): ItemAgenda[] {
+        return this.dia ? this.celulas.find(c => c.dia.data === this.dia)?.itens ?? [] : [];
     }
 
     get tituloDia(): string {
@@ -181,19 +221,29 @@ export class AgendaComponent implements OnInit, OnDestroy {
                 this.loading = true;
                 this._cdr.markForCheck();
             }),
-            switchMap(() => this._service.Agenda(this.filtroApi()).pipe(
-                map(lista => ({ lista, erro: null as any })),
-                catchError(erro => of({ lista: null as EventoListItem[] | null, erro })),
-            )),
+            switchMap(() => {
+                // Outras equipes: falha vira null (só uma linha avisa); com filtro de status/tipo/membro nem chama a API.
+                const intervalo = intervaloDaGrade(this.mes);
+                const equipe$ = this.filtraSoProprios
+                    ? of([] as EscalaItem[] | null)
+                    : this._escalaCoordenador.Listar(intervalo.dataDe, intervalo.dataAte).pipe(catchError(() => of(null as EscalaItem[] | null)));
+                return forkJoin({ lista: this._service.Agenda(this.filtroApi()), equipe: equipe$ }).pipe(
+                    map(r => ({ lista: r.lista as EventoListItem[] | null, equipe: r.equipe, erro: null as any })),
+                    catchError(erro => of({ lista: null as EventoListItem[] | null, equipe: null as EscalaItem[] | null, erro })),
+                );
+            }),
             takeUntil(this._destroy$),
         ).subscribe(r => {
             this.loading = false;
             this.erroCarga = !!r.erro;
+            this.equipeFalhou = !r.erro && r.equipe === null;
             if (r.erro) {
-                this.eventos = [];
+                this.proprios = [];
+                this.equipeBruta = [];
                 this._snackBar.open(mensagemErro(r.erro, 'Não foi possível carregar a agenda.'), 'X', { duration: 6000 });
             } else {
-                this.eventos = r.lista ?? [];
+                this.proprios = r.lista ?? [];
+                this.equipeBruta = r.equipe ?? [];
             }
             this.montar();
             this.rolarParaDia();
@@ -288,6 +338,18 @@ export class AgendaComponent implements OnInit, OnDestroy {
         abrirRota(this._router, this._route, ['/assinante/eventos', e.Id], event);
     }
 
+    // Evento de outra equipe: detalhe somente leitura (nunca a ficha de edição).
+    abrirEscala(e: EscalaItem, event?: MouseEvent): void {
+        event?.stopPropagation();
+        abrirRota(this._router, this._route, ['/assinante/escalas', e.EventoId], event);
+    }
+
+    // Texto lido pelo leitor de tela nos itens de outras equipes (o item inteiro é um link).
+    rotuloEscala(i: ItemEquipe): string {
+        const e = i.escala;
+        return [e.EVE_NOME, e.EVE_HORA ? formatarHora(e.EVE_HORA) : 'hora a confirmar', i.etiqueta, e.Cancelado ? 'cancelado' : null].filter(x => !!x).join(', ');
+    }
+
     // Botão de link do item: abre o fluxo do link público sem abrir a ficha.
     copiarLink(e: EventoListItem, event: Event): void {
         event.stopPropagation();
@@ -366,7 +428,7 @@ export class AgendaComponent implements OnInit, OnDestroy {
 
     trackCelula = (_: number, c: Celula) => c.dia.data;
     trackGrupo = (_: number, g: GrupoDia) => g.data;
-    trackEvento = (_: number, e: EventoListItem) => e.Id;
+    trackItem = (_: number, i: ItemAgenda) => i.chave;
 
     private diaSemanaMaiuscula(iso: string): string {
         const s = diaSemana(iso);
@@ -410,32 +472,51 @@ export class AgendaComponent implements OnInit, OnDestroy {
         };
     }
 
-    // Distribui os eventos pelos dias da grade e monta os grupos da Lista (só os dias do mês com eventos).
+    // Junta próprios e outras equipes (só visual), aplica a cidade às outras equipes, ordena por hora ("a confirmar" por último,
+    // próprios antes em empate; a ordem da API é mantida entre iguais), distribui pelos dias da grade e monta os grupos da Lista.
     private montar(): void {
-        const porDia = new Map<string, EventoListItem[]>();
-        for (const e of this.eventos) {
-            const data = (e.EVE_DATA ?? '').substring(0, 10);
-            const lista = porDia.get(data);
+        const cidade = semAcento(this.cidade);
+        const itens: ItemAgenda[] = [
+            ...this.proprios.map((e): ItemAgenda => ({
+                origem: 'proprio', chave: `p:${e.Id}`, data: (e.EVE_DATA ?? '').substring(0, 10), hora: e.EVE_HORA ?? null, evento: e,
+            })),
+            ...this.equipeBruta
+                .filter(e => !cidade || semAcento(e.EVE_CIDADE) === cidade)
+                .map((e): ItemAgenda => ({
+                    origem: 'equipe', chave: `e:${e.EventoId}`, data: (e.EVE_DATA ?? '').substring(0, 10), hora: e.EVE_HORA ?? null,
+                    escala: e, etiqueta: `Evento da equipe de ${e.CoordenadorNome}`,
+                })),
+        ];
+
+        const porDia = new Map<string, ItemAgenda[]>();
+        for (const i of itens) {
+            const lista = porDia.get(i.data);
             if (lista) {
-                lista.push(e);
+                lista.push(i);
             } else {
-                porDia.set(data, [e]);
+                porDia.set(i.data, [i]);
             }
+        }
+        const rank = (i: ItemAgenda) => (i.origem === 'proprio' ? 0 : 1);
+        for (const lista of porDia.values()) {
+            lista.sort((a, b) => (a.hora ?? '99:99:99').localeCompare(b.hora ?? '99:99:99') || rank(a) - rank(b));
         }
 
         this.celulas = gradeDoMes(this.mes).map(dia => {
-            const eventos = porDia.get(dia.data) ?? [];
+            const lista = porDia.get(dia.data) ?? [];
             const nomeMes = nomeDoMes(mesDaData(dia.data), false).split(' ')[0];
-            const qtd = eventos.length === 0 ? 'sem eventos' : eventos.length === 1 ? '1 evento' : `${eventos.length} eventos`;
-            return { dia, eventos, rotulo: `${dia.numero} de ${nomeMes}, ${qtd}` };
+            const fora = lista.filter(i => i.origem === 'equipe').length;
+            const qtd = lista.length === 0 ? 'sem eventos' : lista.length === 1 ? '1 evento' : `${lista.length} eventos`;
+            const nota = fora === 0 ? '' : fora === 1 ? ', 1 de outra equipe' : `, ${fora} de outras equipes`;
+            return { dia, itens: lista, rotulo: `${dia.numero} de ${nomeMes}, ${qtd}${nota}` };
         });
 
         this.grupos = this.celulas
-            .filter(c => !c.dia.foraDoMes && c.eventos.length > 0)
+            .filter(c => !c.dia.foraDoMes && c.itens.length > 0)
             .map(c => ({
                 data: c.dia.data,
                 titulo: `${this.diaSemanaMaiuscula(c.dia.data)}, ${formatarDiaMes(c.dia.data)}`,
-                eventos: c.eventos,
+                itens: c.itens,
             }));
     }
 

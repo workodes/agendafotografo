@@ -3,6 +3,7 @@
 - Data: 23/11/2026
 - Commit de partida: 1b85176
 - Status: Aprovado pelo colaborador (23/11/2026); back-end construído (etapas 1 a 6); front-end construído (etapas 7 a 12); revisão rodada 1 (23/11/2026): aprovado, sem Crítico nem Importante (5 itens Menores); aguarda testes
+- **Nota (24/11/2026):** com o plano 23 (Coordenador escalado por outro coordenador), o e-mail diário de lembretes passou a ser o **módulo 24** (onde este plano diz "módulo 23", leia 24).
 
 ## 1. Plano (engenheiro)
 

@@ -66,7 +66,7 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
         private _snackBar: MatSnackBar,
     ) { }
 
-    /** Conta de Fotógrafo (plano 20): o documento é só CPF e obrigatório. */
+    /** Conta de Fotógrafo (planos 20 e 23): o documento (CPF ou CNPJ) é obrigatório e a conta não tem teste grátis. */
     get ehFotografo(): boolean {
         return this.assinante?.ASS_TIPO === TipoAssinante.Fotografo;
     }
@@ -93,10 +93,10 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
             const assinante = data['data']?.assinante as Assinante | undefined;
             if (assinante) {
                 this.assinante = assinante;
-                // Fotógrafo: CPF obrigatório e só CPF; coordenador: CPF ou CNPJ, opcional (como antes).
+                // Fotógrafo: CPF ou CNPJ obrigatório; coordenador: CPF ou CNPJ, opcional (como antes).
                 const cpf = this.form.get('ASS_CPF_CNPJ')!;
                 cpf.setValidators(assinante.ASS_TIPO === TipoAssinante.Fotografo
-                    ? [Validators.required, GenericValidator.isValidCpf()]
+                    ? [Validators.required, GenericValidator.isValidCpfOrCnpj()]
                     : [GenericValidator.isValidCpfOrCnpj()]);
                 this.form.reset({
                     ASS_NOME: assinante.ASS_NOME,
@@ -205,9 +205,8 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
         if (e['email']) { return 'E-mail inválido.'; }
         if (e['maxlength']) { return `Máximo de ${e['maxlength'].requiredLength} caracteres.`; }
         if (e['telefone']) { return 'Telefone inválido (informe DDD + número).'; }
-        if (e['cpfNotValid']) { return 'Informe um CPF válido.'; }
         if (e['cpfOrCnpjNotValid']) { return 'CPF/CNPJ inválido.'; }
-        if (e['mask']) { return nome === 'ASS_TELEFONE' ? 'Telefone incompleto (DDD + número).' : (this.ehFotografo ? 'CPF incompleto.' : 'CPF/CNPJ incompleto.'); }
+        if (e['mask']) { return nome === 'ASS_TELEFONE' ? 'Telefone incompleto (DDD + número).' : 'CPF/CNPJ incompleto.'; }
         return 'Valor inválido.';
     }
 

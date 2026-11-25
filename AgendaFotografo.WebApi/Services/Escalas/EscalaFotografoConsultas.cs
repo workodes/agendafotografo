@@ -8,23 +8,25 @@ using Microsoft.EntityFrameworkCore;
 namespace AgendaFotografo.WebApi.Services.Escalas;
 
 /// <summary>
-/// ÚNICO lugar da regra do vínculo entre o fotógrafo e os eventos de coordenadores. O vínculo é vivo (calculado a cada leitura, nada é copiado):
-/// parte do CPF da conta (lido do banco pelo <see cref="FotografoEscopo"/>; nulo ou sem 11 dígitos = nenhum evento) e só vale para
-/// membros com o mesmo <c>MEM_CPF</c> de OUTRO assinante, do tipo Coordenador e ativo, com membro, escala e evento do MESMO assinante.
-/// <c>MEM_ATIVO</c> não interfere. Removido da escala, evento excluído, CPF trocado/apagado ou coordenador bloqueado = some.
-/// Nunca loga o CPF.
+/// ÚNICO lugar da regra do vínculo por documento de fotógrafo ou coordenador (plano 23) com os eventos de outros coordenadores. O vínculo é vivo
+/// (calculado a cada leitura, nada é copiado): parte do documento da conta (CPF de 11 ou CNPJ de 14 dígitos, lido do banco pelo
+/// <see cref="FotografoEscopo"/>; nulo ou de outro tamanho = nenhum evento) e só vale para membros com o MESMO <c>MEM_CPF</c> (CPF com CPF,
+/// CNPJ com CNPJ) de OUTRO assinante, do tipo Coordenador e ativo, com membro, escala e evento do MESMO assinante.
+/// <c>MEM_ATIVO</c> não interfere. Removido da escala, evento excluído, documento trocado/apagado ou coordenador bloqueado = some.
+/// Nunca loga o documento.
 /// </summary>
 public class EscalaFotografoConsultas(IBaseRepository<EventoMembro> repEventoMembro, FotografoEscopo fotografoEscopo)
 {
     private readonly IBaseRepository<EventoMembro> _repEventoMembro = repEventoMembro;
     private readonly FotografoEscopo _fotografoEscopo = fotografoEscopo;
 
-    /// <summary>Linhas de escala vinculadas ao fotógrafo logado; nulo quando a conta não tem CPF de 11 dígitos.</summary>
+    /// <summary>Linhas de escala vinculadas ao fotógrafo logado; nulo quando a conta não tem documento de 11 (CPF) ou 14 (CNPJ) dígitos.</summary>
     private async Task<IQueryable<EventoMembro>?> ConsultarAsync(CancellationToken cancellationToken)
     {
-        var conta = await _fotografoEscopo.ObterContaAsync(cancellationToken);
+        var conta = await _fotografoEscopo.ObterContaEscalaAsync(cancellationToken);
         var cpf = conta.Cpf;
-        if (string.IsNullOrEmpty(cpf) || cpf.Length != 11 || !cpf.All(char.IsAsciiDigit)) return null;
+        // O documento do banco já entrou validado (CPF/CNPJ); aqui só o portão de tamanho e dígitos, sem revalidar os verificadores
+        if (string.IsNullOrEmpty(cpf) || cpf.Length is not (11 or 14) || !cpf.All(char.IsAsciiDigit)) return null;
 
         var contaId = conta.AssinanteId;
         return _repEventoMembro.SelectContext().AsNoTracking()
@@ -60,7 +62,7 @@ public class EscalaFotografoConsultas(IBaseRepository<EventoMembro> repEventoMem
             })
             .ToListAsync(cancellationToken);
 
-        // O mesmo CPF em dois membros do mesmo coordenador não duplica o evento (a ordem acima já é estável)
+        // O mesmo documento em dois membros do mesmo coordenador não duplica o evento (a ordem acima já é estável)
         return [.. linhas.DistinctBy(x => x.EventoId)];
     }
 
@@ -99,7 +101,7 @@ public class EscalaFotografoConsultas(IBaseRepository<EventoMembro> repEventoMem
         return linhas.FirstOrDefault();
     }
 
-    /// <summary>Id do coordenador (assinante dono do evento) quando o fotógrafo tem vínculo com o evento; senão nulo.</summary>
+    /// <summary>Id do coordenador (assinante dono do evento) quando a conta logada tem vínculo com o evento; senão nulo.</summary>
     public async Task<Guid?> ObterCoordenadorIdAsync(Guid eventoId, CancellationToken cancellationToken)
     {
         var query = await ConsultarAsync(cancellationToken);

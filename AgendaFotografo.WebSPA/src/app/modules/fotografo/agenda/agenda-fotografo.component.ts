@@ -22,7 +22,7 @@ import { abrirRota } from 'app/utils/navegar';
 type Visao = 'lista' | 'calendario';
 
 /**
- * Item da agenda do Fotógrafo: evento de um coordenador em que ele foi escalado (pelo CPF gravado na Equipe).
+ * Item da agenda do Fotógrafo: evento de um coordenador em que ele foi escalado (pelo documento, CPF ou CNPJ, gravado na Equipe).
  * Somente leitura; abre `/fotografo/escalas/:id`.
  */
 export interface ItemAgenda {

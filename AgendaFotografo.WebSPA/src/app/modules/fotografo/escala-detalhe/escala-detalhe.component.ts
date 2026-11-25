@@ -9,6 +9,8 @@ import { Observable, Subject, takeUntil } from 'rxjs';
 import { EscalaEventoModel } from 'app/models/DTOs/responses/EscalaEventoModel';
 import { TipoArquivoEvento } from 'app/models/enums/TipoArquivoEvento';
 import { MapaGpxComponent } from 'app/modules/shared/components/mapa-gpx/mapa-gpx.component';
+import { AuthService } from 'app/core/auth/auth.service';
+import { EscalaCoordenadorService } from 'app/services/escala-coordenador.service';
 import { EscalaService } from 'app/services/escala.service';
 import { diaSemana, formatarData, formatarHora, parseDataIso } from 'app/utils/data-evento';
 import { linkMaps, urlSegura } from 'app/utils/link-publico';
@@ -19,6 +21,8 @@ type Estado = 'carregando' | 'evento' | 'naoEncontrado' | 'erro';
 
 /**
  * Evento em que um coordenador escalou o Fotógrafo (plano 20, Parte B): tela SOMENTE LEITURA no visual do link público.
+ * Plano 23: o mesmo componente serve o Assinante (coordenador escalado por outro coordenador, `/assinante/escalas/:id`);
+ * o service e a rota de volta saem do perfil da sessão. (Mover para `modules/shared` fica para depois.)
  * Mostra só o que a API devolve (lista branca). Só interpolação (nunca innerHTML); links externos só http/https;
  * a imagem da rota vem por blob autenticado e é revogada ao sair.
  */
@@ -35,6 +39,8 @@ export class EscalaDetalheComponent implements OnInit, OnDestroy {
     mensagemErroPagina = '';
     rotaUrl: string | null = null;
     rotaFalhou = false;
+    flyerUrl: string | null = null;
+    flyerFalhou = false;
 
     private _id = '';
     private _destroy$ = new Subject<void>();
@@ -42,10 +48,21 @@ export class EscalaDetalheComponent implements OnInit, OnDestroy {
     constructor(
         private _route: ActivatedRoute,
         private _router: Router,
-        private _service: EscalaService,
+        private _escalaFotografo: EscalaService,
+        private _escalaCoordenador: EscalaCoordenadorService,
+        private _auth: AuthService,
         private _title: Title,
         private _cdr: ChangeDetectorRef,
     ) { }
+
+    /** Perfil da sessão: o coordenador usa `EscalaCoordenador/*` e volta para `/assinante/agenda`; o fotógrafo, `Escala/*` e `/fotografo/agenda`. */
+    private get _ehAssinante(): boolean {
+        return this._auth.getUserRole() === 'Assinante';
+    }
+
+    private get _service(): EscalaService | EscalaCoordenadorService {
+        return this._ehAssinante ? this._escalaCoordenador : this._escalaFotografo;
+    }
 
     ngOnInit(): void {
         this._title.setTitle('Evento');
@@ -67,7 +84,7 @@ export class EscalaDetalheComponent implements OnInit, OnDestroy {
 
     voltar(): void {
         const dia = parseDataIso(this.evento?.EVE_DATA) ? this.evento!.EVE_DATA.substring(0, 10) : null;
-        this._router.navigate(['/fotografo/agenda'], { queryParams: dia ? { mes: dia.substring(0, 7), dia } : {} });
+        this._router.navigate([this._ehAssinante ? '/assinante/agenda' : '/fotografo/agenda'], { queryParams: dia ? { mes: dia.substring(0, 7), dia } : {} });
     }
 
     // ---- Derivados (links sempre passam por urlSegura/linkMaps: só http/https) ----
@@ -136,6 +153,9 @@ export class EscalaDetalheComponent implements OnInit, OnDestroy {
                 if (evento.TemImagemRota) {
                     this.baixarImagem();
                 }
+                if (evento.TemFlyer) {
+                    this.baixarFlyer();
+                }
                 this._cdr.markForCheck();
             },
             error: error => {
@@ -169,11 +189,39 @@ export class EscalaDetalheComponent implements OnInit, OnDestroy {
         });
     }
 
+    // Flyer (plano 23, fotógrafo e coordenador): imagem por blob autenticado, revogada ao trocar de evento e ao sair.
+    private baixarFlyer(): void {
+        const id = this._id;
+        this._service.Arquivo(id, TipoArquivoEvento.Flyer).pipe(takeUntil(this._destroy$)).subscribe({
+            next: blob => {
+                if (this.estado !== 'evento' || id !== this._id) {
+                    return;
+                }
+                this.revogarFlyer();
+                this.flyerUrl = URL.createObjectURL(blob);
+                this._cdr.markForCheck();
+            },
+            error: () => {
+                this.flyerFalhou = true;
+                this._cdr.markForCheck();
+            },
+        });
+    }
+
     private revogarImagem(): void {
         if (this.rotaUrl) {
             URL.revokeObjectURL(this.rotaUrl);
         }
         this.rotaUrl = null;
         this.rotaFalhou = false;
+        this.revogarFlyer();
+    }
+
+    private revogarFlyer(): void {
+        if (this.flyerUrl) {
+            URL.revokeObjectURL(this.flyerUrl);
+        }
+        this.flyerUrl = null;
+        this.flyerFalhou = false;
     }
 }

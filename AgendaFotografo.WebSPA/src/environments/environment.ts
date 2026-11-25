@@ -77,6 +77,12 @@ export const environment = {
         obter: `${baseUrl}/Escala/Obter`,
         arquivo: `${baseUrl}/Escala/Arquivo`,
     },
+    // Eventos de outras equipes em que o coordenador foi escalado (plano 23; só o perfil Assinante, somente leitura).
+    EscalaCoordenador: {
+        listar: `${baseUrl}/EscalaCoordenador/Listar`,
+        obter: `${baseUrl}/EscalaCoordenador/Obter`,
+        arquivo: `${baseUrl}/EscalaCoordenador/Arquivo`,
+    },
     // Agenda pessoal do Fotógrafo (plano 20; só o perfil Fotografo).
     EventoPessoal: {
         agenda: `${baseUrl}/EventoPessoal/Agenda`,
