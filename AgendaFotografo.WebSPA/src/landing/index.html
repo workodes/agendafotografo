@@ -336,6 +336,20 @@
     .widget .bola{width:26px;height:26px;flex:0 0 26px;font-size:13px}
   }
   .previa.print img{display:block;width:100%;height:auto;border-radius:12px;border:1px solid var(--borda)}
+  /* Recurso 05: prévia do cartão "Luz e tempo" do link do evento (valores reais de Florianópolis, 14/03, 6h30) */
+  .luz-sol{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .luz-sol div{border-radius:12px;padding:10px 12px;background:var(--creme)}
+  .luz-sol div+div{background:var(--pessego)}
+  .luz-sol small{display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--marrom)}
+  .luz-sol b{display:block;font-family:var(--fonte-display);font-size:26px;line-height:1.1;color:var(--marrom-fundo)}
+  .luz-sol span{font-size:12px;color:var(--texto-suave)}
+  .luz-caixa{margin-top:8px;border:1px solid var(--borda);border-radius:12px;padding:10px 12px;display:flex;gap:12px;align-items:center;font-size:13px;line-height:1.4}
+  .luz-caixa svg{flex:0 0 64px;width:64px;height:64px}
+  .luz-caixa .ico-clima{flex:0 0 40px;width:40px;height:40px;border-radius:50%;background:var(--pessego);display:grid;place-items:center}
+  .luz-caixa .ico-clima svg{flex:0 0 24px;width:24px;height:24px}
+  .luz-caixa strong{display:block;color:var(--marrom-fundo)}
+  .luz-caixa p{margin:0;font-size:13px;color:var(--texto-suave)}
+  .luz-rodape{margin-top:8px;font-size:11px;color:var(--texto-suave)}
   .telas{padding:96px 0 56px;background:var(--branco)}
   .telas h2{font-size:48px;font-weight:800;text-align:center}
   .telas-sub{text-align:center;color:var(--texto-suave);margin:12px 0 40px}
@@ -379,7 +393,7 @@
 </svg>
 
 <!-- 0. Faixa de aviso -->
-<div class="aviso" id="aviso">Novo: mande o flyer da prova e o Assistente com IA cadastra o evento para você. <a href="#recurso-3">Ver como funciona →</a><button type="button" class="fechar" id="fechar-aviso" aria-label="Fechar aviso">×</button></div>
+<div class="aviso" id="aviso">Novo: o link do evento mostra a hora dourada e de que lado vem o sol na hora da prova. <a href="#recurso-luz">Ver como funciona →</a><button type="button" class="fechar" id="fechar-aviso" aria-label="Fechar aviso">×</button></div>
 
 <!-- 1. Cabeçalho -->
 <header>
@@ -425,7 +439,7 @@
   <div class="wrap">
     <div class="titulo-secao">
       <h2>Então, o que você pode fazer com o <span class="destaque">quemclica</span>?</h2>
-      <p>Cinco coisas que mudam a semana de quem coordena uma equipe de fotografia.</p>
+      <p>Seis coisas que mudam a semana de quem coordena uma equipe de fotografia.</p>
     </div>
 
     <!-- Recurso 1 -->
@@ -508,17 +522,55 @@
       </div>
     </div>
 
-    <!-- Recurso 5 -->
-    <div class="cartao-escuro" id="recurso-5">
+    <!-- Recurso 5: Luz e tempo (cartão do link do evento, evento-condicoes) -->
+    <div class="cartao-escuro" id="recurso-luz">
       <div class="texto">
         <span class="num">05</span>
+        <h3>Onde vai estar o sol na largada?</h3>
+        <p>No link do evento, cada fotógrafo vê a hora do nascer e do pôr do sol, a hora dourada e de que lado vem o sol no horário da prova. Assim ele já chega sabendo onde o atleta fica em contraluz. A previsão do tempo aparece a partir de 15 dias antes, com chance de chuva e vento.</p>
+        <ul><li>Nascer, pôr do sol e hora dourada</li><li>Lado do sol na hora do evento, com dica de contraluz</li><li>Previsão do tempo, chuva e vento</li></ul>
+        <span class="nota-mao">sem surpresa de contraluz na largada!</span>
+      </div>
+      <div class="previa">
+        <div class="topo"><b>Luz e tempo</b><span class="chip ok">Sáb, 14/03 · 06:30</span></div>
+        <div class="luz-sol">
+          <div><small>Nascer do sol</small><b>06:15</b><span>Hora dourada até 06:46</span></div>
+          <div><small>Pôr do sol</small><b>18:33</b><span>Hora dourada desde 18:02</span></div>
+        </div>
+        <div class="luz-caixa">
+          <svg viewBox="0 0 64 64" role="img" aria-label="Bússola com o sol vindo do leste, a 3 graus de altura">
+            <circle cx="32" cy="32" r="27" fill="#FFF7ED" stroke="#F0E2D6" stroke-width="1.5"/>
+            <text x="32" y="12" text-anchor="middle" font-size="8" font-weight="700" fill="#78716C" font-family="Inter, sans-serif">N</text>
+            <text x="32" y="58" text-anchor="middle" font-size="8" fill="#78716C" font-family="Inter, sans-serif">S</text>
+            <text x="56" y="35" text-anchor="middle" font-size="8" fill="#78716C" font-family="Inter, sans-serif">L</text>
+            <text x="8" y="35" text-anchor="middle" font-size="8" fill="#78716C" font-family="Inter, sans-serif">O</text>
+            <g transform="rotate(92 32 32)">
+              <line x1="32" y1="32" x2="32" y2="20" stroke="#F97316" stroke-width="2" stroke-dasharray="2 2"/>
+              <circle cx="32" cy="19" r="4.5" fill="#F97316"/>
+            </g>
+            <circle cx="32" cy="32" r="2.5" fill="#44403C"/>
+          </svg>
+          <div><strong>Sol às 06:30: vindo do leste, a 3° de altura</strong><p>Luz dourada e muito baixa. Fotografando virado para o leste, contraluz forte.</p></div>
+        </div>
+        <div class="luz-caixa">
+          <span class="ico-clima" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#C2410C" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg></span>
+          <div><strong>Às 06:30: céu limpo, 22°C</strong><p>Chuva 5% · Vento 9 km/h</p></div>
+        </div>
+        <div class="luz-rodape">Calculado para o ponto de largada.</div>
+      </div>
+    </div>
+
+    <!-- Recurso 6 -->
+    <div class="cartao-escuro invertido" id="recurso-5">
+      <div class="texto">
+        <span class="num">06</span>
         <h3>Controle o seu financeiro</h3>
         <p>Lance receitas e despesas em segundos. Cadastre os gastos fixos uma vez e eles entram sozinhos todo mês. Os gráficos mostram o saldo e para onde vai o dinheiro.</p>
         <ul><li>Receitas, despesas e saldo do período</li><li>Gastos fixos lançados todo mês</li><li>Gráficos por mês e por categoria</li></ul>
       </div>
       <div class="previa print">
         <div class="topo"><b>Financeiro</b><span class="chip ok">Saldo positivo</span></div>
-        <img src="/landing/tela-financeiro.png" width="1216" height="764" loading="lazy" alt="Tela Financeiro do quemclica com os cartões de receitas, despesas e saldo e a lista de lançamentos com categoria e valor">
+        <img src="/landing/tela-financeiro-2026-11.png" width="1216" height="764" loading="lazy" alt="Tela Lançamentos do Financeiro do quemclica com os cartões de receitas, despesas e saldo, os botões Gastos fixos e Novo lançamento e a lista de lançamentos com categoria e valor">
       </div>
     </div>
   </div>
