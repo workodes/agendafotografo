@@ -14,7 +14,7 @@ import { FuseConfirmationService } from '@fuse/services/confirmation';
 import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
 import { filter } from 'rxjs';
 import { CATEGORIA_LANCAMENTO, CategoriaLancamento } from 'app/models/enums/CategoriaLancamento';
-import { TIPO_LANCAMENTO, TipoLancamento } from 'app/models/enums/TipoLancamento';
+import { TipoLancamento } from 'app/models/enums/TipoLancamento';
 import { Lancamento } from 'app/models/entities/Lancamento';
 import { LancamentoService } from 'app/services/lancamento.service';
 import { formatarDataIso, hojeIso, parseDataIso } from 'app/utils/data-evento';
@@ -25,16 +25,29 @@ import { valorValido } from 'app/utils/valor-validator';
 export interface LancamentoDialogData {
     // Preenchido na edição (carrega por Obter).
     id?: string | null;
-    // Tipo inicial de um lançamento novo ("Nova receita" / "Nova despesa").
+    // Tipo inicial de um lançamento novo (Receita ou Despesa). Padrão: Despesa.
     tipo?: number;
 }
 
-// Modal do lançamento (criar, editar e excluir). Fecha devolvendo true quando algo mudou. Avisa o LancamentoService (alterado$),
-// então a lista, os cartões e os gráficos recarregam sozinhos.
+interface OpcaoTipo {
+    valor: number;
+    rotulo: string;
+    icone: string;
+    classe: string;
+}
+
+const OPCOES_TIPO: OpcaoTipo[] = [
+    { valor: TipoLancamento.Receita, rotulo: 'Receita', icone: 'heroicons_outline:arrow-trending-up', classe: 'tipo-receita' },
+    { valor: TipoLancamento.Despesa, rotulo: 'Despesa', icone: 'heroicons_outline:arrow-trending-down', classe: 'tipo-despesa' },
+];
+
+// Modal do lançamento (plano 22): Receita ou Despesa; criar, editar e excluir. Fecha devolvendo true quando algo mudou. Avisa o
+// LancamentoService (alterado$), então a lista, os cartões e os gráficos recarregam sozinhos. Gasto fixo tem modal próprio.
 @Component({
     standalone: true,
     selector: 'app-lancamento-dialog',
     templateUrl: './lancamento-dialog.component.html',
+    styleUrl: './lancamento-dialog.component.scss',
     providers: [provideNgxMask()],
     imports: [
         CommonModule, ReactiveFormsModule, NgxMaskDirective,
@@ -49,7 +62,7 @@ export class LancamentoDialogComponent implements OnInit {
     private _confirmacao = inject(FuseConfirmationService);
     readonly data = inject<LancamentoDialogData>(MAT_DIALOG_DATA);
 
-    readonly tipos = TIPO_LANCAMENTO;
+    readonly opcoesTipo = OPCOES_TIPO;
     readonly categorias = CATEGORIA_LANCAMENTO;
     readonly dataMin = new Date(2000, 0, 1);
     readonly dataMax = new Date(2100, 11, 31);
@@ -197,5 +210,5 @@ export class LancamentoDialogComponent implements OnInit {
     }
 }
 
-// Abre o modal do lançamento (560 px, 95vw no celular), como o modal da pendência.
-export const LANCAMENTO_DIALOG_CONFIG = { width: '560px', maxWidth: '95vw', autoFocus: 'first-tabbable' } as const;
+// Abre o modal (600 px, 95vw no celular), como o modal da pendência.
+export const LANCAMENTO_DIALOG_CONFIG = { width: '600px', maxWidth: '95vw', autoFocus: 'first-tabbable' } as const;

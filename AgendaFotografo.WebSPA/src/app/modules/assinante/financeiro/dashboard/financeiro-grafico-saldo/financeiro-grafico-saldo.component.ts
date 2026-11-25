@@ -31,15 +31,15 @@ export class FinanceiroGraficoSaldoComponent {
     linhas: LinhaTabela[] = [];
 
     series: any[] = [];
-    chart: any = { ...chartBase(260), type: 'line' };
+    chart: any = { ...chartBase(320), type: 'line' };
     // Marrom do apoio (#7C2D12): linha sem texto, contraste alto sobre o fundo branco.
     colors: string[] = ['#7C2D12'];
     stroke: any = { curve: 'straight', width: 3 };
     markers: any = { size: 3, strokeWidth: 0, hover: { size: 5 } };
     dataLabels: any = { enabled: false };
-    xaxis: any = { categories: [] as string[], labels: { rotate: -45, rotateAlways: false, hideOverlappingLabels: true, style: { colors: COR_SECUNDARIA_GRAFICO, fontSize: '11px' } }, axisTicks: { show: false }, tickPlacement: 'on' };
+    xaxis: any = { categories: [] as string[], labels: { rotate: -45, rotateAlways: false, hideOverlappingLabels: true, trim: false, maxHeight: 56, style: { colors: COR_SECUNDARIA_GRAFICO, fontSize: '11px' } }, axisTicks: { show: false }, tickPlacement: 'on' };
     yaxis: any = { labels: { formatter: (v: number) => formatarMoedaCompacta(v), style: { colors: COR_SECUNDARIA_GRAFICO, fontSize: '11px' } } };
-    grid: any = { borderColor: '#F0E2D6', strokeDashArray: 3 };
+    grid: any = { borderColor: '#F0E2D6', strokeDashArray: 3, padding: { left: 8, right: 16 } };
     legend: any = { show: false };
     tooltip: any = { y: { formatter: (v: number) => textoMoeda(v) } };
 

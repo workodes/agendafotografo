@@ -12,7 +12,6 @@ import { UsuarioService } from 'app/core/services/usuario.service';
 import { NavigationService } from 'app/core/navigation/navigation.service';
 import { Navigation } from 'app/core/navigation/navigation.types';
 import { AlterarSenhaDialogComponent } from 'app/layout/common/user/alterar-senha-dialog/alterar-senha-dialog.component';
-import { TesteGratisComponent } from 'app/layout/common/teste-gratis/teste-gratis.component';
 import { UserComponent } from 'app/layout/common/user/user.component';
 import { AssistenteComponent } from 'app/layout/common/assistente/assistente.component';
 import { ChatService } from 'app/services/chat.service';
@@ -28,7 +27,7 @@ import { Subject, filter, takeUntil } from 'rxjs';
     styleUrls    : ['./modern-component.scss'],
     encapsulation: ViewEncapsulation.None,
     standalone   : true,
-    imports      : [FuseLoadingBarComponent, RouterModule, NgIf, NgClass, AssistenteComponent, FuseVerticalNavigationComponent, FuseHorizontalNavigationComponent, MatButtonModule, MatIconModule, UserComponent, TesteGratisComponent, AvisosComponent, BuscaGlobalComponent, RouterOutlet, FecharComEscDirective],
+    imports      : [FuseLoadingBarComponent, RouterModule, NgIf, NgClass, AssistenteComponent, FuseVerticalNavigationComponent, FuseHorizontalNavigationComponent, MatButtonModule, MatIconModule, UserComponent, AvisosComponent, BuscaGlobalComponent, RouterOutlet, FecharComEscDirective],
 })
 export class ModernLayoutComponent implements OnInit, OnDestroy
 {
@@ -170,7 +169,7 @@ export class ModernLayoutComponent implements OnInit, OnDestroy
         return this.authService.getRotaInicial();
     }
 
-    /** Sino de avisos, busca global, aviso do teste grátis e Assistente são só do Assinante (o Fotógrafo recebe 403 nos endpoints do coordenador); o Admin mantém o cabeçalho enxuto. */
+    /** Sino de avisos, busca global e Assistente são só do Assinante (o Fotógrafo recebe 403 nos endpoints do coordenador); o Admin mantém o cabeçalho enxuto. */
     get ehAssinante(): boolean {
         return this.authService.getUserRole() === ROLE_NAMES.Assinante;
     }

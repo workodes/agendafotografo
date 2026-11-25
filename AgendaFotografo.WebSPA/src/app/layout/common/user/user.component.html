@@ -20,6 +20,15 @@
         </div>
     </div>
 
+    <div *ngIf="testeTexto" role="status" class="menu-usuario-teste" [class.menu-usuario-teste-alerta]="testeAlerta"
+        (click)="$event.stopPropagation()">
+        <mat-icon [svgIcon]="testeAlerta ? 'heroicons_outline:exclamation-triangle' : 'heroicons_outline:clock'"></mat-icon>
+        <div class="flex flex-col min-w-0">
+            <span class="font-semibold">{{testeTexto}}</span>
+            <span *ngIf="testeDica" class="text-xs">{{testeDica}}</span>
+        </div>
+    </div>
+
     <button *ngIf="usuario?.TemSenha !== false" mat-menu-item (click)="alterarSenha()">
         <mat-icon [svgIcon]="'heroicons_outline:key'"></mat-icon>
         <span>Alterar senha</span>

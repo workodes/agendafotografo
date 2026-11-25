@@ -56,15 +56,17 @@
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 px-4 sm:px-6 md:px-8 py-3 sm:py-4 border-b shrink-0">
         <div class="flex flex-col min-w-0">
             <div class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">Agenda</div>
-            <div class="text-lg text-secondary leading-tight">{{ nomeMes }}</div>
         </div>
 
         <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
             <div class="flex items-center gap-1">
+                <!-- Link "Hoje" à esquerda: volta ao mês atual (desabilitado quando já está nele) -->
+                <button type="button" class="mr-2 rounded px-1 text-base font-semibold text-primary hover:underline disabled:cursor-default disabled:text-secondary disabled:no-underline"
+                    [disabled]="ehMesAtual" (click)="irParaHoje()">Hoje</button>
                 <button mat-icon-button type="button" aria-label="Mês anterior" title="Mês anterior" (click)="mesAnterior()">
                     <mat-icon svgIcon="heroicons_outline:chevron-left"></mat-icon>
                 </button>
-                <button mat-stroked-button type="button" [disabled]="ehMesAtual" (click)="irParaHoje()">Hoje</button>
+                <span class="min-w-[9.5rem] text-center text-lg font-semibold leading-tight" aria-live="polite">{{ nomeMes }}</span>
                 <button mat-icon-button type="button" aria-label="Próximo mês" title="Próximo mês" (click)="mesSeguinte()">
                     <mat-icon svgIcon="heroicons_outline:chevron-right"></mat-icon>
                 </button>
@@ -244,14 +246,13 @@
                                     (keydown.enter)="abrirEvento(e); $event.stopPropagation()">
                                     <span class="font-semibold">{{ e.EVE_HORA ? formatarHora(e.EVE_HORA) : '--:--' }}</span> {{ e.EVE_NOME }}
                                 </div>
-                                <!-- Outra equipe: pílula marrom com ícone de grupo; a etiqueta completa vai no title e no aria-label -->
+                                <!-- Outra equipe: pílula marrom só com hora e título (sem ícone); a etiqueta completa vai no title e no aria-label -->
                                 <div *ngIf="i.origem === 'equipe'" role="link" tabindex="0"
                                     class="truncate rounded px-1 text-[11px] leading-5 bg-accent-100 text-accent-900 border-l-2 border-l-accent-700 hover:brightness-95"
                                     [class.line-through]="i.escala.Cancelado"
                                     [attr.title]="i.etiqueta + ': ' + i.escala.EVE_NOME" [attr.aria-label]="rotuloEscala(i)"
                                     (click)="abrirEscala(i.escala, $event)" (auxclick)="abrirEscala(i.escala, $event)"
                                     (keydown.enter)="abrirEscala(i.escala); $event.stopPropagation()">
-                                    <mat-icon class="!w-3 !h-3 !min-w-0 align-middle text-current" svgIcon="heroicons_outline:user-group"></mat-icon>
                                     <span class="font-semibold">{{ i.escala.EVE_HORA ? formatarHora(i.escala.EVE_HORA) : '--:--' }}</span> {{ i.escala.EVE_NOME }}
                                 </div>
                             </ng-container>

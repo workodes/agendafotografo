@@ -1,0 +1,14 @@
+// O contêiner cobre a tela mas não captura cliques; só o painel aberto e o fundo escuro respondem.
+:host {
+    display: contents;
+}
+
+.fixos-painel {
+    ::ng-deep .mat-drawer-content {
+        pointer-events: none;
+    }
+
+    ::ng-deep .mat-drawer-backdrop {
+        pointer-events: auto;
+    }
+}

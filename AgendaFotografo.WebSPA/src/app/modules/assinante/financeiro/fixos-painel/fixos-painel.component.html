@@ -1,0 +1,101 @@
+<!-- Painel lateral dos gastos fixos. O contêiner cobre a tela (fixed) mas não captura cliques: só o painel aberto e o fundo escuro respondem. -->
+<mat-drawer-container class="fixos-painel fixed inset-0 z-[60] pointer-events-none bg-transparent" (backdropClick)="fechar()" appFecharComEsc (esc)="aoEsc()">
+
+    <mat-drawer class="w-full sm:w-[520px] max-w-full pointer-events-auto" mode="over" position="end" autoFocus="dialog" [disableClose]="true" #drawer
+        (closedStart)="aoFechar()" role="dialog" aria-modal="true" aria-labelledby="fixos-painel-titulo">
+        <div class="flex flex-col h-full min-w-0 bg-card">
+
+            <!-- Cabeçalho -->
+            <div class="flex items-center gap-2 px-4 sm:px-6 h-16 shrink-0 border-b">
+                <mat-icon class="shrink-0 text-primary-700" svgIcon="heroicons_outline:rectangle-stack"></mat-icon>
+                <h2 id="fixos-painel-titulo" class="flex-1 m-0 text-xl font-semibold tracking-tight text-accent-900 truncate">Gastos fixos</h2>
+                <button mat-flat-button color="primary" type="button" class="shrink-0" aria-label="Novo gasto fixo" (click)="novo()">
+                    <mat-icon svgIcon="heroicons_outline:plus"></mat-icon>
+                    <span class="ml-2 hidden min-[420px]:inline">Novo gasto fixo</span>
+                    <span class="ml-2 min-[420px]:hidden">Novo</span>
+                </button>
+                <button mat-icon-button type="button" class="shrink-0" aria-label="Fechar" (click)="fechar()">
+                    <mat-icon svgIcon="heroicons_outline:x-mark"></mat-icon>
+                </button>
+            </div>
+
+            <!-- Conteúdo rolável -->
+            <div class="flex flex-col flex-auto min-h-0 overflow-y-auto p-4 sm:p-6 gap-4">
+                <p class="m-0 text-sm text-secondary">Gastos que se repetem todo mês viram uma despesa nos seus lançamentos.</p>
+
+                <!-- Cartão: total fixo mensal -->
+                <div *ngIf="estadoResumo === 'carregando' && !resumo" class="flex items-center gap-3 px-4 py-3 min-h-[5rem] w-full rounded-2xl shadow bg-card animate-pulse motion-reduce:animate-none" role="status" aria-label="Carregando">
+                    <div class="shrink-0 w-10 h-10 rounded-full bg-gray-200"></div>
+                    <div class="flex flex-col flex-auto gap-2"><div class="h-3 w-1/2 rounded bg-gray-200"></div><div class="h-6 w-2/3 rounded bg-gray-200"></div></div>
+                </div>
+                <button *ngIf="estadoResumo === 'erro'" type="button" class="flex flex-col justify-center items-start px-4 py-3 min-h-[5rem] w-full rounded-2xl shadow bg-card text-left" (click)="carregarResumo()">
+                    <span class="text-sm font-medium text-secondary">Total fixo mensal</span>
+                    <span class="mt-1 text-sm text-secondary">Não foi possível carregar. Tentar de novo</span>
+                </button>
+                <div *ngIf="resumo && estadoResumo !== 'erro'" class="flex items-center gap-3 px-4 py-3 min-h-[5rem] w-full rounded-2xl shadow bg-card min-w-0" [class.opacity-60]="estadoResumo === 'carregando'">
+                    <span class="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-primary-100 text-primary-700"><mat-icon class="icon-size-5" svgIcon="heroicons_outline:rectangle-stack"></mat-icon></span>
+                    <div class="flex flex-col min-w-0">
+                        <div class="text-sm font-medium text-secondary truncate">Total fixo mensal</div>
+                        <div class="text-lg sm:text-xl font-bold tracking-tight leading-tight text-red-700 break-words tabular-nums">{{ formatarMoeda(resumo.TotalMensalAtivos) }}</div>
+                        <div class="text-xs text-secondary">{{ textoContagem(resumo) }}</div>
+                    </div>
+                </div>
+
+                <div *ngIf="estadoLista === 'carregando' && itens.length === 0" class="flex items-center justify-center py-12" role="status" aria-label="Carregando">
+                    <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
+                </div>
+
+                <div *ngIf="estadoLista === 'erro'" role="alert" class="flex flex-col items-center gap-2 py-10 text-center text-secondary">
+                    <div>{{ erroLista }}</div>
+                    <button mat-stroked-button type="button" (click)="carregarLista()">Tentar de novo</button>
+                </div>
+
+                <div *ngIf="estadoLista === 'pronto' && itens.length === 0" class="flex flex-col items-center gap-2 py-12 text-center text-secondary">
+                    <mat-icon class="icon-size-14 text-hint" svgIcon="heroicons_outline:rectangle-stack"></mat-icon>
+                    <div class="text-lg font-medium">Nenhum gasto fixo cadastrado</div>
+                    <div class="text-sm">Cadastre aluguel, assinaturas e outras despesas que se repetem todo mês.</div>
+                </div>
+
+                <div *ngIf="itens.length > 0 && estadoLista !== 'erro'" [class.opacity-60]="estadoLista === 'carregando'" [attr.aria-busy]="estadoLista === 'carregando'" class="transition-opacity">
+                    <ul class="flex flex-col gap-2 list-none m-0 p-0">
+                        <li *ngFor="let g of itens; trackBy: trackItem" class="flex items-center gap-2 pl-4 pr-1 py-3 rounded-2xl shadow bg-card min-w-0" [class.opacity-70]="!g.GAF_ATIVO">
+                            <div class="flex flex-col min-w-0 flex-1">
+                                <div class="font-medium break-words">{{ g.GAF_TITULO }}</div>
+                                <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-secondary">
+                                    <span>{{ categoriaRotulo[g.GAF_CATEGORIA] }}</span>
+                                    <span aria-hidden="true">·</span>
+                                    <span>Todo dia {{ g.GAF_DIA }}</span>
+                                    <span class="leading-none rounded-full px-2 py-1 font-semibold"
+                                        [ngClass]="g.GAF_ATIVO ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-700'">{{ g.GAF_ATIVO ? 'Ativo' : 'Pausado' }}</span>
+                                </div>
+                            </div>
+                            <div class="shrink-0 font-semibold tabular-nums text-red-700">{{ formatarMoeda(g.GAF_VALOR) }}</div>
+
+                            <button mat-icon-button type="button" [matMenuTriggerFor]="menu" [disabled]="ocupadoId === g.Id" [attr.aria-label]="'Ações de ' + g.GAF_TITULO">
+                                <mat-icon *ngIf="ocupadoId !== g.Id" svgIcon="heroicons_outline:ellipsis-vertical"></mat-icon>
+                                <mat-progress-spinner *ngIf="ocupadoId === g.Id" diameter="20" mode="indeterminate"></mat-progress-spinner>
+                            </button>
+                            <mat-menu #menu="matMenu">
+                                <button mat-menu-item type="button" (click)="editar(g)">
+                                    <mat-icon svgIcon="heroicons_outline:pencil-square"></mat-icon>
+                                    <span>Editar</span>
+                                </button>
+                                <button mat-menu-item type="button" (click)="alternarAtivo(g)">
+                                    <mat-icon [svgIcon]="g.GAF_ATIVO ? 'heroicons_outline:pause' : 'heroicons_outline:play'"></mat-icon>
+                                    <span>{{ g.GAF_ATIVO ? 'Pausar' : 'Retomar' }}</span>
+                                </button>
+                                <button mat-menu-item type="button" (click)="excluir(g)">
+                                    <mat-icon svgIcon="heroicons_outline:trash"></mat-icon>
+                                    <span>Excluir</span>
+                                </button>
+                            </mat-menu>
+                        </li>
+                    </ul>
+
+                    <mat-paginator class="mt-2 rounded-2xl" [length]="totalCount" [pageIndex]="page" [pageSize]="pageSize"
+                        [pageSizeOptions]="[10, 25, 50, 100]" (page)="onPage($event)" [hidePageSize]="true" [class.hidden]="totalCount <= pageSize && page === 0"></mat-paginator>
+                </div>
+            </div>
+        </div>
+    </mat-drawer>
+</mat-drawer-container>

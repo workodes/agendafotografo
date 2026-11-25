@@ -3,7 +3,8 @@ import { financeiroResolver } from 'app/resolvers/financeiro.resolver';
 import { FinanceiroComponent } from './financeiro.component';
 
 // Financeiro do coordenador (plano 22). O resolver do pai gera os lançamentos dos gastos fixos ao abrir (F5 ou menu);
-// trocar de aba não repete. As abas são rotas filhas lazy.
+// trocar entre Lançamentos e Dashboard não repete (o pai continua montado). `fixos` é o link antigo da aba: vai para Lançamentos
+// (os gastos fixos agora abrem num painel lateral dentro de Lançamentos).
 export default [
     {
         path: '',
@@ -13,7 +14,7 @@ export default [
             { path: '', pathMatch: 'full', redirectTo: 'lancamentos' },
             { path: 'lancamentos', loadComponent: () => import('./lancamentos/lancamentos.component').then(m => m.LancamentosComponent) },
             { path: 'dashboard', loadComponent: () => import('./dashboard/financeiro-dashboard.component').then(m => m.FinanceiroDashboardComponent) },
-            { path: 'fixos', loadComponent: () => import('./fixos/fixos.component').then(m => m.FixosComponent) },
+            { path: 'fixos', redirectTo: 'lancamentos' },
         ],
     },
 ] as Routes;

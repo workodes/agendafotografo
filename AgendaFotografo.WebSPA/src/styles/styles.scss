@@ -293,6 +293,30 @@ fuse-horizontal-navigation.menu-horizontal fuse-horizontal-navigation-branch-ite
         font-size: 14px;
     }
 
+    .menu-usuario-teste {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 6px;
+        padding: 8px 12px;
+        border: 1px solid var(--fuse-border);
+        border-radius: 8px;
+        font-size: 13px;
+        color: var(--fuse-text-secondary);
+
+        .mat-icon {
+            flex: 0 0 20px;
+            width: 20px;
+            height: 20px;
+        }
+
+        &.menu-usuario-teste-alerta {
+            border-color: #fcd34d;
+            background-color: #fef3c7;
+            color: #78350f;
+        }
+    }
+
     .menu-usuario-avatar {
         display: flex;
         align-items: center;

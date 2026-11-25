@@ -1,0 +1,23 @@
+// Seletor de tipo: Receita em verde e Despesa em vermelho.
+// Selecionado = fundo claro, texto escuro e contorno da cor; o ícone e o rótulo dizem o tipo (nunca só a cor).
+.tipo-receita {
+    --mat-standard-button-toggle-selected-state-background-color: #dcfce7; // green-100
+    --mat-standard-button-toggle-selected-state-text-color: #166534; // green-800
+}
+
+.tipo-despesa {
+    --mat-standard-button-toggle-selected-state-background-color: #fee2e2; // red-100
+    --mat-standard-button-toggle-selected-state-text-color: #991b1b; // red-800
+}
+
+.tipo-receita.mat-button-toggle-checked {
+    box-shadow: inset 0 0 0 2px #16a34a; // green-600
+}
+
+.tipo-despesa.mat-button-toggle-checked {
+    box-shadow: inset 0 0 0 2px #dc2626; // red-600
+}
+
+.tipo-grupo .mat-button-toggle {
+    font-size: 0.875rem;
+}

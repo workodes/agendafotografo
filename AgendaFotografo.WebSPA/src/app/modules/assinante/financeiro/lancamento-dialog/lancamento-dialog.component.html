@@ -16,8 +16,13 @@
 
         <form id="form-lancamento" class="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
             <div class="sm:col-span-2 mb-2">
-                <mat-button-toggle-group formControlName="LAN_TIPO" class="w-full" aria-label="Tipo do lançamento">
-                    <mat-button-toggle *ngFor="let t of tipos" [value]="t.valor" class="flex-1">{{ t.rotulo }}</mat-button-toggle>
+                <mat-button-toggle-group formControlName="LAN_TIPO" class="w-full tipo-grupo" hideSingleSelectionIndicator="true" aria-label="Tipo do lançamento">
+                    <mat-button-toggle *ngFor="let t of opcoesTipo" [value]="t.valor" [ngClass]="t.classe" class="flex-1">
+                        <span class="flex items-center justify-center gap-1.5">
+                            <mat-icon class="icon-size-5 shrink-0" [svgIcon]="t.icone"></mat-icon>
+                            <span>{{ t.rotulo }}</span>
+                        </span>
+                    </mat-button-toggle>
                 </mat-button-toggle-group>
             </div>
 

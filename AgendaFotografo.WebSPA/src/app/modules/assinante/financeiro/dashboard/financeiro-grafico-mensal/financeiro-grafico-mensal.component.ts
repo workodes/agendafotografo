@@ -32,14 +32,14 @@ export class FinanceiroGraficoMensalComponent {
     linhas: LinhaTabela[] = [];
 
     series: any[] = [];
-    chart: any = chartBase(300);
+    chart: any = chartBase(320);
     colors: string[] = [COR_RECEITA_GRAFICO, COR_DESPESA_GRAFICO];
     plotOptions: any = { bar: { columnWidth: '70%', borderRadius: 2 } };
     dataLabels: any = { enabled: false };
     stroke: any = { show: true, width: 1, colors: ['transparent'] };
-    xaxis: any = { categories: [] as string[], labels: { rotate: -45, rotateAlways: false, hideOverlappingLabels: true, style: { colors: COR_SECUNDARIA_GRAFICO, fontSize: '11px' } }, axisTicks: { show: false } };
+    xaxis: any = { categories: [] as string[], labels: { rotate: -45, rotateAlways: false, hideOverlappingLabels: true, trim: false, maxHeight: 56, style: { colors: COR_SECUNDARIA_GRAFICO, fontSize: '11px' } }, axisTicks: { show: false } };
     yaxis: any = { labels: { formatter: (v: number) => formatarMoedaCompacta(v), style: { colors: COR_SECUNDARIA_GRAFICO, fontSize: '11px' } } };
-    grid: any = { borderColor: '#F0E2D6', strokeDashArray: 3 };
+    grid: any = { borderColor: '#F0E2D6', strokeDashArray: 3, padding: { left: 8, right: 16 } };
     legend: any = { show: true, position: 'top', horizontalAlign: 'left', fontSize: '13px', labels: { colors: COR_TEXTO_GRAFICO }, markers: { size: 6 } };
     tooltip: any = { shared: true, intersect: false, y: { formatter: (v: number) => textoMoeda(v) } };
 

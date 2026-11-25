@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
 import { CATEGORIA_LANCAMENTO, CategoriaLancamento } from 'app/models/enums/CategoriaLancamento';
 import { GastoFixo } from 'app/models/entities/GastoFixo';
@@ -20,7 +21,8 @@ export interface GastoFixoDialogData {
     id?: string | null;
 }
 
-// Modal do gasto fixo (criar e editar). Fecha devolvendo true quando salvou. Avisa o GastoFixoService (alterado$).
+// Modal do gasto fixo (criar e editar), aberto só pelo painel "Gastos fixos". Fecha devolvendo true quando salvou. Avisa o
+// GastoFixoService (alterado$); a despesa do mês é gerada pelo painel ao fechar.
 @Component({
     standalone: true,
     selector: 'app-gasto-fixo-dialog',
@@ -35,6 +37,7 @@ export class GastoFixoDialogComponent implements OnInit {
     private _fb = inject(FormBuilder);
     private _ref = inject(MatDialogRef<GastoFixoDialogComponent, boolean>);
     private _service = inject(GastoFixoService);
+    private _snackBar = inject(MatSnackBar);
     readonly data = inject<GastoFixoDialogData>(MAT_DIALOG_DATA);
 
     readonly categorias = CATEGORIA_LANCAMENTO;
@@ -104,6 +107,7 @@ export class GastoFixoDialogComponent implements OnInit {
             next: () => {
                 this.salvando = false;
                 this._service.NotificarAlteracao();
+                this._snackBar.open('Gasto fixo salvo.', 'X', { duration: 4000 });
                 this._ref.close(true);
             },
             error: error => {
@@ -130,5 +134,5 @@ export class GastoFixoDialogComponent implements OnInit {
     }
 }
 
-// Abre o modal do gasto fixo (560 px, 95vw no celular).
-export const GASTO_FIXO_DIALOG_CONFIG = { width: '560px', maxWidth: '95vw', autoFocus: 'first-tabbable' } as const;
+// Abre o modal do gasto fixo (600 px, 95vw no celular), do mesmo tamanho do modal do lançamento.
+export const GASTO_FIXO_DIALOG_CONFIG = { width: '600px', maxWidth: '95vw', autoFocus: 'first-tabbable' } as const;

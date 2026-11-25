@@ -1,8 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, DestroyRef, inject, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, inject, OnInit, ViewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSidenavModule, MatDrawer } from '@angular/material/sidenav';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatPaginatorIntl, MatPaginatorModule, PageEvent } from '@angular/material/paginator';
@@ -14,6 +15,8 @@ import { GastoFixoListItem } from 'app/models/DTOs/responses/GastoFixoListItem';
 import { GastoFixoResumo } from 'app/models/DTOs/responses/GastoFixoResumo';
 import { CATEGORIA_LANCAMENTO_ROTULO } from 'app/models/enums/CategoriaLancamento';
 import { GastoFixoService } from 'app/services/gasto-fixo.service';
+import { FecharComEscDirective } from 'app/modules/shared/directives/fechar-com-esc.directive';
+import { LancamentoService } from 'app/services/lancamento.service';
 import { configPaginator } from 'app/utils/config-paginator';
 import { mensagemErro } from 'app/utils/mensagem-erro';
 import { formatarMoeda } from 'app/utils/moeda';
@@ -21,12 +24,14 @@ import { GASTO_FIXO_DIALOG_CONFIG, GastoFixoDialogComponent } from '../gasto-fix
 
 type Estado = 'carregando' | 'pronto' | 'erro';
 
-// Aba Fixos do Financeiro (plano 22): gastos que viram lançamentos de Despesa uma vez por mês, ao abrir o Financeiro.
-// Ações por linha: Editar, Pausar/Retomar e Excluir. Não usa o período do cabeçalho.
+// Painel lateral "Gastos fixos" da tela Lançamentos (plano 22): gastos que viram lançamentos de Despesa uma vez por mês.
+// Ações por linha: Editar, Pausar/Retomar e Excluir. Não usa o período do cabeçalho. Ao fechar o painel, se algum fixo
+// mudou enquanto ele estava aberto, gera os lançamentos do mês (idempotente) e avisa a lista de Lançamentos.
 @Component({
-    selector: 'app-fixos',
+    selector: 'app-fixos-painel',
     standalone: true,
-    templateUrl: './fixos.component.html',
+    templateUrl: './fixos-painel.component.html',
+    styleUrl: './fixos-painel.component.scss',
     host: { class: 'block w-full min-w-0' },
     providers: [
         {
@@ -38,10 +43,13 @@ type Estado = 'carregando' | 'pronto' | 'erro';
             },
         },
     ],
-    imports: [CommonModule, MatButtonModule, MatIconModule, MatMenuModule, MatPaginatorModule, MatProgressSpinnerModule],
+    imports: [CommonModule, FecharComEscDirective, MatButtonModule, MatIconModule, MatMenuModule, MatPaginatorModule, MatProgressSpinnerModule, MatSidenavModule],
 })
-export class FixosComponent implements OnInit {
+export class FixosPainelComponent implements OnInit {
+    @ViewChild('drawer') private _drawer!: MatDrawer;
+
     private _service = inject(GastoFixoService);
+    private _lancamentos = inject(LancamentoService);
     private _dialog = inject(MatDialog);
     private _snackBar = inject(MatSnackBar);
     private _confirmacao = inject(FuseConfirmationService);
@@ -63,15 +71,57 @@ export class FixosComponent implements OnInit {
     // Id do fixo com ação em andamento (pausar/retomar/excluir), para travar os botões da linha.
     ocupadoId: string | null = null;
 
+    // Algum fixo foi criado, editado, pausado/retomado ou excluído enquanto o painel esteve aberto.
+    private _alterou = false;
+
     private _subLista?: Subscription;
     private _subResumo?: Subscription;
 
     ngOnInit(): void {
-        this.carregar();
-        this._service.alterado$.pipe(takeUntilDestroyed(this._destroyRef)).subscribe(() => this.carregar());
+        this._service.alterado$.pipe(takeUntilDestroyed(this._destroyRef)).subscribe(() => {
+            this._alterou = true;
+            if (this._drawer?.opened) {
+                this.carregar();
+            }
+        });
         this._destroyRef.onDestroy(() => {
             this._subLista?.unsubscribe();
             this._subResumo?.unsubscribe();
+        });
+    }
+
+    // Abre o painel e lê a lista na hora (a lista de Lançamentos não é recarregada).
+    abrir(): void {
+        this._alterou = false;
+        this.carregar();
+        this._drawer.open();
+    }
+
+    fechar(): void {
+        this._drawer.close();
+    }
+
+    aoEsc(): void {
+        if (this._drawer?.opened) {
+            this.fechar();
+        }
+    }
+
+    // Roda em qualquer forma de fechar (botão, ESC, fundo). Só gera se algo mudou.
+    aoFechar(): void {
+        if (!this._alterou) {
+            return;
+        }
+        this._alterou = false;
+        this._service.GerarLancamentos().subscribe({
+            next: resp => {
+                const gerados = resp?.Gerados ?? 0;
+                if (gerados > 0) {
+                    this._snackBar.open(`${gerados} ${gerados === 1 ? 'lançamento' : 'lançamentos'} de gastos fixos ${gerados === 1 ? 'adicionado' : 'adicionados'}.`, 'X', { duration: 6000 });
+                    this._lancamentos.NotificarAlteracao();
+                }
+            },
+            error: () => this._snackBar.open('Não foi possível atualizar os gastos fixos.', 'X', { duration: 6000 }),
         });
     }
 
@@ -131,11 +181,8 @@ export class FixosComponent implements OnInit {
     }
 
     novo(): void {
-        this._dialog.open(GastoFixoDialogComponent, { ...GASTO_FIXO_DIALOG_CONFIG, data: {} }).afterClosed().subscribe(salvou => {
-            if (salvou) {
-                this._snackBar.open('Gasto fixo salvo. O lançamento do mês aparece quando você abrir o Financeiro.', 'X', { duration: 6000 });
-            }
-        });
+        // O modal avisa "Gasto fixo salvo."; a despesa do mês é gerada ao fechar o painel.
+        this._dialog.open(GastoFixoDialogComponent, { ...GASTO_FIXO_DIALOG_CONFIG, data: {} });
     }
 
     editar(g: GastoFixoListItem): void {

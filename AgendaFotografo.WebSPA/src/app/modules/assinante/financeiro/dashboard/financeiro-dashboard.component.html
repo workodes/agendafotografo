@@ -1,5 +1,8 @@
 <div class="flex flex-col w-full min-w-0 p-4 sm:p-5 md:p-6 gap-4">
 
+    <!-- Cartões de resumo do período (os mesmos de Lançamentos, sem busca) -->
+    <app-financeiro-resumo-cartoes [filtro]="filtroResumo"></app-financeiro-resumo-cartoes>
+
     <div *ngIf="estado === 'carregando' && !dados" class="flex items-center justify-center py-16" role="status" aria-label="Carregando">
         <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
     </div>
@@ -9,15 +12,21 @@
         <button mat-stroked-button type="button" (click)="carregar()">Tentar de novo</button>
     </div>
 
-    <div *ngIf="estado !== 'erro' && vazio" class="flex flex-col items-center gap-1 py-16 text-center text-secondary">
-        <div class="text-lg font-medium">Sem lançamentos no período</div>
-        <div class="text-sm">Escolha outro período ou cadastre receitas e despesas na aba Lançamentos.</div>
-    </div>
+    <ng-container *ngIf="estado !== 'erro' && vazio">
+        <div class="flex flex-col items-center gap-1 py-10 text-center text-secondary">
+            <div class="text-lg font-medium">Sem lançamentos no período</div>
+            <div class="text-sm">Escolha outro período ou cadastre receitas e despesas em Lançamentos.</div>
+        </div>
+        <app-financeiro-cartao-fixos class="w-full max-w-xl mx-auto" [despesasMes]="despesasMes"></app-financeiro-cartao-fixos>
+    </ng-container>
 
-    <div *ngIf="estado !== 'erro' && dados && !vazio" class="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0 transition-opacity"
+    <!-- Grade de 6 colunas a partir de lg: linha 1 = Receitas e despesas (4) + Gastos fixos (2); linha 2 = Saldo (3) + Categorias (3).
+         items-stretch: cada linha tem cartões da mesma altura. Abaixo de lg tudo empilha. -->
+    <div *ngIf="estado !== 'erro' && dados && !vazio" class="grid grid-cols-1 lg:grid-cols-6 items-stretch gap-4 min-w-0 transition-opacity"
         [class.opacity-60]="estado === 'carregando'" [attr.aria-busy]="estado === 'carregando'">
-        <app-financeiro-grafico-mensal class="lg:col-span-2 min-w-0" [dados]="dados"></app-financeiro-grafico-mensal>
-        <app-financeiro-grafico-saldo class="min-w-0" [dados]="dados"></app-financeiro-grafico-saldo>
-        <app-financeiro-grafico-categorias class="min-w-0" [dados]="dados"></app-financeiro-grafico-categorias>
+        <app-financeiro-grafico-mensal class="flex flex-col min-w-0 lg:col-span-4" [dados]="dados"></app-financeiro-grafico-mensal>
+        <app-financeiro-cartao-fixos class="min-w-0 lg:col-span-2" [despesasMes]="despesasMes"></app-financeiro-cartao-fixos>
+        <app-financeiro-grafico-saldo class="flex flex-col min-w-0 lg:col-span-3" [dados]="dados"></app-financeiro-grafico-saldo>
+        <app-financeiro-grafico-categorias class="flex flex-col min-w-0 lg:col-span-3" [dados]="dados"></app-financeiro-grafico-categorias>
     </div>
 </div>

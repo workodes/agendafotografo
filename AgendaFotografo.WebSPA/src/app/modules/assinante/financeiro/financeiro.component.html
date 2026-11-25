@@ -1,14 +1,6 @@
-<app-pagina-cabecalho titulo="Financeiro" [subtitulo]="subtitulo">
-    <!-- O período vale para Lançamentos e Dashboard; em Fixos não se aplica -->
-    <app-periodo-seletor *ngIf="!ehFixos" class="w-full sm:w-auto"></app-periodo-seletor>
+<app-pagina-cabecalho [titulo]="titulo" [subtitulo]="subtitulo">
+    <!-- O período vale para Lançamentos e Dashboard -->
+    <app-periodo-seletor class="w-full sm:w-auto"></app-periodo-seletor>
 </app-pagina-cabecalho>
 
-<nav mat-tab-nav-bar [tabPanel]="painel" mat-stretch-tabs="false" class="bg-card border-b px-2 md:px-6" aria-label="Seções do Financeiro">
-    <a mat-tab-link routerLink="lancamentos" routerLinkActive #l="routerLinkActive" [active]="l.isActive">Lançamentos</a>
-    <a mat-tab-link routerLink="dashboard" routerLinkActive #d="routerLinkActive" [active]="d.isActive">Dashboard</a>
-    <a mat-tab-link routerLink="fixos" routerLinkActive #f="routerLinkActive" [active]="f.isActive">Fixos</a>
-</nav>
-
-<mat-tab-nav-panel #painel class="block flex-auto min-w-0">
-    <router-outlet></router-outlet>
-</mat-tab-nav-panel>
+<router-outlet></router-outlet>

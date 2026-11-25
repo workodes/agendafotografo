@@ -65,9 +65,24 @@ export class MenuData {
             {
                 id: 'financeiro',
                 title: 'Financeiro',
-                type: 'basic',
+                type: 'collapsable',
                 icon: 'heroicons_outline:banknotes',
-                link: `/${ROLE_NAMES.Assinante.toLowerCase()}/financeiro`,
+                children: [
+                    {
+                        id: 'financeiro.lancamentos',
+                        title: 'Lançamentos',
+                        type: 'basic',
+                        icon: 'heroicons_outline:list-bullet',
+                        link: `/${ROLE_NAMES.Assinante.toLowerCase()}/financeiro/lancamentos`,
+                    },
+                    {
+                        id: 'financeiro.dashboard',
+                        title: 'Dashboard',
+                        type: 'basic',
+                        icon: 'heroicons_outline:chart-bar',
+                        link: `/${ROLE_NAMES.Assinante.toLowerCase()}/financeiro/dashboard`,
+                    },
+                ],
             },
             {
                 id: 'cadastros',

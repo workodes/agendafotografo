@@ -1,0 +1,47 @@
+<!-- Cartões: 2 por linha no celular, 4 a partir de lg. Sinal e rótulo além da cor. -->
+<section class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4" aria-label="Resumo do período">
+    <ng-container *ngIf="estado === 'carregando' && !resumo">
+        <div *ngFor="let i of esqueleto" class="flex items-center gap-3 px-4 py-3 min-h-[5rem] rounded-2xl shadow bg-card animate-pulse motion-reduce:animate-none" role="status" aria-label="Carregando">
+            <div class="shrink-0 w-10 h-10 rounded-full bg-gray-200"></div>
+            <div class="flex flex-col flex-auto gap-2"><div class="h-3 w-1/2 rounded bg-gray-200"></div><div class="h-6 w-2/3 rounded bg-gray-200"></div></div>
+        </div>
+    </ng-container>
+
+    <button *ngIf="estado === 'erro'" type="button" class="col-span-2 lg:col-span-4 flex flex-col justify-center items-start px-4 py-3 min-h-[5rem] rounded-2xl shadow bg-card text-left"
+        (click)="carregar()">
+        <span class="text-sm font-medium text-secondary">Resumo do período</span>
+        <span class="mt-1 text-sm text-secondary">Não foi possível carregar. Tentar de novo</span>
+    </button>
+
+    <ng-container *ngIf="resumo && estado !== 'erro'">
+        <div class="flex items-center gap-3 px-4 py-3 min-h-[5rem] rounded-2xl shadow bg-card min-w-0" [class.opacity-60]="estado === 'carregando'">
+            <span class="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-green-100 text-green-800"><mat-icon class="icon-size-5" svgIcon="heroicons_outline:arrow-trending-up"></mat-icon></span>
+            <div class="flex flex-col min-w-0">
+                <div class="text-sm font-medium text-secondary truncate">Receitas</div>
+                <div class="text-lg sm:text-xl font-bold tracking-tight leading-tight text-green-700 break-words tabular-nums">{{ formatarMoeda(resumo.Receitas) }}</div>
+            </div>
+        </div>
+        <div class="flex items-center gap-3 px-4 py-3 min-h-[5rem] rounded-2xl shadow bg-card min-w-0" [class.opacity-60]="estado === 'carregando'">
+            <span class="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-red-100 text-red-800"><mat-icon class="icon-size-5" svgIcon="heroicons_outline:arrow-trending-down"></mat-icon></span>
+            <div class="flex flex-col min-w-0">
+                <div class="text-sm font-medium text-secondary truncate">Despesas</div>
+                <div class="text-lg sm:text-xl font-bold tracking-tight leading-tight text-red-700 break-words tabular-nums">{{ formatarMoeda(resumo.Despesas) }}</div>
+            </div>
+        </div>
+        <div class="flex items-center gap-3 px-4 py-3 min-h-[5rem] rounded-2xl shadow bg-card min-w-0" [class.opacity-60]="estado === 'carregando'">
+            <span class="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-primary-100 text-primary-700"><mat-icon class="icon-size-5" svgIcon="heroicons_outline:wallet"></mat-icon></span>
+            <div class="flex flex-col min-w-0">
+                <div class="text-sm font-medium text-secondary truncate">Saldo</div>
+                <div class="text-lg sm:text-xl font-bold tracking-tight leading-tight break-words tabular-nums"
+                    [ngClass]="resumo.Saldo < 0 ? 'text-red-700' : 'text-green-700'">{{ formatarSaldo(resumo.Saldo) }}</div>
+            </div>
+        </div>
+        <div class="flex items-center gap-3 px-4 py-3 min-h-[5rem] rounded-2xl shadow bg-card min-w-0" [class.opacity-60]="estado === 'carregando'">
+            <span class="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 text-gray-700"><mat-icon class="icon-size-5" svgIcon="heroicons_outline:list-bullet"></mat-icon></span>
+            <div class="flex flex-col min-w-0">
+                <div class="text-sm font-medium text-secondary truncate">Lançamentos</div>
+                <div class="text-lg sm:text-xl font-bold tracking-tight leading-tight text-accent-900 tabular-nums">{{ resumo.Quantidade }}</div>
+            </div>
+        </div>
+    </ng-container>
+</section>

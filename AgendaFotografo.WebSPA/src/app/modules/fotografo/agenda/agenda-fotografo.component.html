@@ -32,15 +32,17 @@
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 px-4 sm:px-6 md:px-8 py-3 sm:py-4 border-b shrink-0">
         <div class="flex flex-col min-w-0">
             <div class="text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight text-accent-900">Agenda</div>
-            <div class="text-lg text-secondary leading-tight">{{ nomeMes }}</div>
         </div>
 
         <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
             <div class="flex items-center gap-1">
+                <!-- Link "Hoje" à esquerda: volta ao mês atual (desabilitado quando já está nele) -->
+                <button type="button" class="mr-2 rounded px-1 text-base font-semibold text-primary hover:underline disabled:cursor-default disabled:text-secondary disabled:no-underline"
+                    [disabled]="ehMesAtual" (click)="irParaHoje()">Hoje</button>
                 <button mat-icon-button type="button" aria-label="Mês anterior" title="Mês anterior" (click)="mesAnterior()">
                     <mat-icon svgIcon="heroicons_outline:chevron-left"></mat-icon>
                 </button>
-                <button mat-stroked-button type="button" [disabled]="ehMesAtual" (click)="irParaHoje()">Hoje</button>
+                <span class="min-w-[9.5rem] text-center text-lg font-semibold leading-tight" aria-live="polite">{{ nomeMes }}</span>
                 <button mat-icon-button type="button" aria-label="Próximo mês" title="Próximo mês" (click)="mesSeguinte()">
                     <mat-icon svgIcon="heroicons_outline:chevron-right"></mat-icon>
                 </button>

@@ -1,0 +1,52 @@
+<section class="flex-1 flex flex-col min-w-0 p-4 rounded-2xl shadow bg-card" aria-label="Gastos fixos">
+    <h2 class="m-0 mb-3 text-lg font-semibold text-accent-900">Gastos fixos</h2>
+
+    <div *ngIf="estado === 'carregando' && !resumo" class="flex flex-1 items-center justify-center py-8" role="status" aria-label="Carregando">
+        <mat-progress-spinner diameter="28" mode="indeterminate"></mat-progress-spinner>
+    </div>
+
+    <div *ngIf="estado === 'erro'" role="alert" class="flex flex-1 flex-col items-center justify-center gap-2 py-8 text-center text-secondary">
+        <div>Não foi possível carregar os gastos fixos.</div>
+        <button mat-stroked-button type="button" (click)="carregar()">Tentar de novo</button>
+    </div>
+
+    <!-- Nada cadastrado -->
+    <div *ngIf="estado !== 'erro' && resumo && vazio" class="flex flex-1 flex-col items-center justify-center gap-3 py-8 text-center text-secondary">
+        <mat-icon class="icon-size-10 text-hint" svgIcon="heroicons_outline:rectangle-stack"></mat-icon>
+        <div class="font-medium">Nenhum gasto fixo cadastrado.</div>
+        <a mat-stroked-button routerLink="/assinante/financeiro/lancamentos" [queryParams]="{ fixos: 1 }">Cadastrar gasto fixo</a>
+    </div>
+
+    <div *ngIf="estado !== 'erro' && resumo && !vazio" class="flex flex-1 flex-col gap-3 min-w-0 transition-opacity" [class.opacity-60]="estado === 'carregando'">
+        <!-- Total fixo mensal em destaque -->
+        <div class="flex items-center gap-3 min-w-0">
+            <span class="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-primary-100 text-primary-700"><mat-icon class="icon-size-5" svgIcon="heroicons_outline:rectangle-stack"></mat-icon></span>
+            <div class="flex flex-col min-w-0">
+                <div class="text-sm font-medium text-secondary truncate">Total fixo mensal</div>
+                <div class="text-xl font-bold tracking-tight leading-tight text-red-700 break-words tabular-nums">{{ formatarMoeda(resumo.TotalMensalAtivos) }}</div>
+                <div class="text-xs text-secondary">{{ textoContagem }}</div>
+            </div>
+        </div>
+
+        <p *ngIf="percentual !== null" class="m-0 text-sm text-secondary">Fixos representam <span class="font-semibold text-accent-900">{{ percentual }}%</span> das despesas do período.</p>
+
+        <ul *ngIf="proximos.length > 0" class="flex flex-col list-none m-0 p-0 divide-y" aria-label="Próximas cobranças">
+            <li *ngFor="let g of proximos; trackBy: trackItem" class="flex items-center gap-3 py-2 min-w-0">
+                <div class="flex flex-col min-w-0 flex-1">
+                    <span class="font-medium truncate" [attr.title]="g.GAF_TITULO">{{ g.GAF_TITULO }}</span>
+                    <span class="text-xs text-secondary">Todo dia {{ g.GAF_DIA }}</span>
+                </div>
+                <span class="shrink-0 font-semibold tabular-nums text-red-700">{{ formatarMoeda(g.GAF_VALOR) }}</span>
+            </li>
+        </ul>
+        <p *ngIf="proximos.length === 0" class="m-0 text-sm text-secondary">Nenhum gasto fixo ativo.</p>
+        <p *ngIf="restantes > 0" class="m-0 text-xs text-secondary">e mais {{ restantes }}</p>
+
+        <div class="mt-auto pt-1">
+            <a mat-stroked-button routerLink="/assinante/financeiro/lancamentos" [queryParams]="{ fixos: 1 }">
+                <mat-icon svgIcon="heroicons_outline:rectangle-stack"></mat-icon>
+                <span class="ml-2">Gerenciar gastos fixos</span>
+            </a>
+        </div>
+    </div>
+</section>

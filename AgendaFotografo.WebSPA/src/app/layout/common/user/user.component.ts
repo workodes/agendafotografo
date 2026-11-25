@@ -14,6 +14,11 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { FormsModule, ReactiveFormsModule, UntypedFormGroup, } from '@angular/forms';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { DefinirSenhaDialogComponent } from './definir-senha-dialog/definir-senha-dialog.component';
+import { AuthService } from 'app/core/auth/auth.service';
+import { ROLE_NAMES } from 'app/core/constants/RoleNames';
+import { TesteGratis } from 'app/models/DTOs/responses/TesteGratis';
+import { formatarData } from 'app/utils/data-evento';
+import { testeEmAlerta, textoTesteCabecalho } from 'app/utils/teste-gratis';
 import { AlterarSenhaDialogComponent } from './alterar-senha-dialog/alterar-senha-dialog.component';
 
 @Component({
@@ -49,6 +54,11 @@ export class UserComponent implements OnInit, OnDestroy {
     private _unsubscribeAll: Subject<any> = new Subject<any>();
 
     resetPasswordForm: UntypedFormGroup;
+
+    /** Aviso do teste grátis (só Assinante; o Fotógrafo é grátis e não tem teste, plano 21). Nulo = não mostra. */
+    testeTexto: string | null = null;
+    testeDica = '';
+    testeAlerta = false;
     /**
      * Constructor
      */
@@ -57,6 +67,7 @@ export class UserComponent implements OnInit, OnDestroy {
         private _changeDetectorRef: ChangeDetectorRef,
         private _router: Router,
         private _usuarioService: UsuarioService,
+        private _auth: AuthService,
     ) {
     }
 
@@ -70,6 +81,18 @@ export class UserComponent implements OnInit, OnDestroy {
                 this._changeDetectorRef.markForCheck();
             }
             );
+
+        if (this._auth.getUserRole() === ROLE_NAMES.Assinante) {
+            this._auth.TesteGratis().pipe(takeUntil(this._unsubscribeAll)).subscribe({
+                next: (t: TesteGratis) => {
+                    this.testeTexto = textoTesteCabecalho(t.DiasRestantes);
+                    this.testeAlerta = testeEmAlerta(t.DiasRestantes);
+                    this.testeDica = t.ASS_TESTE_ATE ? `Até ${formatarData(t.ASS_TESTE_ATE)}` : '';
+                    this._changeDetectorRef.markForCheck();
+                },
+                error: () => { /* sem aviso */ },
+            });
+        }
     }
 
     /**

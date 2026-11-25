@@ -3,25 +3,30 @@ import { ChangeDetectorRef, Component, DestroyRef, inject, OnInit } from '@angul
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { LancamentoFiltro } from 'app/models/DTOs/filters/LancamentoFiltro';
 import { FinanceiroDashboard } from 'app/models/DTOs/responses/FinanceiroDashboard';
 import { DashboardService } from 'app/services/dashboard.service';
 import { LancamentoService } from 'app/services/lancamento.service';
 import { mensagemErro } from 'app/utils/mensagem-erro';
 import { Subscription } from 'rxjs';
 import { FinanceiroFiltroService } from '../financeiro-filtro.service';
+import { FinanceiroResumoCartoesComponent } from '../financeiro-resumo-cartoes/financeiro-resumo-cartoes.component';
+import { FinanceiroCartaoFixosComponent } from './financeiro-cartao-fixos/financeiro-cartao-fixos.component';
 import { FinanceiroGraficoCategoriasComponent } from './financeiro-grafico-categorias/financeiro-grafico-categorias.component';
 import { FinanceiroGraficoMensalComponent } from './financeiro-grafico-mensal/financeiro-grafico-mensal.component';
 import { FinanceiroGraficoSaldoComponent } from './financeiro-grafico-saldo/financeiro-grafico-saldo.component';
 
 type Estado = 'carregando' | 'pronto' | 'erro';
 
-// Aba Dashboard do Financeiro (plano 22): 3 gráficos (despesas por categoria, receitas × despesas e evolução do saldo)
-// alimentados por Dashboard/Financeiro com o período compartilhado. Recarrega quando o período muda e quando um lançamento muda.
+// Tela Dashboard do Financeiro (plano 22): cartões de resumo, 3 gráficos (receitas × despesas, evolução do saldo e despesas por
+// categoria, de Dashboard/Financeiro) e o cartão de gastos fixos, todos com o período compartilhado. Recarrega quando o período muda
+// e quando um lançamento muda (os cartões de resumo e o de fixos se recarregam sozinhos).
 @Component({
     selector: 'app-financeiro-dashboard',
     standalone: true,
     imports: [
         NgIf, MatButtonModule, MatProgressSpinnerModule,
+        FinanceiroResumoCartoesComponent, FinanceiroCartaoFixosComponent,
         FinanceiroGraficoCategoriasComponent, FinanceiroGraficoMensalComponent, FinanceiroGraficoSaldoComponent,
     ],
     templateUrl: './financeiro-dashboard.component.html',
@@ -37,12 +42,19 @@ export class FinanceiroDashboardComponent implements OnInit {
     estado: Estado = 'carregando';
     erro = '';
     dados: FinanceiroDashboard | null = null;
+    // Período dos cartões de resumo (nova referência a cada mudança do período).
+    filtroResumo: LancamentoFiltro = {};
+    // Despesas do período, só quando ele é "Este mês" (alimenta a linha "Fixos representam X%" do cartão de gastos fixos).
+    despesasMes: number | null = null;
 
     private _sub?: Subscription;
 
     ngOnInit(): void {
         // O período emite ao assinar (BehaviorSubject): é a carga inicial e a de cada mudança do seletor.
-        this._filtro.periodo$.pipe(takeUntilDestroyed(this._destroyRef)).subscribe(() => this.carregar());
+        this._filtro.periodo$.pipe(takeUntilDestroyed(this._destroyRef)).subscribe(p => {
+            this.filtroResumo = { dataDe: p.dataDe, dataAte: p.dataAte };
+            this.carregar();
+        });
         this._lancamentos.alterado$.pipe(takeUntilDestroyed(this._destroyRef)).subscribe(() => this.carregar());
         this._destroyRef.onDestroy(() => this._sub?.unsubscribe());
     }
@@ -60,6 +72,7 @@ export class FinanceiroDashboardComponent implements OnInit {
         this._sub = this._service.Financeiro(p.dataDe, p.dataAte).subscribe({
             next: resp => {
                 this.dados = resp;
+                this.despesasMes = p.tipo === 'mes' && resp.TotalDespesas > 0 ? resp.TotalDespesas : null;
                 this.estado = 'pronto';
                 this._cdr.markForCheck();
             },
