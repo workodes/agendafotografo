@@ -64,6 +64,8 @@ Depois de digitar o código, a página é mobile-first e mostra:
 
 Notas internas, pendências e dados do organizador **não** aparecem.
 
+> **Nota de 26/11/2026 (decisão do colaborador):** a equipe precisa saber quem é o organizador e como falar com ele. O link público e a escala (fotógrafo e coordenador escalado por outro coordenador) passam a mostrar **só o nome e o telefone** do organizador. Os demais dados dele (contato, e-mail, Instagram, notas) continuam fora.
+
 ### Lembretes (painel + e-mail diário de resumo)
 - eventos de amanhã e do próximo fim de semana;
 - evento Confirmado nos próximos 7 dias **sem equipe**, **sem rota**, **sem hora** ou **sem local de largada**;

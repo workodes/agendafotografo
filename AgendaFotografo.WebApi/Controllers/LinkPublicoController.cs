@@ -181,7 +181,12 @@ public partial class LinkPublicoController(
                     EVE_ROTA_LINK_MAPS = x.EVE_ROTA_LINK_MAPS,
                     EVE_ROTA_LINK_STRAVA = x.EVE_ROTA_LINK_STRAVA,
                     EVE_LINK_FOTOS = x.EVE_LINK_FOTOS,
-                    EVE_OBSERVACOES_EQUIPE = x.EVE_OBSERVACOES_EQUIPE
+                    EVE_OBSERVACOES_EQUIPE = x.EVE_OBSERVACOES_EQUIPE,
+                    // Do organizador, só nome e telefone (26/11/2026), e só se for do mesmo assinante dono do evento (LEFT JOIN, sem N+1)
+                    OrganizadorNome = x.Organizador != null && x.Organizador.ORG_ASSINANTE_ID == x.EVE_ASSINANTE_ID
+                        ? x.Organizador.ORG_NOME : null,
+                    OrganizadorTelefone = x.Organizador != null && x.Organizador.ORG_ASSINANTE_ID == x.EVE_ASSINANTE_ID
+                        ? x.Organizador.ORG_TELEFONE : null
                 })
                 .FirstOrDefaultAsync(cancellationToken);
             if (model is null) return Indisponivel();

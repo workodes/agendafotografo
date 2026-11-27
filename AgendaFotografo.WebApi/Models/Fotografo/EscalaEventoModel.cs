@@ -2,8 +2,9 @@ namespace AgendaFotografo.WebApi.Models.Fotografo;
 
 /// <summary>
 /// Lista branca do evento do coordenador para o fotógrafo escalado, montada campo a campo (a entidade nunca é serializada).
-/// Nunca entram: notas internas, pendências, organizador, tipo, status (só <see cref="Cancelado"/>), link de inscrição, equipe,
-/// contato ou documento de membros, ids de assinante e o caminho dos arquivos.
+/// Nunca entram: notas internas, pendências, tipo, status (só <see cref="Cancelado"/>), link de inscrição, equipe,
+/// contato ou documento de membros, ids de assinante e o caminho dos arquivos. Do organizador saem só <see cref="OrganizadorNome"/> e
+/// <see cref="OrganizadorTelefone"/> (decisão do colaborador em 26/11/2026); Id, contato, e-mail, Instagram, notas e ativo nunca saem.
 /// </summary>
 public class EscalaEventoModel
 {
@@ -28,6 +29,12 @@ public class EscalaEventoModel
     public string? EVE_ROTA_LINK_STRAVA { get; set; }
     public string? EVE_LINK_FOTOS { get; set; }
     public string? EVE_OBSERVACOES_EQUIPE { get; set; }
+
+    /// <summary>Nome do organizador (ativo ou inativo, do mesmo assinante do evento); nulo quando o evento não tem organizador.</summary>
+    public string? OrganizadorNome { get; set; }
+
+    /// <summary>Telefone do organizador, só dígitos como gravado em ORG_TELEFONE; nulo sem organizador ou sem telefone.</summary>
+    public string? OrganizadorTelefone { get; set; }
 
     /// <summary>O evento tem flyer (só saída; plano 23, vale para fotógrafo e coordenador). Baixa-se por <c>Arquivo?tipo=1</c>.</summary>
     public bool TemFlyer { get; set; }

@@ -6,7 +6,7 @@ export class EventoPublicoEquipeItem {
     EVM_POSICAO?: string | null;
 }
 
-// Saída de api/LinkPublico/Evento (lista branca: sem Ids, organizador, notas internas nem link de inscrição).
+// Saída de api/LinkPublico/Evento (lista branca: sem Ids, notas internas nem link de inscrição; do organizador, só nome e telefone).
 // EVE_DATA "yyyy-MM-dd"; EVE_HORA "HH:mm:ss" ou null. Equipe é null quando o coordenador não liga "mostrar equipe".
 export class EventoPublico {
     EVE_NOME: string;
@@ -28,4 +28,7 @@ export class EventoPublico {
     TemImagemRota: boolean;
     GpxNome?: string | null;
     Equipe?: EventoPublicoEquipeItem[] | null;
+    /** Organizador do evento: os dois null quando não há organizador. Telefone só com dígitos (DDD + número). */
+    OrganizadorNome?: string | null;
+    OrganizadorTelefone?: string | null;
 }

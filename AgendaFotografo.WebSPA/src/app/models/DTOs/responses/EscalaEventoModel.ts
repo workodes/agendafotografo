@@ -23,4 +23,7 @@ export class EscalaEventoModel {
     TemFlyer?: boolean;
     EVM_POSICAO?: string | null;
     CoordenadorNome: string;
+    /** Organizador do evento: os dois null quando não há organizador. Telefone só com dígitos (DDD + número). */
+    OrganizadorNome?: string | null;
+    OrganizadorTelefone?: string | null;
 }

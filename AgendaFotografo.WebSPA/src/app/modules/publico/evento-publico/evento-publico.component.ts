@@ -18,6 +18,7 @@ import { Coordenadas, coordenadasDoLink } from 'app/utils/clima';
 import { diaSemana, formatarData, formatarHora, hojeIso, parseDataIso } from 'app/utils/data-evento';
 import { AcessoGuardado, apagarAcesso, embedDoLink, embedMaps, guardarAcesso, lerAcesso, linkMaps, obterAparelho, urlPublica, urlSegura } from 'app/utils/link-publico';
 import { EventoCondicoesComponent } from './evento-condicoes/evento-condicoes.component';
+import { ContatoOrganizador, contatoOrganizador } from 'app/utils/contato-organizador';
 import { localCidade } from 'app/utils/local-evento';
 import { mensagemErro } from 'app/utils/mensagem-erro';
 
@@ -72,6 +73,9 @@ export class EventoPublicoComponent implements OnInit, OnDestroy {
     rotaFalhou = false;
 
     funcaoRotulo = FUNCAO_MEMBRO_ROTULO;
+
+    // Organizador (nome e telefone da API; null = sem organizador, o bloco não aparece).
+    organizador: ContatoOrganizador | null = null;
 
     // "Luz e tempo": ponto de referência (largada do GPX > coordenadas de um link > cidade, decidido no cartão).
     pontoCondicoes: Coordenadas | null = null;
@@ -307,6 +311,7 @@ export class EventoPublicoComponent implements OnInit, OnDestroy {
         this._service.Evento(this.token, this.acesso.Acesso).subscribe({
             next: evento => {
                 this.evento = evento;
+                this.organizador = contatoOrganizador(evento.OrganizadorNome, evento.OrganizadorTelefone);
                 this.montarMapas();
                 this.aguardandoGpx = !!evento.GpxNome;
                 this.pontoCondicoes = evento.GpxNome ? null : this.pontoDosLinks();

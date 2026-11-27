@@ -14,6 +14,7 @@ import { EscalaCoordenadorService } from 'app/services/escala-coordenador.servic
 import { EscalaService } from 'app/services/escala.service';
 import { diaSemana, formatarData, formatarHora, parseDataIso } from 'app/utils/data-evento';
 import { linkMaps, urlSegura } from 'app/utils/link-publico';
+import { ContatoOrganizador, contatoOrganizador } from 'app/utils/contato-organizador';
 import { localCidade } from 'app/utils/local-evento';
 import { mensagemErro } from 'app/utils/mensagem-erro';
 
@@ -41,6 +42,8 @@ export class EscalaDetalheComponent implements OnInit, OnDestroy {
     rotaFalhou = false;
     flyerUrl: string | null = null;
     flyerFalhou = false;
+    /** Organizador (nome e telefone da API; null = sem organizador, o bloco não aparece). */
+    organizador: ContatoOrganizador | null = null;
 
     private _id = '';
     private _destroy$ = new Subject<void>();
@@ -148,6 +151,7 @@ export class EscalaDetalheComponent implements OnInit, OnDestroy {
         this._service.Get(this._id).pipe(takeUntil(this._destroy$)).subscribe({
             next: evento => {
                 this.evento = evento;
+                this.organizador = contatoOrganizador(evento.OrganizadorNome, evento.OrganizadorTelefone);
                 this.estado = 'evento';
                 this._title.setTitle(evento.EVE_NOME);
                 if (evento.TemImagemRota) {
@@ -160,6 +164,7 @@ export class EscalaDetalheComponent implements OnInit, OnDestroy {
             },
             error: error => {
                 this.evento = null;
+                this.organizador = null;
                 if (error?.status === 404) {
                     this.estado = 'naoEncontrado';
                 } else {

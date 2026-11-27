@@ -89,6 +89,26 @@
                 </ul>
             </section>
 
+            <!-- Organizador: com quem falar no dia (nome e, com telefone, WhatsApp e Ligar). Só aparece quando a API manda o organizador. -->
+            <section *ngIf="organizador" class="rounded-2xl border bg-card p-5 flex flex-col gap-3">
+                <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:building-office', titulo: 'Organizador', cor: 'bg-primary-100 text-primary-700' }"></ng-container>
+                <div class="flex flex-wrap items-center justify-between gap-3 min-w-0">
+                    <div class="min-w-0">
+                        <div *ngIf="organizador.nome" class="font-medium break-words">{{ organizador.nome }}</div>
+                        <div *ngIf="organizador.telefone" class="text-secondary">{{ organizador.telefone }}</div>
+                    </div>
+                    <div *ngIf="organizador.whatsapp && organizador.ligar" class="flex flex-wrap gap-2">
+                        <a mat-flat-button color="primary" [href]="organizador.whatsapp" target="_blank" rel="noopener noreferrer"
+                            [attr.aria-label]="'Conversar pelo WhatsApp com ' + (organizador.nome || 'o organizador')">
+                            <mat-icon svgIcon="heroicons_outline:chat-bubble-left-right"></mat-icon><span class="ml-2">WhatsApp</span>
+                        </a>
+                        <a mat-stroked-button [href]="organizador.ligar" [attr.aria-label]="'Ligar para ' + (organizador.nome || 'o organizador')">
+                            <mat-icon svgIcon="heroicons_outline:phone"></mat-icon><span class="ml-2">Ligar</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
             <!-- Rota: trajeto do GPX, imagem e links -->
             <section *ngIf="temRota" class="rounded-2xl border bg-card p-5 flex flex-col gap-4 min-w-0">
                 <ng-container *ngTemplateOutlet="tituloSecao; context: { icone: 'heroicons_outline:map', titulo: 'Rota', cor: 'bg-blue-100 text-blue-700' }"></ng-container>

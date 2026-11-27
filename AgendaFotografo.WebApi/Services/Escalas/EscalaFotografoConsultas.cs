@@ -93,6 +93,11 @@ public class EscalaFotografoConsultas(IBaseRepository<EventoMembro> repEventoMem
                 EVE_ROTA_LINK_STRAVA = x.Evento.EVE_ROTA_LINK_STRAVA,
                 EVE_LINK_FOTOS = x.Evento.EVE_LINK_FOTOS,
                 EVE_OBSERVACOES_EQUIPE = x.Evento.EVE_OBSERVACOES_EQUIPE,
+                // Do organizador, só nome e telefone (26/11/2026), e só se for do mesmo assinante dono do evento (LEFT JOIN, sem N+1)
+                OrganizadorNome = x.Evento.Organizador != null && x.Evento.Organizador.ORG_ASSINANTE_ID == x.Evento.EVE_ASSINANTE_ID
+                    ? x.Evento.Organizador.ORG_NOME : null,
+                OrganizadorTelefone = x.Evento.Organizador != null && x.Evento.Organizador.ORG_ASSINANTE_ID == x.Evento.EVE_ASSINANTE_ID
+                    ? x.Evento.Organizador.ORG_TELEFONE : null,
                 EVM_POSICAO = x.EVM_POSICAO,
                 CoordenadorNome = x.Membro!.Assinante!.ASS_NOME
             })
