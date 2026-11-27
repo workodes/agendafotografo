@@ -1,8 +1,10 @@
 import { NgClass, NgFor, NgIf } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { RouterLink } from '@angular/router';
+import { PlanoModuloService } from 'app/core/services/plano-modulo.service';
 import { AvisoItem } from 'app/models/DTOs/responses/AvisoItem';
+import { ModuloPlano } from 'app/models/enums/ModuloPlano';
 import { GravidadeAviso } from 'app/models/enums/GravidadeAviso';
 import { destinoAviso, DestinoAviso, iconeAviso } from 'app/utils/aviso';
 
@@ -35,6 +37,7 @@ export class AvisoItemComponent {
     @Input({ required: true }) aviso: AvisoItem;
     /** Emite ao clicar (o sino usa para fechar o painel). */
     @Output() selecionado = new EventEmitter<AvisoItem>();
+    private _planoModulo = inject(PlanoModuloService);
 
     get critico(): boolean {
         return this.aviso.Gravidade === GravidadeAviso.Critico;
@@ -45,6 +48,7 @@ export class AvisoItemComponent {
     }
 
     get destino(): DestinoAviso {
-        return destinoAviso(this.aviso);
+        // Plano 24: sem Visão da semana, o conflito abre a Agenda no dia.
+        return destinoAviso(this.aviso, this._planoModulo.Liberado(ModuloPlano.VisaoSemana));
     }
 }

@@ -1,5 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
+import { PlanoModuloService } from 'app/core/services/plano-modulo.service';
+import { ModuloPlano } from 'app/models/enums/ModuloPlano';
+import { DestinoDia, destinoDoDia } from 'app/utils/destino-dia';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -42,6 +45,13 @@ export interface EscalarMembroDialogData {
     ],
 })
 export class EscalarMembroDialogComponent implements OnInit {
+    private _planoModulo = inject(PlanoModuloService);
+
+    /** "Ver o dia" do alerta de conflito: Visão do dia, ou a Agenda no dia sem o módulo Visão da semana (plano 24). */
+    get destinoDia(): DestinoDia {
+        return destinoDoDia(this.data.dataEvento, this._planoModulo.Liberado(ModuloPlano.VisaoSemana));
+    }
+
     private _fb = inject(FormBuilder);
     private _dialogRef = inject(MatDialogRef<EscalarMembroDialogComponent, EventoMembroItem[]>);
     private _eventoService = inject(EventoService);

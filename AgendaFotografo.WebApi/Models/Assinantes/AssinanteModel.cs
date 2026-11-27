@@ -4,7 +4,7 @@ namespace AgendaFotografo.WebApi.Models.Assinantes;
 
 /// <summary>
 /// Ficha do assinante (entrada e saída). Nomes C# exatos no JSON. Na entrada só são lidos Id, ASS_NOME, ASS_CPF_CNPJ,
-/// ASS_EMAIL, ASS_TELEFONE e ASS_TESTE_ATE; os demais campos são somente de saída.
+/// ASS_EMAIL, ASS_TELEFONE e ASS_TESTE_ATE (e ASS_PLANO_ID só no Criar); os demais campos são somente de saída.
 /// </summary>
 public class AssinanteModel
 {
@@ -25,8 +25,17 @@ public class AssinanteModel
     public bool ASS_ATIVO { get; set; }
     public OrigemAssinante ASS_ORIGEM { get; set; }
 
-    /// <summary>Somente saída (1 Coordenador, 2 Fotografo); o body é sempre ignorado.</summary>
+    /// <summary>Somente saída (1 = com plano, 2 = Gratuito); o body é sempre ignorado.</summary>
     public TipoAssinante ASS_TIPO { get; set; }
+
+    /// <summary>
+    /// Plano da conta (plano 24; nulo no Gratuito). Entrada só no Criar (nulo = plano do autocadastro); o Atualizar ignora (a troca é pelo
+    /// AlterarPlano).
+    /// </summary>
+    public Guid? ASS_PLANO_ID { get; set; }
+
+    /// <summary>Somente saída: nome do plano; nulo no Gratuito.</summary>
+    public string? PlanoNome { get; set; }
 
     /// <summary>Nulo = sem prazo; 0 = teste encerrado.</summary>
     public int? TesteDiasRestantes { get; set; }

@@ -2,6 +2,7 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { Assinante } from 'app/models/entities/Assinante';
+import { AssinantePlanoModel } from 'app/models/DTOs/requests/AssinantePlanoModel';
 import { AssinanteListItem } from 'app/models/DTOs/responses/AssinanteListItem';
 import { AssinanteSenhaTemporaria } from 'app/models/DTOs/responses/AssinanteSenhaTemporaria';
 import { PaginatedResponse } from 'app/models/PaginatedResponse';
@@ -49,6 +50,11 @@ export class AssinanteService {
 
     RedefinirAcesso(id: string): Observable<AssinanteSenhaTemporaria> {
         return this._httpClient.post<AssinanteSenhaTemporaria>(environment.Assinante.redefinirAcesso, null, { params: new HttpParams().set('id', id) });
+    }
+
+    /** Plano 24: troca entre Gratuito e plano (derruba a sessão da pessoa) ou só o plano (os módulos mudam na hora). */
+    AlterarPlano(body: AssinantePlanoModel): Observable<Assinante> {
+        return this._httpClient.put<Assinante>(environment.Assinante.alterarPlano, body, { headers: this._headers });
     }
 
     NotificarAlteracao(): void {

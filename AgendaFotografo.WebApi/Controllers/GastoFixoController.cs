@@ -1,6 +1,8 @@
 using AgendaFotografo.Domain.Constants;
 using AgendaFotografo.Domain.Entities;
+using AgendaFotografo.Domain.Enums;
 using AgendaFotografo.Domain.Interfaces;
+using AgendaFotografo.WebApi.Attributes;
 using AgendaFotografo.WebApi.Helpers;
 using AgendaFotografo.WebApi.Models;
 using AgendaFotografo.WebApi.Models.Financeiro;
@@ -19,6 +21,7 @@ namespace AgendaFotografo.WebApi.Controllers;
 /// logado (<see cref="AssinanteEscopo"/>); registro de outro assinante = 404. Nunca loga título nem valor.
 /// </summary>
 [Authorize(Roles = RoleNames.Assinante)]
+[ModuloPlano(ModuloPlano.Financeiro)]
 public class GastoFixoController(
     IBaseRepository<GastoFixo> repGastoFixo,
     IBaseRepository<Lancamento> repLancamento,

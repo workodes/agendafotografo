@@ -4,6 +4,7 @@ using AgendaFotografo.Domain.Constants;
 using AgendaFotografo.Domain.Entities;
 using AgendaFotografo.Domain.Enums;
 using AgendaFotografo.Domain.Interfaces;
+using AgendaFotografo.WebApi.Attributes;
 using AgendaFotografo.WebApi.Helpers;
 using AgendaFotografo.WebApi.Models;
 using AgendaFotografo.WebApi.Models.Eventos;
@@ -593,6 +594,7 @@ public class EventoController(
     /// livres e os membros em conflito.
     /// </summary>
     [HttpGet]
+    [ModuloPlano(ModuloPlano.VisaoSemana)]
     public async Task<IActionResult> Dia(CancellationToken cancellationToken, string? data = null)
     {
         try
@@ -941,6 +943,7 @@ public class EventoController(
 
     /// <summary>Situação do link público do evento. Sem link: 200 com <c>Configurado = false</c>. Resposta com o código: no-store.</summary>
     [HttpGet]
+    [ModuloPlano(ModuloPlano.LinkPublico)]
     public async Task<IActionResult> Link(Guid id, CancellationToken cancellationToken)
     {
         if (id == Guid.Empty) return BadRequest(MsgIdObrigatorio);
@@ -970,6 +973,7 @@ public class EventoController(
     /// <c>EVL_MOSTRAR_EQUIPE</c> (token, código e carimbo ficam). Desativar pausa; reativar devolve o acesso dentro dos 7 dias.
     /// </summary>
     [HttpPut]
+    [ModuloPlano(ModuloPlano.LinkPublico)]
     public async Task<IActionResult> AtualizarLink(Guid id, [FromBody] EventoLinkModel? model, CancellationToken cancellationToken)
     {
         if (id == Guid.Empty) return BadRequest(MsgIdObrigatorio);
@@ -1029,11 +1033,13 @@ public class EventoController(
 
     /// <summary>Novo código e novo carimbo (derruba os acessos liberados); o token fica. Sem link = 400.</summary>
     [HttpPost]
+    [ModuloPlano(ModuloPlano.LinkPublico)]
     public Task<IActionResult> RegerarCodigoLink(Guid id, CancellationToken cancellationToken) =>
         RegerarAsync(id, trocarToken: false, cancellationToken);
 
     /// <summary>Novo token, código e carimbo (o link antigo deixa de existir). Sem link = 400.</summary>
     [HttpPost]
+    [ModuloPlano(ModuloPlano.LinkPublico)]
     public Task<IActionResult> RegerarLink(Guid id, CancellationToken cancellationToken) =>
         RegerarAsync(id, trocarToken: true, cancellationToken);
 

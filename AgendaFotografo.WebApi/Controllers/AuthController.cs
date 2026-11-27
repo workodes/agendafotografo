@@ -13,6 +13,7 @@ using AgendaFotografo.WebApi.Models.Auth;
 using AgendaFotografo.WebApi.Services.Assinantes;
 using AgendaFotografo.WebApi.Services.CurrentUser;
 using AgendaFotografo.WebApi.Services.Emails;
+using AgendaFotografo.WebApi.Services.Planos;
 using AgendaFotografo.WebApi.Validators.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -28,8 +29,10 @@ public class AuthController(UserManager<Usuario> userManager, IConfiguration con
     AssinanteCadastro cadastro, AssinanteEscopo assinanteEscopo, FotografoEscopo fotografoEscopo, IUnitOfWork unitOfWork,
     GoogleSettings googleSettings, IGoogleTokenValidador googleValidador,
     EmailsConta emailsConta, CodigoEmail codigos, FilaPedidoNovaSenha filaPedidoNovaSenha,
+    ModulosAcesso modulosAcesso,
     ILogger<AuthController> logger) : AgendaFotografoController
 {
+    private readonly ModulosAcesso _modulosAcesso = modulosAcesso;
     private readonly AssinanteCadastro _cadastro = cadastro;
     private readonly AssinanteEscopo _assinanteEscopo = assinanteEscopo;
     private readonly FotografoEscopo _fotografoEscopo = fotografoEscopo;
@@ -110,6 +113,16 @@ public class AuthController(UserManager<Usuario> userManager, IConfiguration con
             new(ClaimTypes.Role, role)
         };
 
+        // Plano 24: plano e módulos da conta (só Assinante; lidos do banco pelo ModulosAcesso, nunca vão ao token)
+        string? planoNome = null;
+        ModuloPlano[]? modulos = null;
+        if (role == RoleNames.Assinante)
+        {
+            var acessoModulos = await _modulosAcesso.ObterParaUsuarioAsync(usuario.Id, role, cancellationToken);
+            planoNome = acessoModulos.PlanoNome;
+            modulos = [.. acessoModulos.Modulos.OrderBy(m => m)];
+        }
+
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Setup.ObterJwtKey(_configuration)));
         var token = new JwtSecurityToken(
             claims: claims,
@@ -126,6 +139,8 @@ public class AuthController(UserManager<Usuario> userManager, IConfiguration con
             Role = role,
             ExigirTrocaSenha = usuario.ExigirTrocaSenha,
             AssinanteNome = assinanteNome,
+            PlanoNome = planoNome,
+            Modulos = modulos,
             TemSenha = await _userManager.HasPasswordAsync(usuario)
         };
     }
@@ -306,6 +321,30 @@ public class AuthController(UserManager<Usuario> userManager, IConfiguration con
             EmailConfirmado = false,
             ExigirTrocaSenha = false
         }, model.Senha, null, "senha", cancellationToken);
+    }
+
+    /// <summary>
+    /// Plano e módulos liberados do Assinante logado (plano 24), lidos do banco pelo <see cref="ModulosAcesso"/> (o mesmo do filtro da API).
+    /// O SPA recarrega a cada entrada no app e depois de um 403 de módulo. Admin e Fotografo = 403 pela role. Resposta <c>no-store</c>.
+    /// </summary>
+    [Authorize(Roles = RoleNames.Assinante)]
+    [HttpGet]
+    public async Task<IActionResult> Modulos(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var acesso = await _modulosAcesso.ObterAsync(cancellationToken);
+            MarcarSemCache();
+            return Ok(new ModulosUsuarioResponse
+            {
+                PlanoNome = acesso.PlanoNome,
+                Modulos = [.. acesso.Modulos.OrderBy(m => m)]
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
     }
 
     /// <summary>Dias restantes do teste grátis do assinante logado (o cabeçalho do SPA chama uma vez ao montar).</summary>
@@ -524,6 +563,9 @@ public class AuthController(UserManager<Usuario> userManager, IConfiguration con
         await _unitOfWork.BeginTransactionAsync(cancellationToken);
         try
         {
+            // Plano 24: "Coordeno uma equipe" entra no plano fixo do autocadastro; "Sou fotógrafo" entra como Gratuito (sem plano)
+            dados.PlanoId = dados.Tipo == TipoAssinante.Fotografo ? null : PlanosPadrao.CoordenadorCompletoId;
+
             // Só o coordenador tem teste grátis; o fotógrafo é grátis, sem prazo (plano 21)
             dados.TesteAte = dados.Tipo == TipoAssinante.Fotografo
                 ? null

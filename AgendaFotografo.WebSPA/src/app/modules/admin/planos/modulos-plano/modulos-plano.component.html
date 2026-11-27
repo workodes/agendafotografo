@@ -1,0 +1,45 @@
+<section class="flex flex-col gap-3" aria-labelledby="titulo-modulos-plano">
+    <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
+            <h2 id="titulo-modulos-plano" class="text-lg font-bold text-accent">Módulos liberados neste plano</h2>
+            <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center whitespace-nowrap bg-primary-100 text-primary-800"
+                aria-live="polite">
+                {{ totalLiberados }} de {{ catalogo.length }} liberados
+            </span>
+        </div>
+        <div class="flex items-center gap-1">
+            <button mat-button type="button" color="primary" [disabled]="desabilitado || totalLiberados === catalogo.length" (click)="marcarTodos()">Marcar todos</button>
+            <button mat-button type="button" [disabled]="desabilitado || totalLiberados === 0" (click)="limpar()">Limpar</button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div *ngFor="let m of catalogo; trackBy: trackModulo"
+            class="flex items-start gap-3 rounded-xl border p-3 transition-colors"
+            [ngClass]="liberado(m.Modulo) ? 'border-primary-200 bg-primary-50' : 'border-gray-200 bg-gray-50'">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                [ngClass]="liberado(m.Modulo) ? 'bg-primary-100 text-primary-700' : 'bg-gray-200 text-gray-500'" aria-hidden="true">
+                <mat-icon class="icon-size-5 text-current" [svgIcon]="liberado(m.Modulo) ? icone(m.Modulo) : 'heroicons_outline:lock-closed'"></mat-icon>
+            </span>
+            <div class="flex min-w-0 flex-auto flex-col gap-0.5">
+                <span class="font-semibold leading-snug" [ngClass]="liberado(m.Modulo) ? 'text-default' : 'text-secondary'">{{ m.Nome }}</span>
+                <span *ngIf="m.Descricao" class="text-xs text-secondary leading-snug">{{ m.Descricao }}</span>
+                <span class="text-xs font-medium" [ngClass]="liberado(m.Modulo) ? 'text-green-700' : 'text-secondary'">
+                    {{ liberado(m.Modulo) ? 'Liberado' : 'Não liberado' }}
+                </span>
+            </div>
+            <mat-slide-toggle class="shrink-0" [checked]="liberado(m.Modulo)" [disabled]="desabilitado"
+                [attr.aria-label]="'Liberar ' + m.Nome" (change)="alternar(m.Modulo, $event.checked)"></mat-slide-toggle>
+        </div>
+    </div>
+
+    <div *ngIf="sempreLiberados.length" class="flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-900">
+        <mat-icon class="icon-size-5 shrink-0 text-green-700" svgIcon="heroicons_outline:check-badge"></mat-icon>
+        <div class="flex min-w-0 flex-col gap-1">
+            <span class="font-semibold">Sempre liberados em todo plano</span>
+            <ul class="list-disc pl-5">
+                <li *ngFor="let s of sempreLiberados">{{ s }}</li>
+            </ul>
+        </div>
+    </div>
+</section>

@@ -72,9 +72,17 @@
                                     <td mat-cell *matCellDef="let a" class="whitespace-nowrap hidden md:table-cell max-sm:!px-2">{{ a.ASS_CPF_CNPJ ? formatCpfCnpj(a.ASS_CPF_CNPJ) : '-' }}</td>
                                 </ng-container>
 
-                                <ng-container matColumnDef="ASS_TIPO">
-                                    <th mat-header-cell *matHeaderCellDef class="text-left hidden md:table-cell">Perfil</th>
-                                    <td mat-cell *matCellDef="let a" class="whitespace-nowrap hidden md:table-cell">{{ tipoRotulo[a.ASS_TIPO] ?? '-' }}</td>
+                                <!-- Plano 24: nome do plano, ou o selo "Gratuito" (ASS_TIPO = 2) -->
+                                <ng-container matColumnDef="PlanoNome">
+                                    <th mat-header-cell *matHeaderCellDef class="text-left hidden md:table-cell">Plano</th>
+                                    <td mat-cell *matCellDef="let a" class="hidden md:table-cell">
+                                        <span *ngIf="a.ASS_TIPO === gratuito"
+                                            class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center whitespace-nowrap bg-gray-100 text-gray-800"
+                                            title="Só vê a agenda (eventos em que for escalado)">
+                                            Gratuito
+                                        </span>
+                                        <div *ngIf="a.ASS_TIPO !== gratuito" class="truncate max-w-[180px]" [attr.title]="a.PlanoNome">{{ a.PlanoNome || 'Sem plano' }}</div>
+                                    </td>
                                 </ng-container>
 
                                 <ng-container matColumnDef="ASS_ORIGEM">
@@ -138,6 +146,10 @@
                                             <button *ngIf="!a.ASS_ATIVO" mat-menu-item type="button" (click)="reativar(a)">
                                                 <mat-icon svgIcon="heroicons_outline:check-circle"></mat-icon>
                                                 <span>Reativar</span>
+                                            </button>
+                                            <button mat-menu-item type="button" (click)="alterarPlano(a)">
+                                                <mat-icon svgIcon="heroicons_outline:rectangle-stack"></mat-icon>
+                                                <span>Alterar plano</span>
                                             </button>
                                             <button mat-menu-item type="button" (click)="redefinirAcesso(a)">
                                                 <mat-icon svgIcon="heroicons_outline:key"></mat-icon>

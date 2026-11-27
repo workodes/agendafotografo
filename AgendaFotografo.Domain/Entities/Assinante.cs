@@ -19,6 +19,15 @@ public class Assinante : BaseEntity
     /// <summary>Quem criou o assinante: o Admin (padrão) ou o próprio coordenador pelo autocadastro.</summary>
     public OrigemAssinante ASS_ORIGEM { get; set; } = OrigemAssinante.Admin;
 
-    /// <summary>Perfil da conta: Coordenador (padrão) ou Fotógrafo.</summary>
+    /// <summary>
+    /// Tipo da conta (plano 24): 1 = conta com plano (coordenador ou fotógrafo pago, role Assinante); 2 = Gratuito (só vê a agenda da
+    /// escala, role Fotografo). O nome do enum foi mantido.
+    /// </summary>
     public TipoAssinante ASS_TIPO { get; set; } = TipoAssinante.Coordenador;
+
+    /// <summary>
+    /// Plano da conta (plano 24). Nulo = sem plano: o Gratuito sempre; um coordenador só na janela entre a migration e o Seed (fica só com a base).
+    /// </summary>
+    public Guid? ASS_PLANO_ID { get; set; }
+    public Plano? Plano { get; set; }
 }

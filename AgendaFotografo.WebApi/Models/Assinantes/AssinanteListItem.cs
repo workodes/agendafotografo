@@ -17,6 +17,12 @@ public class AssinanteListItem
     public OrigemAssinante ASS_ORIGEM { get; set; }
     public TipoAssinante ASS_TIPO { get; set; }
 
+    /// <summary>Plano da conta (plano 24); nulo no Gratuito (ASS_TIPO = 2).</summary>
+    public Guid? ASS_PLANO_ID { get; set; }
+
+    /// <summary>Nome do plano; nulo no Gratuito.</summary>
+    public string? PlanoNome { get; set; }
+
     /// <summary>Nulo = sem prazo; 0 = teste encerrado.</summary>
     public int? TesteDiasRestantes { get; set; }
     public bool ExigirTrocaSenha { get; set; }

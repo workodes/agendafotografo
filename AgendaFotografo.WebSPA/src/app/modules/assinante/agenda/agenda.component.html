@@ -9,7 +9,7 @@
             <span class="flex items-center gap-1 shrink-0">
                 <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center shrink-0"
                     [ngClass]="statusCor[e.EVE_STATUS]">{{ rotuloStatus(e.EVE_STATUS) }}</span>
-                <button mat-icon-button type="button" class="!w-8 !h-8 max-sm:!w-10 max-sm:!h-10 max-sm:-my-1 !p-0 !leading-none shrink-0" aria-label="Copiar link do evento" title="Copiar link do evento"
+                <button *ngIf="linkLiberado" mat-icon-button type="button" class="!w-8 !h-8 max-sm:!w-10 max-sm:!h-10 max-sm:-my-1 !p-0 !leading-none shrink-0" aria-label="Copiar link do evento" title="Copiar link do evento"
                 (click)="copiarLink(e, $event)" (keydown.enter)="$event.stopPropagation()">
                     <mat-icon class="icon-size-5" svgIcon="heroicons_outline:link"></mat-icon>
                 </button>
@@ -128,7 +128,7 @@
                         <h2 class="text-lg font-bold">{{ g.titulo }}</h2>
                         <span *ngIf="g.data === hoje" class="leading-none rounded-full px-2 py-1 text-xs font-semibold bg-primary-100 text-primary-800">Hoje</span>
                     </div>
-                    <a class="text-sm underline text-primary max-sm:inline-flex max-sm:items-center max-sm:min-h-10 max-sm:min-w-10 max-sm:justify-center max-sm:-mr-2" [routerLink]="['/assinante/visao-do-dia']" [queryParams]="{ data: g.data, visao: 'dia' }">Visão do dia</a>
+                    <a *ngIf="visaoLiberada" class="text-sm underline text-primary max-sm:inline-flex max-sm:items-center max-sm:min-h-10 max-sm:min-w-10 max-sm:justify-center max-sm:-mr-2" [routerLink]="['/assinante/visao-do-dia']" [queryParams]="{ data: g.data, visao: 'dia' }">Visão do dia</a>
                 </div>
                 <!-- Celular: cards -->
                 <div class="grid grid-cols-1 gap-3 md:hidden">
@@ -171,7 +171,7 @@
                                             [ngClass]="statusCor[e.EVE_STATUS]">{{ rotuloStatus(e.EVE_STATUS) }}</span>
                                     </td>
                                     <td class="px-1 py-2 text-center">
-                                        <button mat-icon-button type="button" class="!w-8 !h-8 max-sm:!w-10 max-sm:!h-10 max-sm:-my-1 !p-0 !leading-none shrink-0" aria-label="Copiar link do evento" title="Copiar link do evento"
+                                        <button *ngIf="linkLiberado" mat-icon-button type="button" class="!w-8 !h-8 max-sm:!w-10 max-sm:!h-10 max-sm:-my-1 !p-0 !leading-none shrink-0" aria-label="Copiar link do evento" title="Copiar link do evento"
                                         (click)="copiarLink(e, $event)" (keydown.enter)="$event.stopPropagation()">
                                             <mat-icon class="icon-size-5" svgIcon="heroicons_outline:link"></mat-icon>
                                         </button>
@@ -267,7 +267,7 @@
                 <ng-container *ngIf="dia; else semDia">
                     <h2 class="text-lg font-bold">{{ tituloDia }}</h2>
                     <div class="flex flex-wrap gap-2">
-                        <a mat-stroked-button [routerLink]="['/assinante/visao-do-dia']" [queryParams]="{ data: dia, visao: 'dia' }">
+                        <a *ngIf="visaoLiberada" mat-stroked-button [routerLink]="['/assinante/visao-do-dia']" [queryParams]="{ data: dia, visao: 'dia' }">
                             <mat-icon svgIcon="heroicons_outline:sun"></mat-icon>
                             <span class="ml-2">Visão do dia</span>
                         </a>

@@ -21,6 +21,8 @@ export const environment = {
         redefinirSenha: `${baseUrl}/Auth/RedefinirSenha`,
         solicitarCodigoDefinirSenha: `${baseUrl}/Auth/SolicitarCodigoDefinirSenha`,
         definirSenha: `${baseUrl}/Auth/DefinirSenha`,
+        // Plano 24: plano e módulos liberados do Assinante logado (recarregados a cada entrada no app).
+        modulos: `${baseUrl}/Auth/Modulos`,
     },
 
     Assinante: {
@@ -31,6 +33,20 @@ export const environment = {
         inativar: `${baseUrl}/Assinante/Inativar`,
         ativar: `${baseUrl}/Assinante/Ativar`,
         redefinirAcesso: `${baseUrl}/Assinante/RedefinirAcesso`,
+        alterarPlano: `${baseUrl}/Assinante/AlterarPlano`,
+    },
+
+    // Planos e módulos liberados (plano 24; só o Admin).
+    Plano: {
+        listar: `${baseUrl}/Plano/Listar`,
+        obter: `${baseUrl}/Plano/Obter`,
+        criar: `${baseUrl}/Plano/Criar`,
+        atualizar: `${baseUrl}/Plano/Atualizar`,
+        inativar: `${baseUrl}/Plano/Inativar`,
+        ativar: `${baseUrl}/Plano/Ativar`,
+        excluir: `${baseUrl}/Plano/Excluir`,
+        opcoes: `${baseUrl}/Plano/Opcoes`,
+        modulos: `${baseUrl}/Plano/Modulos`,
     },
 
     Membro: {

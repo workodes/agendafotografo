@@ -1,5 +1,8 @@
 import { NgClass, NgFor, NgIf, NgTemplateOutlet } from '@angular/common';
-import { ChangeDetectorRef, Component, DestroyRef, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { PlanoModuloService } from 'app/core/services/plano-modulo.service';
+import { ModuloPlano } from 'app/models/enums/ModuloPlano';
+import { DestinoDia, destinoDoDia } from 'app/utils/destino-dia';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -43,6 +46,13 @@ interface BarraLista {
     templateUrl: './inicio-assinante.component.html',
 })
 export class InicioAssinanteComponent implements OnInit {
+    private _planoModulo = inject(PlanoModuloService);
+
+    /** Plano 24: cartões Hoje/Amanhã abrem a Visão do dia; sem o módulo Visão da semana, a Agenda no dia. */
+    destinoDia(data: string): DestinoDia {
+        return destinoDoDia(data, this._planoModulo.Liberado(ModuloPlano.VisaoSemana));
+    }
+
     readonly STATUS_ROTULO = STATUS_EVENTO_ROTULO;
     readonly STATUS_COR = STATUS_EVENTO_COR;
     readonly FUNCAO_ROTULO = FUNCAO_MEMBRO_ROTULO;

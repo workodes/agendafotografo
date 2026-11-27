@@ -9,14 +9,16 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, Router } from '@angular/router';
 import { NgxMaskDirective, provideNgxMask } from 'ngx-mask';
 import { Observable, Subject, takeUntil } from 'rxjs';
+import { Opcao } from 'app/models/DTOs/responses/Opcao';
 import { Assinante } from 'app/models/entities/Assinante';
 import { AssinanteService } from 'app/services/assinante.service';
 import { ORIGEM_ASSINANTE_ROTULO } from 'app/models/enums/OrigemAssinante';
-import { TIPO_ASSINANTE_ROTULO, TipoAssinante } from 'app/models/enums/TipoAssinante';
+import { TipoAssinante } from 'app/models/enums/TipoAssinante';
 import { formatarDataIso, parseDataIso } from 'app/utils/data-evento';
 import { testeEmAlerta, textoTeste } from 'app/utils/teste-gratis';
 import { GenericValidator } from 'app/utils/GenericValidator';
@@ -39,7 +41,7 @@ function telefoneValido(control: AbstractControl): ValidationErrors | null {
     providers: [provideNgxMask()],
     imports: [
         CommonModule, ReactiveFormsModule, NgxMaskDirective,
-        MatButtonModule, MatCheckboxModule, MatDatepickerModule, MatFormFieldModule, MatIconModule, MatInputModule, MatProgressSpinnerModule,
+        MatButtonModule, MatCheckboxModule, MatDatepickerModule, MatFormFieldModule, MatIconModule, MatInputModule, MatProgressSpinnerModule, MatSelectModule,
     ],
 })
 export class AssinanteDetailsComponent implements OnInit, OnDestroy {
@@ -49,7 +51,8 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
     readonly testeMin = new Date(2000, 0, 1);
     readonly testeMax = new Date(2100, 11, 31);
     readonly origemRotulo = ORIGEM_ASSINANTE_ROTULO;
-    readonly tipoRotulo = TIPO_ASSINANTE_ROTULO;
+    /** Novo (plano 24): planos ativos para o select; a primeira opção é "Padrão do autocadastro" (envia null). */
+    planos: Opcao[] = [];
     readonly textoTeste = textoTeste;
     readonly testeEmAlerta = testeEmAlerta;
     salvando = false;
@@ -66,7 +69,10 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
         private _snackBar: MatSnackBar,
     ) { }
 
-    /** Conta de Fotógrafo (planos 20 e 23): o documento (CPF ou CNPJ) é obrigatório e a conta não tem teste grátis. */
+    /**
+     * Conta Gratuito (ASS_TIPO = 2; o fotógrafo gratuito dos planos 20, 21 e 23): o documento (CPF ou CNPJ) é obrigatório e a
+     * conta não tem teste grátis.
+     */
     get ehFotografo(): boolean {
         return this.assinante?.ASS_TIPO === TipoAssinante.Fotografo;
     }
@@ -85,19 +91,18 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
             // Sem prazo = ASS_TESTE_ATE nulo. Marcada, a data fica desabilitada (e fora da validação).
             SEM_PRAZO: [true],
             ASS_TESTE_ATE: [{ value: null as Date | null, disabled: true }, [Validators.required]],
+            // Só no Novo (plano 24): null = plano do autocadastro.
+            ASS_PLANO_ID: [null as string | null],
         });
         this.form.get('SEM_PRAZO')!.valueChanges.pipe(takeUntil(this._destroy$)).subscribe(sem => this.aplicarSemPrazo(!!sem));
 
         // Reage a mudanças de rota (:id -> outro :id, ou :id -> novo) reaproveitando o componente.
         this._route.data.pipe(takeUntil(this._destroy$)).subscribe(data => {
             const assinante = data['data']?.assinante as Assinante | undefined;
+            this.planos = data['data']?.planos ?? [];
             if (assinante) {
                 this.assinante = assinante;
-                // Fotógrafo: CPF ou CNPJ obrigatório; coordenador: CPF ou CNPJ, opcional (como antes).
-                const cpf = this.form.get('ASS_CPF_CNPJ')!;
-                cpf.setValidators(assinante.ASS_TIPO === TipoAssinante.Fotografo
-                    ? [Validators.required, GenericValidator.isValidCpfOrCnpj()]
-                    : [GenericValidator.isValidCpfOrCnpj()]);
+                this.aplicarDocumento(assinante);
                 this.form.reset({
                     ASS_NOME: assinante.ASS_NOME,
                     ASS_EMAIL: assinante.ASS_EMAIL,
@@ -105,16 +110,14 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
                     ASS_TELEFONE: assinante.ASS_TELEFONE ?? '',
                     SEM_PRAZO: !assinante.ASS_TESTE_ATE,
                     ASS_TESTE_ATE: parseDataIso(assinante.ASS_TESTE_ATE),
+                    ASS_PLANO_ID: null,
                 });
-                // Conta de Fotógrafo não tem teste (plano 21): o controle fica sem prazo e desabilitado (fora da validação).
-                const semPrazo = assinante.ASS_TIPO === TipoAssinante.Fotografo || !assinante.ASS_TESTE_ATE;
-                this.form.get('SEM_PRAZO')!.setValue(semPrazo, { emitEvent: false });
-                this.aplicarSemPrazo(semPrazo);
+                this.aplicarTeste(assinante);
             } else {
                 this.assinante = undefined;
                 this.form.get('ASS_CPF_CNPJ')!.setValidators([GenericValidator.isValidCpfOrCnpj()]);
                 // Criado pelo Admin: o padrão é sem prazo.
-                this.form.reset({ ASS_NOME: '', ASS_EMAIL: '', ASS_CPF_CNPJ: '', ASS_TELEFONE: '', SEM_PRAZO: true, ASS_TESTE_ATE: null });
+                this.form.reset({ ASS_NOME: '', ASS_EMAIL: '', ASS_CPF_CNPJ: '', ASS_TELEFONE: '', SEM_PRAZO: true, ASS_TESTE_ATE: null, ASS_PLANO_ID: null });
                 this.aplicarSemPrazo(true);
             }
         });
@@ -161,6 +164,8 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
         }
 
         delete body.Id;
+        // Plano 24: null = plano do autocadastro (a API confere se existe e está ativo).
+        body.ASS_PLANO_ID = v.ASS_PLANO_ID || null;
         this._service.Add(body).subscribe({
             next: resp => {
                 this.salvando = false;
@@ -184,6 +189,52 @@ export class AssinanteDetailsComponent implements OnInit, OnDestroy {
 
     redefinirAcesso(): void {
         this.executar(this._acoes.redefinirAcesso(this.assinante as any));
+    }
+
+    // Plano 24: troca de plano ou Gratuito. A resposta pode mudar o tipo da conta: ajusta o CPF/CNPJ obrigatório e o teste,
+    // sem mexer nos outros campos (edições em andamento continuam).
+    alterarPlano(): void {
+        if (this.acaoEmAndamento || !this.assinante?.Id) {
+            return;
+        }
+        this.acaoEmAndamento = true;
+        this._acoes.alterarPlano(this.assinante as any).subscribe({
+            next: atualizado => {
+                this.assinante = atualizado;
+                this.aplicarDocumento(atualizado);
+                this.form.get('ASS_CPF_CNPJ')!.updateValueAndValidity({ emitEvent: false });
+                if (atualizado.ASS_TIPO === TipoAssinante.Fotografo) {
+                    // Gratuito não tem teste (a API zera o ASS_TESTE_ATE).
+                    this.form.get('ASS_TESTE_ATE')!.setValue(null, { emitEvent: false });
+                }
+                this.aplicarTeste(atualizado);
+                this.acaoEmAndamento = false;
+            },
+            error: () => (this.acaoEmAndamento = false),
+            complete: () => (this.acaoEmAndamento = false),
+        });
+    }
+
+    /** Texto do plano na ficha: nome do plano ou Gratuito. */
+    get textoPlano(): string {
+        if (this.ehFotografo) {
+            return 'Gratuito (só vê a agenda)';
+        }
+        return this.assinante?.PlanoNome || 'Sem plano';
+    }
+
+    // Gratuito: CPF ou CNPJ obrigatório; com plano: CPF ou CNPJ, opcional (como antes).
+    private aplicarDocumento(assinante: Assinante): void {
+        this.form.get('ASS_CPF_CNPJ')!.setValidators(assinante.ASS_TIPO === TipoAssinante.Fotografo
+            ? [Validators.required, GenericValidator.isValidCpfOrCnpj()]
+            : [GenericValidator.isValidCpfOrCnpj()]);
+    }
+
+    // Conta Gratuito não tem teste (plano 21): o controle fica sem prazo e desabilitado (fora da validação).
+    private aplicarTeste(assinante: Assinante): void {
+        const semPrazo = assinante.ASS_TIPO === TipoAssinante.Fotografo || !assinante.ASS_TESTE_ATE;
+        this.form.get('SEM_PRAZO')!.setValue(semPrazo, { emitEvent: false });
+        this.aplicarSemPrazo(semPrazo);
     }
 
     private aplicarSemPrazo(sem: boolean): void {

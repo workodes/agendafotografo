@@ -1,4 +1,6 @@
 using AgendaFotografo.Domain.Constants;
+using AgendaFotografo.Domain.Enums;
+using AgendaFotografo.WebApi.Attributes;
 using AgendaFotografo.WebApi.Helpers;
 using AgendaFotografo.WebApi.Services.CurrentUser;
 using AgendaFotografo.WebApi.Services.Dashboard;
@@ -28,6 +30,7 @@ public class DashboardController(
 
     /// <summary>Números do mês atual (comparado com o mês anterior), equipe e distribuições.</summary>
     [HttpGet]
+    [ModuloPlano(ModuloPlano.Inicio)]
     public async Task<IActionResult> Resumo(CancellationToken cancellationToken)
     {
         try
@@ -51,6 +54,7 @@ public class DashboardController(
     /// O <c>Resumo</c> do Início não lê nada financeiro.
     /// </summary>
     [HttpGet]
+    [ModuloPlano(ModuloPlano.Financeiro)]
     public async Task<IActionResult> Financeiro(CancellationToken cancellationToken, string? dataDe = null, string? dataAte = null)
     {
         try

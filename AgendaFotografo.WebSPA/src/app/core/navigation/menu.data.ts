@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { FuseNavigationItem } from '@fuse/components/navigation';
+import { ModuloPlano } from 'app/models/enums/ModuloPlano';
 import { ROLE_NAMES } from '../constants/RoleNames';
 
 // Um menu por role: o usuário só vê os itens do próprio perfil. Os links levam o prefixo da role
@@ -7,7 +8,8 @@ import { ROLE_NAMES } from '../constants/RoleNames';
 // Assinante = Equipe, Organizadores, Tipos de evento, Agenda (a ficha do evento abre pela Agenda), Visão do dia, Pendências, Financeiro (plano 22), Checklist padrão etc.; Admin = Assinantes (plano 01).
 @Injectable({ providedIn: 'root' })
 export class MenuData {
-    private montarMenu(prefixo: string, extras: FuseNavigationItem[] = []): FuseNavigationItem[] {
+    // Plano 24: item com `meta.modulo` só aparece para o Assinante se o plano liberar o módulo (filtro no NavigationService).
+    private montarMenu(prefixo: string, extras: FuseNavigationItem[] = [], moduloInicio?: ModuloPlano): FuseNavigationItem[] {
         return [
             {
                 id: 'inicio',
@@ -15,6 +17,7 @@ export class MenuData {
                 type: 'basic',
                 icon: 'heroicons_outline:home',
                 link: `/${prefixo}/inicio`,
+                ...(moduloInicio ? { meta: { modulo: moduloInicio } } : {}),
             },
             ...extras,
         ];
@@ -28,6 +31,14 @@ export class MenuData {
                 type: 'basic',
                 icon: 'heroicons_outline:users',
                 link: `/${ROLE_NAMES.Admin.toLowerCase()}/assinantes`,
+            },
+            // Plano 24: planos e módulos liberados.
+            {
+                id: 'planos',
+                title: 'Planos',
+                type: 'basic',
+                icon: 'heroicons_outline:rectangle-stack',
+                link: `/${ROLE_NAMES.Admin.toLowerCase()}/planos`,
             },
         ]),
         // Fotógrafo (plano 20): só a Agenda (o início redireciona para ela, então não há item "Início").
@@ -54,6 +65,7 @@ export class MenuData {
                 type: 'basic',
                 icon: 'heroicons_outline:sun',
                 link: `/${ROLE_NAMES.Assinante.toLowerCase()}/visao-do-dia`,
+                meta: { modulo: ModuloPlano.VisaoSemana },
             },
             {
                 id: 'pendencias',
@@ -67,6 +79,7 @@ export class MenuData {
                 title: 'Financeiro',
                 type: 'collapsable',
                 icon: 'heroicons_outline:banknotes',
+                meta: { modulo: ModuloPlano.Financeiro },
                 children: [
                     {
                         id: 'financeiro.lancamentos',
@@ -120,6 +133,6 @@ export class MenuData {
                     },
                 ],
             },
-        ]),
+        ], ModuloPlano.Inicio),
     };
 }

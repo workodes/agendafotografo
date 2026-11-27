@@ -259,7 +259,7 @@
                             <mat-icon class="icon-size-5 shrink-0 text-amber-600" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
                             <div class="min-w-0">
                                 <span>{{ textoOutrosEventos(m.OutrosEventos) }}.</span>
-                                <a class="underline ml-1" [routerLink]="['/assinante/visao-do-dia']" [queryParams]="{ data: evento?.EVE_DATA, visao: 'dia' }">Ver o dia</a>
+                                <a class="underline ml-1" [routerLink]="destinoDia.comandos" [queryParams]="destinoDia.queryParams">Ver o dia</a>
                             </div>
                         </div>
                     </div>
@@ -383,7 +383,7 @@
             </section>
 
             <!-- 5. Link público (fora do <form>) -->
-            <div id="sec-link" class="scroll-mt-4 min-w-0">
+            <div *ngIf="linkLiberado" id="sec-link" class="scroll-mt-4 min-w-0">
                 <app-evento-link-publico [eventoId]="evento?.Id" [nome]="evento?.EVE_NOME ?? ''" [data]="evento?.EVE_DATA ?? ''"
                     (linkChange)="aoMudarLink($event)"></app-evento-link-publico>
             </div>

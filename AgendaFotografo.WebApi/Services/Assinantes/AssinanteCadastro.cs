@@ -17,6 +17,9 @@ public class AssinanteCadastroDados
     public string? Telefone { get; set; }
     public string? CpfCnpj { get; set; }
     public TipoAssinante Tipo { get; set; } = TipoAssinante.Coordenador;
+
+    /// <summary>Plano da conta (plano 24). Só vale para o Coordenador (obrigatório); no Fotógrafo (Gratuito) é sempre gravado nulo.</summary>
+    public Guid? PlanoId { get; set; }
     public OrigemAssinante Origem { get; set; }
     public DateOnly? TesteAte { get; set; }
     public bool EmailConfirmado { get; set; }
@@ -117,6 +120,10 @@ public class AssinanteCadastro(
             throw new Exception(MensagemEmailDuplicado(dados.Origem));
         await GarantirCpfCnpjUnicoAsync(dados.CpfCnpj, null, cancellationToken);
 
+        // Plano 24: conta com plano (Coordenador) exige o plano; o Gratuito (Fotógrafo) nunca tem plano
+        if (dados.Tipo == TipoAssinante.Coordenador && (dados.PlanoId is null || dados.PlanoId == Guid.Empty))
+            throw new InvalidOperationException("Plano obrigatório para conta com plano.");
+
         var assinante = new Assinante
         {
             ASS_ATIVO = true,
@@ -125,6 +132,7 @@ public class AssinanteCadastro(
             ASS_EMAIL = dados.Email,
             ASS_TELEFONE = dados.Telefone,
             ASS_TIPO = dados.Tipo,
+            ASS_PLANO_ID = dados.Tipo == TipoAssinante.Fotografo ? null : dados.PlanoId,
             ASS_ORIGEM = dados.Origem,
             // Fotógrafo é grátis, sem teste (plano 21)
             ASS_TESTE_ATE = dados.Tipo == TipoAssinante.Fotografo ? null : dados.TesteAte

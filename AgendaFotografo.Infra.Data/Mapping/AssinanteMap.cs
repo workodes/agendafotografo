@@ -19,6 +19,13 @@ public class AssinanteMap : BaseMap<Assinante>
         builder.Property(x => x.ASS_ORIGEM).IsRequired();
         builder.Property(x => x.ASS_TIPO).IsRequired();
 
+        // Plano da conta (plano 24): nulo = Gratuito (ou coordenador antes do Seed)
+        builder.HasOne(x => x.Plano)
+            .WithMany()
+            .HasForeignKey(x => x.ASS_PLANO_ID)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(x => x.ASS_NOME);
+        builder.HasIndex(x => x.ASS_PLANO_ID);
     }
 }

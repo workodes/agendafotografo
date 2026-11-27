@@ -4,6 +4,7 @@
 - Commit de partida: 1cbf899
 - Status: Construído e revisado (rodada 1: Aprovado, sem ajustes, 23/11/2026); testes no navegador pendentes
 - **Nota (24/11/2026):** o plano 23 (`23 - Coordenador escalado por outro coordenador.md`) trocou "CPF" por "CPF ou CNPJ" nas dicas, nos textos, no cadastro do fotógrafo e na ficha do Admin; a restrição "Fotógrafo: só CPF" deste plano não vale mais.
+- **Nota (26/11/2026):** com o plano 24 (`24 - Planos e módulos por assinante.md`), o e-mail diário de lembretes passou a ser o **módulo 25** (onde este plano cita outro número para ele, leia 25). O fotógrafo gratuito deste plano agora se chama **"Gratuito"** no Admin (coluna e linha "Plano" e diálogo "Alterar plano"; `ASS_TIPO = 2` e a role `Fotografo` não mudaram).
 
 ## 1. Plano (engenheiro)
 

@@ -28,6 +28,9 @@ public class Seed(RoleManager<IdentityRole> roleManager, UserManager<Usuario> us
 
         await GarantirAdminAsync();
 
+        // Roda sempre: planos padrão e plano dos coordenadores sem plano (plano 24)
+        await GarantirPlanosPadraoAsync();
+
         // Roda sempre, depois do admin
         await GarantirTiposEventoPadraoAsync();
 
@@ -72,6 +75,60 @@ public class Seed(RoleManager<IdentityRole> roleManager, UserManager<Usuario> us
 
         if (!await userManager.IsInRoleAsync(admin, RoleNames.Admin))
             await userManager.AddToRoleAsync(admin, RoleNames.Admin);
+    }
+
+    /// <summary>
+    /// Idempotente (plano 24): cria, pelo Id fixo e só se não existirem, os planos "Coordenador completo" (todos os módulos do enum:
+    /// 1, 2, 4, 5, 6 e 7; o 3 é reservado) e "Fotógrafo" (só Visão da semana), com R$ 0,00, Mensal e ativos. Plano que já existe nunca é alterado (o Admin manda; módulo novo não é ligado
+    /// sozinho). Depois, toda conta Coordenador (ASS_TIPO = 1) sem plano recebe o "Coordenador completo". Um único SaveChanges; o log
+    /// traz só quantidades.
+    /// </summary>
+    private async Task GarantirPlanosPadraoAsync()
+    {
+        var idsPadrao = new[] { PlanosPadrao.CoordenadorCompletoId, PlanosPadrao.FotografoId };
+        var existentes = await db.Planos.AsNoTracking().Where(p => idsPadrao.Contains(p.Id)).Select(p => p.Id).ToListAsync();
+
+        var planosCriados = 0;
+        if (!existentes.Contains(PlanosPadrao.CoordenadorCompletoId))
+        {
+            AdicionarPlano(PlanosPadrao.CoordenadorCompletoId, PlanosPadrao.CoordenadorCompletoNome, 1, Enum.GetValues<ModuloPlano>());
+            planosCriados++;
+        }
+        if (!existentes.Contains(PlanosPadrao.FotografoId))
+        {
+            AdicionarPlano(PlanosPadrao.FotografoId, PlanosPadrao.FotografoNome, 2, [ModuloPlano.VisaoSemana]);
+            planosCriados++;
+        }
+
+        var semPlano = await db.Assinantes
+            .Where(a => a.ASS_TIPO == TipoAssinante.Coordenador && a.ASS_PLANO_ID == null)
+            .ToListAsync();
+        foreach (var assinante in semPlano)
+            assinante.ASS_PLANO_ID = PlanosPadrao.CoordenadorCompletoId;
+
+        // Um único SaveChanges: os planos são inseridos antes das contas que apontam para eles (o EF ordena pela FK)
+        if (planosCriados > 0 || semPlano.Count > 0)
+            await db.SaveChangesAsync();
+
+        logger.LogInformation("Planos padrão criados: {Planos}. Coordenadores colocados no plano padrão: {Assinantes}.",
+            planosCriados, semPlano.Count);
+    }
+
+    private void AdicionarPlano(Guid id, string nome, int ordem, IEnumerable<ModuloPlano> modulos)
+    {
+        db.Planos.Add(new Plano
+        {
+            Id = id,
+            PLA_NOME = nome,
+            PLA_VALOR = 0m,
+            PLA_RECORRENCIA = RecorrenciaPlano.Mensal,
+            PLA_ATIVO = true,
+            PLA_MOSTRAR_LANDING = false,
+            PLA_ORDEM = ordem,
+            PLA_DESTAQUE = false
+        });
+        foreach (var modulo in modulos)
+            db.PlanoModulos.Add(new PlanoModulo { PLM_PLANO_ID = id, PLM_MODULO = modulo });
     }
 
     /// <summary>

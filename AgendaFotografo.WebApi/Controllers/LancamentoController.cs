@@ -1,6 +1,8 @@
 using AgendaFotografo.Domain.Constants;
 using AgendaFotografo.Domain.Entities;
+using AgendaFotografo.Domain.Enums;
 using AgendaFotografo.Domain.Interfaces;
+using AgendaFotografo.WebApi.Attributes;
 using AgendaFotografo.WebApi.Helpers;
 using AgendaFotografo.WebApi.Models;
 using AgendaFotografo.WebApi.Models.Financeiro;
@@ -19,6 +21,7 @@ namespace AgendaFotografo.WebApi.Controllers;
 /// Nunca loga título, valor nem observações.
 /// </summary>
 [Authorize(Roles = RoleNames.Assinante)]
+[ModuloPlano(ModuloPlano.Financeiro)]
 public class LancamentoController(
     IBaseRepository<Lancamento> repLancamento,
     IUnitOfWork unitOfWork,

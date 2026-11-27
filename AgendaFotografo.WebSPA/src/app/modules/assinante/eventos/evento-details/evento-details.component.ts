@@ -1,5 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
+import { PlanoModuloService } from 'app/core/services/plano-modulo.service';
+import { ModuloPlano } from 'app/models/enums/ModuloPlano';
+import { DestinoDia, destinoDoDia } from 'app/utils/destino-dia';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -66,6 +69,8 @@ interface SecaoFicha {
     subtitulo: string;
     // Seções que ficam bloqueadas em `novo` (mostram cadeado no lugar do selo).
     bloqueadaNoNovo?: boolean;
+    // Plano 24: seção de um módulo do plano (some da página e da navegação lateral sem o módulo).
+    modulo?: ModuloPlano;
 }
 
 const SECOES_FICHA: SecaoFicha[] = [
@@ -74,7 +79,7 @@ const SECOES_FICHA: SecaoFicha[] = [
     { id: 'sec-equipe', rotulo: 'Equipe', subtitulo: 'Quem vai cobrir', bloqueadaNoNovo: true },
     { id: 'sec-pendencias', rotulo: 'Pendências', subtitulo: 'O que falta fazer', bloqueadaNoNovo: true },
     { id: 'sec-observacoes', rotulo: 'Observações', subtitulo: 'Para a equipe e internas' },
-    { id: 'sec-link', rotulo: 'Link público', subtitulo: 'Página para a equipe', bloqueadaNoNovo: true },
+    { id: 'sec-link', rotulo: 'Link público', subtitulo: 'Página para a equipe', bloqueadaNoNovo: true, modulo: ModuloPlano.LinkPublico },
 ];
 
 // Ficha do evento em página inteira (cabeçalho fixo com Excluir/Fechar/Salvar): Dados, Local e rota, Equipe, Pendências, Observações e Link público.
@@ -94,7 +99,16 @@ const SECOES_FICHA: SecaoFicha[] = [
 })
 export class EventoDetailsComponent implements OnInit, AfterViewInit, OnDestroy {
     @ViewChild('rolagem') rolagem?: ElementRef<HTMLElement>;
-    readonly secoes = SECOES_FICHA;
+    private _planoModulo = inject(PlanoModuloService);
+    /** Seções visíveis (plano 24: Link público só com o módulo no plano). */
+    get secoes(): SecaoFicha[] {
+        return SECOES_FICHA.filter(s => !s.modulo || this._planoModulo.Liberado(s.modulo));
+    }
+    get linkLiberado(): boolean { return this._planoModulo.Liberado(ModuloPlano.LinkPublico); }
+    /** "Ver o dia": Visão do dia, ou a Agenda no dia sem o módulo Visão da semana (plano 24). */
+    get destinoDia(): DestinoDia {
+        return destinoDoDia(this.evento?.EVE_DATA, this._planoModulo.Liberado(ModuloPlano.VisaoSemana));
+    }
     secaoAtual = SECOES_FICHA[0].id;
     // Selo do Link público: vem do `linkChange` da seção (nulo = ainda não carregou).
     linkItem: EventoLinkItem | null = null;

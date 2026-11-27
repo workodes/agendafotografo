@@ -6,6 +6,7 @@ import { EMPTY, Observable, catchError, filter, map, switchMap, tap } from 'rxjs
 import { Assinante } from 'app/models/entities/Assinante';
 import { AssinanteService } from 'app/services/assinante.service';
 import { mensagemErro } from 'app/utils/mensagem-erro';
+import { ALTERAR_PLANO_DIALOG_CONFIG, AlterarPlanoDialogComponent, AlterarPlanoDialogData } from './alterar-plano-dialog/alterar-plano-dialog.component';
 import { abrirSenhaTemporaria } from './senha-temporaria-dialog/senha-temporaria-dialog.component';
 
 interface AssinanteRef {
@@ -59,6 +60,22 @@ export class AssinanteAcoesService {
             }),
             map(resp => resp.Assinante),
         );
+    }
+
+    // Plano 24: abre o diálogo "Alterar plano" (ele mesmo confirma, chama a API, avisa e notifica a lista).
+    // Emite o assinante atualizado só quando salvou.
+    alterarPlano(a: AlterarPlanoDialogData): Observable<Assinante> {
+        return this._dialog.open<AlterarPlanoDialogComponent, AlterarPlanoDialogData, Assinante>(AlterarPlanoDialogComponent, {
+            ...ALTERAR_PLANO_DIALOG_CONFIG,
+            data: {
+                Id: a.Id,
+                ASS_NOME: a.ASS_NOME,
+                ASS_TIPO: a.ASS_TIPO,
+                ASS_PLANO_ID: a.ASS_PLANO_ID ?? null,
+                PlanoNome: a.PlanoNome ?? null,
+                ASS_CPF_CNPJ: a.ASS_CPF_CNPJ ?? null,
+            },
+        }).afterClosed().pipe(filter((r): r is Assinante => !!r));
     }
 
     private sucesso(mensagem: string): void {

@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace AgendaFotografo.WebApi.Services.Avisos;
 
 /// <summary>
-/// Fonte única dos avisos do assinante (sino do cabeçalho, tela Início e o e-mail diário de lembretes do módulo 12).
+/// Fonte única dos avisos do assinante (sino do cabeçalho, tela Início e o e-mail diário de lembretes do módulo 25).
 /// Tudo é calculado na hora a partir dos dados existentes: sem tabela, sem "lido/não lido". A API devolve texto pronto em pt-BR
 /// e o tipo; a rota de destino é montada no SPA. Toda consulta filtra pelo assinante recebido (que vem de <c>AssinanteEscopo</c>)
 /// e o "hoje" também é parâmetro. Nunca lê nem expõe notas internas, observações ou dados do organizador.

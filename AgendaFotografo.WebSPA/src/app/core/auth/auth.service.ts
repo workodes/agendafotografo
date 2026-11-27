@@ -21,6 +21,8 @@ import { ChatService } from 'app/services/chat.service';
 import { environment } from 'environments/environment';
 import { map, Observable, of, throwError } from 'rxjs';
 import { ROLE_NAMES } from '../constants/RoleNames';
+import { ModuloPlano } from 'app/models/enums/ModuloPlano';
+import { PlanoModuloService, ROTA_AGENDA_ASSINANTE } from '../services/plano-modulo.service';
 import { UsuarioService } from '../services/usuario.service';
 
 /** Resultado de Login/Cadastrar: entrou na sessão ou a confirmação do e-mail está pendente (sem sessão). */
@@ -42,6 +44,7 @@ export class AuthService {
         private httpClient: HttpClient,
         private userService: UsuarioService,
         private chatService: ChatService,
+        private planoModulo: PlanoModuloService,
     ) { }
 
     set accessToken(token: string) {
@@ -145,6 +148,8 @@ export class AuthService {
         localStorage.removeItem('usuario');
         // A conversa do assistente (sessionStorage) e o status não podem sobrar para o próximo login.
         this.chatService.Limpar(true);
+        // Plano e módulos (plano 24) também não sobram para o próximo login.
+        this.planoModulo.Limpar();
         this._authenticated = false;
         return of(true);
     }
@@ -183,9 +188,12 @@ export class AuthService {
         return payload?.[CLAIM_ROLE] ?? payload?.role ?? null;
     }
 
-    // Rota inicial de cada role: /<role em minúsculas>/inicio (Admin -> /admin/inicio, Assinante -> /assinante/inicio)
+    // Rota inicial de cada role: /<role em minúsculas>/inicio (Admin -> /admin/inicio, Assinante -> /assinante/inicio).
+    // Plano 24: o Assinante sem o módulo Início começa na Agenda (vale no NoAuthGuard, no AuthGuard, no pós-login e no /generic-error).
     getRotaInicial(): string {
         const role = this.getUserRole();
+        if (role === ROLE_NAMES.Assinante && !this.planoModulo.Liberado(ModuloPlano.Inicio))
+            return ROTA_AGENDA_ASSINANTE;
         return role ? `/${role.toLowerCase()}/inicio` : '/sign-in';
     }
 
@@ -229,8 +237,12 @@ export class AuthService {
             AssinanteNome: response.AssinanteNome ?? null,
             // Ausente = tem senha (sessões anteriores à entrega do autocadastro).
             TemSenha: response.TemSenha !== false,
+            // Plano 24: só para a rota inicial ficar síncrona (recarregados a cada entrada no app; a API é quem manda).
+            PlanoNome: response.PlanoNome ?? null,
+            Modulos: Array.isArray(response.Modulos) ? response.Modulos : null,
         };
         localStorage.setItem('usuario', JSON.stringify(usuario));
+        this.planoModulo.Definir(usuario.PlanoNome ?? null, usuario.Modulos ?? null, false);
 
         this._authenticated = true;
         this.userService.usuario = usuario;

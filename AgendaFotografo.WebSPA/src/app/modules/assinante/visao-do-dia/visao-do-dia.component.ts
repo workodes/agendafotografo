@@ -2,7 +2,9 @@ import { ProgressoPendenciasComponent } from 'app/modules/shared/components/prog
 import { CdkDrag, CdkDragDrop, CdkDragPlaceholder, CdkDropList, CdkDropListGroup } from '@angular/cdk/drag-drop';
 import { CdkScrollable } from '@angular/cdk/scrolling';
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { PlanoModuloService } from 'app/core/services/plano-modulo.service';
+import { ModuloPlano } from 'app/models/enums/ModuloPlano';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -58,6 +60,10 @@ const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'o
     ],
 })
 export class VisaoDoDiaComponent implements OnInit, OnDestroy {
+    // Plano 24: sem o módulo Link público, some o ícone "Copiar link do evento".
+    private _planoModulo = inject(PlanoModuloService);
+    get linkLiberado(): boolean { return this._planoModulo.Liberado(ModuloPlano.LinkPublico); }
+
     visao: Visao = 'semana';
     data = hojeIso();
     dias: DiaResponse[] = [];

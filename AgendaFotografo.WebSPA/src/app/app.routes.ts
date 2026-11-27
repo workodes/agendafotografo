@@ -1,7 +1,11 @@
+import { inject } from '@angular/core';
 import { Route } from '@angular/router';
 import { initialDataResolver } from 'app/app.resolvers';
 import { AuthGuard } from 'app/core/auth/guards/auth.guard';
+import { ModuloGuard } from 'app/core/auth/guards/modulo.guard';
 import { NoAuthGuard } from 'app/core/auth/guards/noAuth.guard';
+import { PlanoModuloService } from 'app/core/services/plano-modulo.service';
+import { ModuloPlano } from 'app/models/enums/ModuloPlano';
 import { LayoutComponent } from 'app/layout/layout.component';
 import { ROLE_NAMES } from './core/constants/RoleNames';
 
@@ -15,23 +19,27 @@ const rotasComuns: Route[] = [
     { path: 'inicio', loadChildren: () => import('app/modules/shared/inicio/inicio.routes') },
 ];
 
-// Área do Admin (back-office): Assinantes (lista, cadastro, bloqueio e redefinição de acesso).
+// Área do Admin (back-office): Assinantes (lista, cadastro, bloqueio, redefinição de acesso e plano) e Planos (plano 24).
 const rotasAdmin: Route[] = [
     ...rotasComuns,
     { path: 'assinantes', loadChildren: () => import('app/modules/admin/assinantes/assinantes.routes') },
+    { path: 'planos', data: { titulo: 'Planos' }, loadChildren: () => import('app/modules/admin/planos/planos.routes') },
 ];
 
 // Área do Assinante (coordenador): Equipe, Organizadores e Tipos de evento (plano 02); Eventos e Visão do dia (plano 03); Agenda (plano 04); Pendências (plano 06); Checklist padrão (plano 07); Início (plano 08); Financeiro (plano 22); Evento de outra equipe (plano 23). Link público etc. entram aqui, um plano por módulo.
+// Plano 24: as rotas de módulos do plano têm `data.modulo` + ModuloGuard (não liberado: Início vai para a Agenda; os demais para
+// "não disponível"). As outras (Agenda, ficha do evento, Pendências e Checklist padrão, cadastros, escalas) são a base, sempre liberada.
 const rotasAssinante: Route[] = [
-    { path: '', pathMatch: 'full', redirectTo: 'inicio' },
+    // Sem o módulo Início a rota inicial é a Agenda (mesma regra do AuthService.getRotaInicial; o ModuloGuard confere de novo).
+    { path: '', pathMatch: 'full', redirectTo: () => inject(PlanoModuloService).Liberado(ModuloPlano.Inicio) ? '/assinante/inicio' : '/assinante/agenda' },
     // Início próprio do assinante (plano 08): números do dia, próximos 7 dias e avisos. O Admin continua com o placeholder de rotasComuns.
-    { path: 'inicio', data: { titulo: 'Início' }, loadChildren: () => import('app/modules/assinante/inicio/inicio-assinante.routes') },
+    { path: 'inicio', canActivate: [ModuloGuard], data: { titulo: 'Início', modulo: ModuloPlano.Inicio }, loadChildren: () => import('app/modules/assinante/inicio/inicio-assinante.routes') },
     { path: 'agenda', data: { titulo: 'Agenda' }, loadChildren: () => import('app/modules/assinante/agenda/agenda.routes') },
     { path: 'eventos', data: { titulo: 'Eventos' }, loadChildren: () => import('app/modules/assinante/eventos/eventos.routes') },
-    { path: 'visao-do-dia', data: { titulo: 'Visão da semana' }, loadChildren: () => import('app/modules/assinante/visao-do-dia/visao-do-dia.routes') },
+    { path: 'visao-do-dia', canActivate: [ModuloGuard], data: { titulo: 'Visão da semana', modulo: ModuloPlano.VisaoSemana }, loadChildren: () => import('app/modules/assinante/visao-do-dia/visao-do-dia.routes') },
     { path: 'pendencias', data: { titulo: 'Pendências' }, loadChildren: () => import('app/modules/assinante/pendencias/pendencias.routes') },
     // Financeiro (plano 22): carteira do coordenador (Lançamentos, Dashboard e Fixos). Só no bloco do Assinante.
-    { path: 'financeiro', data: { titulo: 'Financeiro' }, loadChildren: () => import('app/modules/assinante/financeiro/financeiro.routes') },
+    { path: 'financeiro', canActivate: [ModuloGuard], data: { titulo: 'Financeiro', modulo: ModuloPlano.Financeiro }, loadChildren: () => import('app/modules/assinante/financeiro/financeiro.routes') },
     { path: 'equipe', data: { titulo: 'Equipe' }, loadChildren: () => import('app/modules/assinante/equipe/equipe.routes') },
     { path: 'organizadores', data: { titulo: 'Organizadores' }, loadChildren: () => import('app/modules/assinante/organizadores/organizadores.routes') },
     { path: 'checklist-padrao', data: { titulo: 'Checklist padrão' }, loadChildren: () => import('app/modules/assinante/checklist-padrao/checklist-padrao.routes') },
@@ -39,6 +47,8 @@ const rotasAssinante: Route[] = [
     // Evento de OUTRA equipe em que o coordenador foi escalado (plano 23): detalhe somente leitura, aberto pela Agenda; sem item de menu.
     // Reaproveita o detalhe do Fotógrafo, que escolhe o service pelo perfil da sessão. Só no bloco do Assinante.
     { path: 'escalas', data: { titulo: 'Evento' }, loadChildren: () => import('app/modules/fotografo/escala-detalhe/escala-detalhe.routes') },
+    // Plano 24: destino de quem abre um módulo que o plano não libera (?modulo=N). Sem item de menu.
+    { path: 'nao-disponivel', data: { titulo: 'Não disponível' }, loadChildren: () => import('app/modules/assinante/nao-disponivel/nao-disponivel.routes') },
 ];
 
 // Área do Fotógrafo (plano 20, ajustada pelo plano 21): conta grátis que só vê os eventos em que um coordenador o

@@ -48,6 +48,9 @@ namespace AgendaFotografo.Infra.Data.Migrations
                     b.Property<int>("ASS_ORIGEM")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("ASS_PLANO_ID")
+                        .HasColumnType("char(36)");
+
                     b.Property<string>("ASS_TELEFONE")
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
@@ -67,6 +70,8 @@ namespace AgendaFotografo.Infra.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ASS_NOME");
+
+                    b.HasIndex("ASS_PLANO_ID");
 
                     b.ToTable("ASSINANTES", (string)null);
                 });
@@ -668,6 +673,82 @@ namespace AgendaFotografo.Infra.Data.Migrations
                     b.ToTable("PENDENCIAMODELOS", (string)null);
                 });
 
+            modelBuilder.Entity("AgendaFotografo.Domain.Entities.Plano", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<bool>("PLA_ATIVO")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("PLA_DESCRICAO")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<bool>("PLA_DESTAQUE")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("PLA_MOSTRAR_LANDING")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("PLA_NOME")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("PLA_ORDEM")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PLA_RECORRENCIA")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("PLA_VALOR")
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PLA_NOME");
+
+                    b.ToTable("PLANOS", (string)null);
+                });
+
+            modelBuilder.Entity("AgendaFotografo.Domain.Entities.PlanoModulo", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<int>("PLM_MODULO")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("PLM_PLANO_ID")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("PLM_TEXTO_LANDING")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PLM_PLANO_ID", "PLM_MODULO")
+                        .IsUnique();
+
+                    b.ToTable("PLANOMODULOS", (string)null);
+                });
+
             modelBuilder.Entity("AgendaFotografo.Domain.Entities.TipoEvento", b =>
                 {
                     b.Property<Guid>("Id")
@@ -916,6 +997,16 @@ namespace AgendaFotografo.Infra.Data.Migrations
                     b.ToTable("ASPNETUSERTOKENS", (string)null);
                 });
 
+            modelBuilder.Entity("AgendaFotografo.Domain.Entities.Assinante", b =>
+                {
+                    b.HasOne("AgendaFotografo.Domain.Entities.Plano", "Plano")
+                        .WithMany()
+                        .HasForeignKey("ASS_PLANO_ID")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Plano");
+                });
+
             modelBuilder.Entity("AgendaFotografo.Domain.Entities.Evento", b =>
                 {
                     b.HasOne("AgendaFotografo.Domain.Entities.Assinante", "Assinante")
@@ -1118,6 +1209,17 @@ namespace AgendaFotografo.Infra.Data.Migrations
                     b.Navigation("Assinante");
 
                     b.Navigation("TipoEvento");
+                });
+
+            modelBuilder.Entity("AgendaFotografo.Domain.Entities.PlanoModulo", b =>
+                {
+                    b.HasOne("AgendaFotografo.Domain.Entities.Plano", "Plano")
+                        .WithMany()
+                        .HasForeignKey("PLM_PLANO_ID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Plano");
                 });
 
             modelBuilder.Entity("AgendaFotografo.Domain.Entities.TipoEvento", b =>

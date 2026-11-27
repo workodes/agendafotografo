@@ -10,7 +10,11 @@ export class AssinanteListItem {
     LastLogin?: string | null;
     ASS_TESTE_ATE?: string | null;
     ASS_ORIGEM: number;
-    /** TipoAssinante: 1 Coordenador, 2 Fotografo. */
+    /** TipoAssinante (plano 24): 1 = com plano, 2 = Gratuito. */
     ASS_TIPO: number;
+    /** Plano 24: null no Gratuito. */
+    ASS_PLANO_ID?: string | null;
+    /** Plano 24: nome do plano (null = Gratuito). */
+    PlanoNome?: string | null;
     TesteDiasRestantes?: number | null;
 }

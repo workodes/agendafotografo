@@ -8,6 +8,7 @@ using AgendaFotografo.WebApi.Helpers;
 using AgendaFotografo.WebApi.Models.LinkPublico;
 using AgendaFotografo.WebApi.Services.LinkPublico;
 using AgendaFotografo.WebApi.Services.Locais;
+using AgendaFotografo.WebApi.Services.Planos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -33,6 +34,7 @@ public partial class LinkPublicoController(
     LinkPublicoSegredos segredos,
     LinkPublicoTentativas tentativas,
     LinkMapsExpansor expansorMaps,
+    ModulosAcesso modulosAcesso,
     ILogger<LinkPublicoController> logger) : AgendaFotografoController
 {
     private readonly IBaseRepository<EventoLink> _repEventoLink = repEventoLink;
@@ -43,6 +45,7 @@ public partial class LinkPublicoController(
     private readonly LinkPublicoSegredos _segredos = segredos;
     private readonly LinkPublicoTentativas _tentativas = tentativas;
     private readonly LinkMapsExpansor _expansorMaps = expansorMaps;
+    private readonly ModulosAcesso _modulosAcesso = modulosAcesso;
     private readonly ILogger<LinkPublicoController> _logger = logger;
 
     private const string MsgIndisponivel = "Link indisponível. Peça o link atualizado ao coordenador.";
@@ -75,16 +78,22 @@ public partial class LinkPublicoController(
         return RegexToken().IsMatch(t) ? t : null;
     }
 
-    /// <summary>Link ativo, de assinante ativo. Qualquer outro caso (inexistente, desativado, evento excluído, assinante bloqueado) = nulo.</summary>
+    /// <summary>
+    /// Link ativo, de assinante ativo e com o módulo Link público no plano (plano 24). Qualquer outro caso (inexistente, desativado, evento
+    /// excluído, assinante bloqueado, módulo fora do plano) = nulo, que vira o mesmo 404 de "indisponível".
+    /// </summary>
     private async Task<DadosLink?> ObterLinkAsync(string? token, CancellationToken cancellationToken)
     {
         var t = NormalizarToken(token);
         if (t is null) return null;
 
-        return await _repEventoLink.SelectContext().AsNoTracking()
+        var link = await _repEventoLink.SelectContext().AsNoTracking()
             .Where(x => x.EVL_TOKEN == t && x.EVL_ATIVO && x.Assinante!.ASS_ATIVO && x.Evento != null)
             .Select(x => new DadosLink(x.Id, x.EVL_EVENTO_ID, x.EVL_ASSINANTE_ID, x.EVL_CODIGO, x.EVL_CARIMBO, x.EVL_MOSTRAR_EQUIPE))
             .FirstOrDefaultAsync(cancellationToken);
+        if (link is null) return null;
+
+        return await _modulosAcesso.LiberadoParaAssinanteAsync(link.AssinanteId, ModuloPlano.LinkPublico, cancellationToken) ? link : null;
     }
 
     private bool TemAcesso(DadosLink link) =>

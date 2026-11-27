@@ -2,6 +2,7 @@ using System.Globalization;
 using AgendaFotografo.CrossCutting.Services.IA;
 using AgendaFotografo.Domain.Constants;
 using AgendaFotografo.Domain.Enums;
+using AgendaFotografo.WebApi.Attributes;
 using AgendaFotografo.WebApi.Helpers;
 using AgendaFotografo.WebApi.Models.Chat;
 using AgendaFotografo.WebApi.Services.Chat;
@@ -24,6 +25,7 @@ namespace AgendaFotografo.WebApi.Controllers;
 /// O limite diário fica em memória: uma só instância da API.
 /// </remarks>
 [Authorize(Roles = RoleNames.Assinante)]
+[ModuloPlano(ModuloPlano.Assistente)]
 public class ChatController(
     IASettings settings,
     ChatLimiteDiario limiteDiario,

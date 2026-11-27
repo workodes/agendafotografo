@@ -1,3 +1,5 @@
+using AgendaFotografo.Domain.Enums;
+
 namespace AgendaFotografo.WebApi.Models;
 
 public class LoginModel
@@ -21,6 +23,15 @@ public class LoginResponse
 
     /// <summary>Nome do assinante (só perfil Assinante; null para o Admin). O AssinanteId NÃO é exposto.</summary>
     public string? AssinanteNome { get; set; }
+
+    /// <summary>Nome do plano da conta (plano 24); nulo para Admin, Fotografo (Gratuito) e conta sem plano.</summary>
+    public string? PlanoNome { get; set; }
+
+    /// <summary>
+    /// Módulos liberados pelo plano (plano 24; números do enum <see cref="ModuloPlano"/>). Nulo para Admin e Fotografo (Gratuito, que não
+    /// passa pelo filtro de módulos) e na resposta pendente; lista vazia = Assinante só com a base.
+    /// </summary>
+    public ModuloPlano[]? Modulos { get; set; }
 
     /// <summary>Verdadeiro quando o e-mail da conta ainda precisa ser confirmado (plano 18): <c>Token</c> vem vazio e só valem <c>Email</c>, <c>EnvioFalhou</c> e <c>ReenviarEmSegundos</c>.</summary>
     public bool ConfirmacaoPendente { get; set; }

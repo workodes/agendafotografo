@@ -19,7 +19,7 @@
             <span class="mt-1 text-sm text-secondary">Não foi possível carregar. Tentar de novo</span>
         </button>
         <ng-container *ngIf="estadoAgenda === 'pronto'">
-            <a class="flex items-center gap-3 px-4 py-3 min-h-[5rem] rounded-2xl shadow bg-card min-w-0 hover:shadow-md" routerLink="/assinante/visao-do-dia" [queryParams]="{ visao: 'dia' }">
+            <a class="flex items-center gap-3 px-4 py-3 min-h-[5rem] rounded-2xl shadow bg-card min-w-0 hover:shadow-md" [routerLink]="destinoDia(hoje).comandos" [queryParams]="destinoDia(hoje).queryParams">
                 <span class="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-primary-100 text-primary-700"><mat-icon class="icon-size-5" svgIcon="heroicons_outline:sun"></mat-icon></span>
                 <div class="flex flex-col min-w-0">
                     <div class="text-sm font-medium text-secondary truncate">Hoje</div>
@@ -29,7 +29,7 @@
                     </div>
                 </div>
             </a>
-            <a class="flex items-center gap-3 px-4 py-3 min-h-[5rem] rounded-2xl shadow bg-card min-w-0 hover:shadow-md" routerLink="/assinante/visao-do-dia" [queryParams]="{ data: amanha, visao: 'dia' }">
+            <a class="flex items-center gap-3 px-4 py-3 min-h-[5rem] rounded-2xl shadow bg-card min-w-0 hover:shadow-md" [routerLink]="destinoDia(amanha).comandos" [queryParams]="destinoDia(amanha).queryParams">
                 <span class="shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-primary-100 text-primary-700"><mat-icon class="icon-size-5" svgIcon="heroicons_outline:calendar"></mat-icon></span>
                 <div class="flex flex-col min-w-0">
                     <div class="text-sm font-medium text-secondary truncate">Amanhã</div>

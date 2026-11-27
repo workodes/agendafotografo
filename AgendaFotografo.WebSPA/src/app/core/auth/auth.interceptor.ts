@@ -4,6 +4,9 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from 'app/core/auth/auth.service';
 import { AuthUtils } from 'app/core/auth/auth.utils';
+import { ROLE_NAMES } from 'app/core/constants/RoleNames';
+import { PlanoModuloService } from 'app/core/services/plano-modulo.service';
+import { environment } from 'environments/environment';
 import { AuthorizationErrorHandlerService } from 'app/services/utils/authorization-error-handler.service';
 import { catchError, Observable, throwError } from 'rxjs';
 
@@ -17,6 +20,7 @@ export const authInterceptor = (req: HttpRequest<unknown>, next: HttpHandlerFn):
     const authService = inject(AuthService);
     const router = inject(Router);
     const errorHandler = inject(AuthorizationErrorHandlerService);
+    const planoModulo = inject(PlanoModuloService);
 
     // Clone the request object
     let newReq = req.clone();
@@ -52,6 +56,12 @@ export const authInterceptor = (req: HttpRequest<unknown>, next: HttpHandlerFn):
                     authService.signOut();
                     router.navigate(['/']);
                     errorHandler.showNoPermissionDialog(error.error?.mensagem ?? 'O usuário está bloqueado.');
+                } else if (error.status === 403 && tinhaSessao && !req.url.startsWith(environment.Auth.modulos)
+                    && authService.getUserRole() === ROLE_NAMES.Assinante) {
+                    // Plano 24: 403 de um Assinante (módulo fora do plano): recarrega os módulos (o menu se atualiza) e, se o módulo da
+                    // tela aberta ficou bloqueado, vai para "não disponível". A mensagem da API continua indo ao snackbar de quem chamou.
+                    // Auth/Modulos fica de fora para não entrar em laço.
+                    planoModulo.ReagirAoBloqueio();
                 }
 
             return throwError(error);

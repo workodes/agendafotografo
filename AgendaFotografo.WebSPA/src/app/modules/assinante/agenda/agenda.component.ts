@@ -1,7 +1,9 @@
 import { ProgressoPendenciasComponent } from 'app/modules/shared/components/progresso-pendencias/progresso-pendencias.component';
 import { BreakpointObserver } from '@angular/cdk/layout';
 import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
+import { PlanoModuloService } from 'app/core/services/plano-modulo.service';
+import { ModuloPlano } from 'app/models/enums/ModuloPlano';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -97,6 +99,11 @@ function semAcento(t: string | null | undefined): string {
     ],
 })
 export class AgendaComponent implements OnInit, OnDestroy {
+    // Plano 24: sem o módulo, somem o ícone "Copiar link do evento" e os atalhos "Visão do dia" (a Agenda já mostra o dia).
+    private _planoModulo = inject(PlanoModuloService);
+    get linkLiberado(): boolean { return this._planoModulo.Liberado(ModuloPlano.LinkPublico); }
+    get visaoLiberada(): boolean { return this._planoModulo.Liberado(ModuloPlano.VisaoSemana); }
+
     // ---- Estado vindo da query string ----
     mes = mesAtual();
     dia: string | null = null;

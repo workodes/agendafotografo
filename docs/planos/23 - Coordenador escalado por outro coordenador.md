@@ -3,6 +3,7 @@
 - Data: 24/11/2026
 - Commit de partida: 9d5dc4c
 - Status: Aprovado em 24/11/2026; back-end e front-end construídos (24/11/2026); revisado em 24/11/2026 (Aprovado, só pontos Menores); testes pendentes
+- **Nota (26/11/2026):** com o plano 24 (`24 - Planos e módulos por assinante.md`), o e-mail diário de lembretes passou a ser o **módulo 25** (onde este plano cita outro número para ele, leia 25).
 - Decisão 3 (filtros da Agenda) aprovada: cidade vale para os dois; status, tipo e membro mostram só os eventos próprios, com a nota na tela.
 
 ## 1. Plano (engenheiro)

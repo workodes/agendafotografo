@@ -20,6 +20,8 @@ public class EfDbContext(DbContextOptions<EfDbContext> options) : IdentityDbCont
     public DbSet<Membro> Membros => Set<Membro>();
     public DbSet<PendenciaModelo> PendenciaModelos => Set<PendenciaModelo>();
     public DbSet<Organizador> Organizadores => Set<Organizador>();
+    public DbSet<Plano> Planos => Set<Plano>();
+    public DbSet<PlanoModulo> PlanoModulos => Set<PlanoModulo>();
     public DbSet<TipoEvento> TiposEvento => Set<TipoEvento>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -57,6 +59,8 @@ public class EfDbContext(DbContextOptions<EfDbContext> options) : IdentityDbCont
         modelBuilder.ApplyConfiguration(new MembroMap());
         modelBuilder.ApplyConfiguration(new OrganizadorMap());
         modelBuilder.ApplyConfiguration(new PendenciaModeloMap());
+        modelBuilder.ApplyConfiguration(new PlanoMap());
+        modelBuilder.ApplyConfiguration(new PlanoModuloMap());
         modelBuilder.ApplyConfiguration(new TipoEventoMap());
     }
 }

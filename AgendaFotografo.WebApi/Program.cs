@@ -8,7 +8,8 @@ using Microsoft.AspNetCore.Localization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers().AddJsonOptions(o =>
+// Filtro global do plano (plano 24): só age em endpoints com [ModuloPlano] e na role Assinante
+builder.Services.AddControllers(o => o.Filters.Add<AgendaFotografo.WebApi.Attributes.ModuloPlanoFilter>()).AddJsonOptions(o =>
 {
     o.JsonSerializerOptions.PropertyNamingPolicy = null;
     o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;

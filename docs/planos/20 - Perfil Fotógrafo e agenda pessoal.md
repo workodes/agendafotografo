@@ -5,6 +5,7 @@
 - Status: Concluído com pendências (revisão aprovada; testes no navegador não executados)
 - **Nota (23/11/2026):** o plano 21 (`21 - Fotógrafo grátis só com a escala.md`) desligou a Parte A (agenda pessoal: o `EventoPessoalController` responde 403 por constante, e o SPA deixou de usá-la; código, entidade e tabela ficam), revogou a decisão P3 (15 dias de teste grátis do fotógrafo: agora é grátis e sem teste) e a P10 (landing sem mudança: a landing agora cita o fotógrafo grátis). O e-mail diário de lembretes passou a ser o módulo 22.
 - **Nota (24/11/2026):** o plano 23 (`23 - Coordenador escalado por outro coordenador.md`) revogou a segunda frase de P4 ("Coordenador não recebe eventos de outros coordenadores"), P8 ("só CPF, não CNPJ"), P7 (o flyer agora aparece na escala do fotógrafo) e a regra "Casamento só por CPF; CNPJ nunca casa": o vínculo passa a ser por documento (CPF com CPF, CNPJ com CNPJ) e vale também para o coordenador escalado por outro.
+- **Nota (26/11/2026):** com o plano 24 (`24 - Planos e módulos por assinante.md`), o e-mail diário de lembretes passou a ser o **módulo 25** (onde este plano cita outro número para ele, leia 25).
 
 ## Contexto
 Hoje o quemclica atende só o coordenador de equipe (perfil Assinante). O colaborador quer atender também o **fotógrafo que trabalha sozinho** ou para vários coordenadores:

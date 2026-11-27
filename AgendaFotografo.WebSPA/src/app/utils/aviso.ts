@@ -2,6 +2,7 @@ import { Params } from '@angular/router';
 import { AvisoItem } from 'app/models/DTOs/responses/AvisoItem';
 import { TipoAviso } from 'app/models/enums/TipoAviso';
 import { mesDaData } from 'app/utils/calendario';
+import { destinoDoDia } from 'app/utils/destino-dia';
 
 // Ícone (heroicons_outline) de cada tipo de aviso.
 export const AVISO_ICONE: Record<number, string> = {
@@ -23,8 +24,11 @@ export interface DestinoAviso {
 
 const PREFIXO = '/assinante';
 
-/** Destino do clique de um aviso. A API não conhece URLs do SPA: a rota é montada aqui. */
-export function destinoAviso(aviso: AvisoItem): DestinoAviso {
+/**
+ * Destino do clique de um aviso. A API não conhece URLs do SPA: a rota é montada aqui.
+ * Plano 24: sem o módulo Visão da semana (`visaoLiberada` = false), o conflito de escala abre a Agenda no dia.
+ */
+export function destinoAviso(aviso: AvisoItem, visaoLiberada = true): DestinoAviso {
     switch (aviso.Tipo) {
         case TipoAviso.PendenciasVencidas:
             return { comandos: [PREFIXO, 'pendencias'], queryParams: { prazo: 'vencidas' } };
@@ -33,7 +37,7 @@ export function destinoAviso(aviso: AvisoItem): DestinoAviso {
         case TipoAviso.EventoProximo:
             return aviso.EventoId ? { comandos: [PREFIXO, 'eventos', aviso.EventoId] } : { comandos: [PREFIXO, 'agenda'] };
         case TipoAviso.ConflitoEscala:
-            return { comandos: [PREFIXO, 'visao-do-dia'], queryParams: aviso.Data ? { data: aviso.Data, visao: 'dia' } : { visao: 'dia' } };
+            return destinoDoDia(aviso.Data, visaoLiberada);
         case TipoAviso.EventosPassadosSemBaixa:
             return { comandos: [PREFIXO, 'agenda'], queryParams: mesDaData(aviso.Data) ? { mes: mesDaData(aviso.Data) } : undefined };
         default:

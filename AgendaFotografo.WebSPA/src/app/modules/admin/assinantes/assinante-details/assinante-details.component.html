@@ -32,9 +32,16 @@
                 </button>
             </div>
             <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
-                <span class="inline-flex items-center gap-2">
-                    <span class="text-secondary">Perfil:</span>
-                    <span class="font-medium">{{ tipoRotulo[assinante?.ASS_TIPO ?? 1] }}</span>
+                <!-- Plano 24: plano da conta ou Gratuito; a troca é pelo diálogo "Alterar plano" -->
+                <span class="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span class="text-secondary">Plano:</span>
+                    <span class="font-medium">{{ textoPlano }}</span>
+                    <span class="text-secondary" aria-hidden="true">·</span>
+                    <button type="button" class="inline-flex items-center gap-1 rounded font-semibold text-primary hover:underline disabled:opacity-50 disabled:no-underline"
+                        [disabled]="acaoEmAndamento || salvando" (click)="alterarPlano()">
+                        <mat-icon class="icon-size-4 text-current" svgIcon="heroicons_outline:rectangle-stack"></mat-icon>
+                        Alterar plano
+                    </button>
                 </span>
                 <span class="inline-flex items-center gap-2">
                     <span class="text-secondary">Origem:</span>
@@ -72,7 +79,17 @@
                 <mat-error>{{ erro('ASS_TELEFONE') }}</mat-error>
             </mat-form-field>
 
-            <!-- Conta de Fotógrafo é grátis e não tem teste (plano 21): sem data e sem "Sem prazo" -->
+            <!-- Novo (plano 24): plano da conta; a primeira opção envia null (plano do autocadastro) -->
+            <mat-form-field *ngIf="ehNovo" appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Plano</mat-label>
+                <mat-select formControlName="ASS_PLANO_ID">
+                    <mat-option [value]="null">Padrão do autocadastro</mat-option>
+                    <mat-option *ngFor="let p of planos" [value]="p.Id">{{ p.Nome }}</mat-option>
+                </mat-select>
+                <mat-hint>Depois de criado, o plano muda pelo "Alterar plano".</mat-hint>
+            </mat-form-field>
+
+            <!-- Conta Gratuito não tem teste (plano 21): sem data e sem "Sem prazo" -->
             <ng-container *ngIf="!ehFotografo">
             <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
                 <mat-label>Teste grátis até</mat-label>

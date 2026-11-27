@@ -1,4 +1,6 @@
 using AgendaFotografo.Domain.Constants;
+using AgendaFotografo.Domain.Enums;
+using AgendaFotografo.WebApi.Attributes;
 using AgendaFotografo.WebApi.Helpers;
 using AgendaFotografo.WebApi.Services.Avisos;
 using AgendaFotografo.WebApi.Services.CurrentUser;
@@ -12,6 +14,7 @@ namespace AgendaFotografo.WebApi.Controllers;
 /// O assinante vem sempre de <see cref="AssinanteEscopo"/>; o Admin recebe 403.
 /// </summary>
 [Authorize(Roles = RoleNames.Assinante)]
+[ModuloPlano(ModuloPlano.Avisos)]
 public class AvisoController(
     AvisoConsultas avisoConsultas,
     AssinanteEscopo assinanteEscopo,

@@ -1,0 +1,138 @@
+<div class="flex flex-col flex-1 gap-4 min-h-0 w-full">
+    <div class="flex items-center justify-between gap-3 pt-6 pb-4 border-b border-gray-300">
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
+            <span class="text-2xl sm:text-3xl font-bold text-accent">{{ ehNovo ? 'Novo plano' : 'Plano' }}</span>
+            <ng-container *ngIf="!ehNovo">
+                <span class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center shrink-0"
+                    [ngClass]="plano?.PLA_ATIVO ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-700'">
+                    {{ plano?.PLA_ATIVO ? 'Ativo' : 'Inativo' }}
+                </span>
+                <span *ngIf="plano?.PadraoAutocadastro"
+                    class="leading-none rounded-full px-3 py-1.5 text-xs font-semibold inline-flex items-center shrink-0 bg-primary-100 text-primary-800">
+                    Padrão do autocadastro
+                </span>
+            </ng-container>
+        </div>
+        <button mat-icon-button type="button" class="shrink-0" aria-label="Fechar" (click)="voltar()">
+            <mat-icon class="icon-size-5" svgIcon="heroicons_outline:x-mark"></mat-icon>
+        </button>
+    </div>
+
+    <div class="flex flex-col flex-1 min-h-0 overflow-auto gap-6">
+        <!-- Situação do plano (só na edição) -->
+        <div *ngIf="!ehNovo" class="flex flex-col gap-1.5 text-sm">
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span class="text-secondary">Assinantes neste plano:</span>
+                <span class="font-medium">{{ plano?.QtdAssinantes ?? 0 }}</span>
+            </div>
+            <div *ngIf="plano?.PadraoAutocadastro" class="text-secondary">
+                Quem se cadastra como coordenador entra neste plano. Ele pode ser renomeado e ter os módulos alterados, mas não pode ser inativado nem excluído.
+            </div>
+            <div *ngIf="!plano?.PadraoAutocadastro && (plano?.QtdAssinantes ?? 0) > 0" class="text-secondary">
+                Plano com assinantes não pode ser excluído; inative-o para tirá-lo da escolha.
+            </div>
+        </div>
+
+        <form id="form-plano" class="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1" [formGroup]="form" (ngSubmit)="salvar()" novalidate>
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2">
+                <mat-label>Nome</mat-label>
+                <input matInput formControlName="PLA_NOME" maxlength="100" autocomplete="off" placeholder="Ex.: Coordenador completo">
+                <mat-error>{{ erro('PLA_NOME') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Valor</mat-label>
+                <span matTextPrefix class="text-secondary">R$&nbsp;</span>
+                <input matInput formControlName="PLA_VALOR" inputmode="decimal" autocomplete="off" placeholder="0,00"
+                    mask="separator.2" thousandSeparator="." decimalMarker="," [allowNegativeNumbers]="false">
+                <mat-hint>Só para exibição; não há cobrança no sistema.</mat-hint>
+                <mat-error>{{ erro('PLA_VALOR') }}</mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                <mat-label>Recorrência</mat-label>
+                <mat-select formControlName="PLA_RECORRENCIA">
+                    <mat-option *ngFor="let r of recorrencias" [value]="r.valor">{{ r.rotulo }}</mat-option>
+                </mat-select>
+                <mat-error>{{ erro('PLA_RECORRENCIA') }}</mat-error>
+            </mat-form-field>
+        </form>
+
+        <app-modulos-plano [catalogo]="catalogo" [sempreLiberados]="sempreLiberados" [selecionados]="modulos"
+            [desabilitado]="salvando" (selecionadosChange)="aoMudarModulos($event)"></app-modulos-plano>
+
+        <!-- Vitrine na landing: campos guardados para o futuro (a landing ainda não mostra os planos) -->
+        <section class="flex flex-col rounded-xl border border-gray-200">
+            <button type="button" class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-hover rounded-xl"
+                [attr.aria-expanded]="vitrineAberta" aria-controls="plano-vitrine" (click)="alternarVitrine()">
+                <span class="flex min-w-0 flex-col">
+                    <span class="font-semibold text-accent">Vitrine na landing (ainda não exibida)</span>
+                    <span class="text-xs text-secondary">Textos guardados para quando a landing mostrar os planos.</span>
+                </span>
+                <mat-icon class="icon-size-5 shrink-0 transition-transform" [class.rotate-180]="vitrineAberta" svgIcon="heroicons_outline:chevron-down"></mat-icon>
+            </button>
+
+            <div *ngIf="vitrineAberta" id="plano-vitrine" class="flex flex-col gap-2 border-t border-gray-200 px-4 pt-4 pb-3">
+                <div class="flex items-start gap-2 rounded-lg bg-amber-50 p-3 text-sm text-amber-900" role="note">
+                    <mat-icon class="icon-size-5 shrink-0 text-amber-600" svgIcon="heroicons_outline:information-circle"></mat-icon>
+                    <span>A landing page ainda não exibe os planos. Estes campos só ficam guardados.</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1" [formGroup]="form">
+                    <div class="flex flex-col gap-2 sm:col-span-2 py-1">
+                        <mat-slide-toggle formControlName="PLA_MOSTRAR_LANDING">Mostrar na landing</mat-slide-toggle>
+                        <mat-slide-toggle formControlName="PLA_DESTAQUE">Destaque</mat-slide-toggle>
+                    </div>
+
+                    <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full sm:col-span-2 mt-2">
+                        <mat-label>Descrição</mat-label>
+                        <textarea matInput formControlName="PLA_DESCRICAO" rows="3" maxlength="300"></textarea>
+                        <mat-hint align="end">{{ (form.get('PLA_DESCRICAO')?.value ?? '').length }}/300</mat-hint>
+                        <mat-error>{{ erro('PLA_DESCRICAO') }}</mat-error>
+                    </mat-form-field>
+
+                    <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                        <mat-label>Ordem</mat-label>
+                        <input matInput type="number" inputmode="numeric" min="0" max="999" step="1" formControlName="PLA_ORDEM" autocomplete="off">
+                        <mat-hint>Também ordena a lista de planos.</mat-hint>
+                        <mat-error>{{ erro('PLA_ORDEM') }}</mat-error>
+                    </mat-form-field>
+                </div>
+
+                <div class="flex flex-col gap-1 mt-2">
+                    <span class="text-sm font-semibold">Texto de cada módulo liberado</span>
+                    <span *ngIf="modulosLiberados.length === 0" class="text-sm text-secondary">Nenhum módulo liberado neste plano.</span>
+                    <mat-form-field *ngFor="let m of modulosLiberados" appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full">
+                        <mat-label>{{ m.Nome }}</mat-label>
+                        <input matInput [formControl]="controleTexto(m.Modulo)" maxlength="150" autocomplete="off">
+                        <mat-error>{{ erroTexto(m.Modulo) }}</mat-error>
+                    </mat-form-field>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3 pt-2 border-t border-gray-300">
+        <!-- Situação e exclusão (só na edição): à esquerda, longe do Salvar -->
+        <button *ngIf="!ehNovo && plano?.PLA_ATIVO && !plano?.PadraoAutocadastro" mat-button color="warn" type="button"
+            [disabled]="acaoEmAndamento || salvando" (click)="inativar()">
+            <mat-icon class="icon-size-5" svgIcon="heroicons_outline:no-symbol"></mat-icon>
+            <span class="ml-2">Inativar</span>
+        </button>
+        <button *ngIf="!ehNovo && !plano?.PLA_ATIVO" mat-button color="primary" type="button" [disabled]="acaoEmAndamento || salvando" (click)="ativar()">
+            <mat-icon class="icon-size-5" svgIcon="heroicons_outline:check-circle"></mat-icon>
+            <span class="ml-2">Ativar</span>
+        </button>
+        <button *ngIf="podeExcluir" mat-button color="warn" type="button" [disabled]="acaoEmAndamento || salvando" (click)="excluir()">
+            <mat-icon class="icon-size-5" svgIcon="heroicons_outline:trash"></mat-icon>
+            <span class="ml-2">Excluir</span>
+        </button>
+        <div class="flex items-center gap-3 ml-auto">
+            <button mat-button type="button" [disabled]="salvando" (click)="voltar()">Fechar</button>
+            <button mat-flat-button color="primary" type="submit" form="form-plano" [disabled]="salvando">
+                <mat-progress-spinner *ngIf="salvando" diameter="20" mode="indeterminate"></mat-progress-spinner>
+                <span *ngIf="!salvando">Salvar</span>
+            </button>
+        </div>
+    </div>
+</div>

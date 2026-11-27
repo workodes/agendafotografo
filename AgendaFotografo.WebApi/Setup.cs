@@ -20,6 +20,7 @@ using AgendaFotografo.WebApi.Services.Financeiro;
 using AgendaFotografo.WebApi.Services.LinkPublico;
 using AgendaFotografo.WebApi.Services.Locais;
 using AgendaFotografo.WebApi.Services.Pendencias;
+using AgendaFotografo.WebApi.Services.Planos;
 using AgendaFotografo.WebApi.Services.TiposEvento;
 using AgendaFotografo.WebApi.Services.CurrentUser;
 using AgendaFotografo.WebApi.Services.Security;
@@ -154,24 +155,8 @@ public static class Setup
 
                     var servicos = contexto.HttpContext.RequestServices;
                     var db = servicos.GetRequiredService<EfDbContext>();
-                    var sessao = await servicos.GetRequiredService<SessaoUsuarioCache>().ObterAsync(usuarioId, async () =>
-                    {
-                        var dados = await db.Users.AsNoTracking().Where(u => u.Id == usuarioId)
-                            .Select(u => new
-                            {
-                                u.Ativo,
-                                u.AssinanteId,
-                                AssinanteAtivo = u.Assinante != null && u.Assinante.ASS_ATIVO
-                            })
-                            .FirstOrDefaultAsync(contexto.HttpContext.RequestAborted);
-                        if (dados is null) return new SessaoUsuario(false, false, []);
-
-                        var roles = await (from ur in db.UserRoles.AsNoTracking()
-                                           join r in db.Roles.AsNoTracking() on ur.RoleId equals r.Id
-                                           where ur.UserId == usuarioId
-                                           select r.Name!).ToListAsync(contexto.HttpContext.RequestAborted);
-                        return new SessaoUsuario(true, dados.Ativo, [.. roles], dados.AssinanteId, dados.AssinanteAtivo);
-                    });
+                    var sessao = await servicos.GetRequiredService<SessaoUsuarioCache>()
+                        .ObterAsync(db, usuarioId, contexto.HttpContext.RequestAborted);
 
                     if (!sessao.Existe || !sessao.Ativo || string.IsNullOrEmpty(roleDoToken) || !sessao.Roles.Contains(roleDoToken))
                     {
@@ -194,6 +179,7 @@ public static class Setup
         services.AddSingleton<AuditableEntitiesInterceptor>();
         services.AddMemoryCache();
         services.AddSingleton<SessaoUsuarioCache>();
+        services.AddSingleton<PlanoModulosCache>();
         services.AddSingleton<LinkPublicoSegredos>();
         services.AddSingleton<LinkPublicoTentativas>();
         services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
@@ -201,6 +187,7 @@ public static class Setup
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUser, CurrentUser>();
         services.AddScoped<AssinanteEscopo>();
+        services.AddScoped<ModulosAcesso>();
         services.AddScoped<FotografoEscopo>();
         services.AddScoped<AgendaFotografo.WebApi.Services.Escalas.EscalaFotografoConsultas>();
         services.AddScoped<IAssinanteInicializacao, AssinanteInicializacao>();

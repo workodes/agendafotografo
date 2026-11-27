@@ -10,6 +10,7 @@ using AgendaFotografo.WebApi.Models.Assinantes;
 using AgendaFotografo.WebApi.Services.Assinantes;
 using AgendaFotografo.WebApi.Services.CurrentUser;
 using AgendaFotografo.WebApi.Services.Security;
+using AgendaFotografo.WebApi.Services.TiposEvento;
 using AgendaFotografo.WebApi.Validators.Assinante;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -31,6 +32,7 @@ public class AssinanteController(
     SessaoUsuarioCache sessaoCache,
     ICurrentUser currentUser,
     AssinanteCadastro cadastro,
+    TipoEventoPadrao tipoEventoPadrao,
     ILogger<AssinanteController> logger) : AgendaFotografoController
 {
     private readonly IBaseRepository<Assinante> _repAssinante = repAssinante;
@@ -40,6 +42,7 @@ public class AssinanteController(
     private readonly SessaoUsuarioCache _sessaoCache = sessaoCache;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly AssinanteCadastro _cadastro = cadastro;
+    private readonly TipoEventoPadrao _tipoEventoPadrao = tipoEventoPadrao;
     private readonly ILogger<AssinanteController> _logger = logger;
 
     private const int PageSizeMaximo = 100;
@@ -49,6 +52,10 @@ public class AssinanteController(
     private const string MsgEmailDuplicado = AssinanteCadastro.MsgEmailDuplicado;
     private const string MsgSemUsuario = "Assinante sem usuário de acesso.";
     private const string MsgFalhaGravar = "Não foi possível salvar o assinante. Tente novamente.";
+    private const string MsgPlanoNaoEncontrado = "Plano não encontrado.";
+    private const string MsgPlanoInativo = "Plano inativo.";
+    private const string MsgEscolhaPlano = "Escolha o plano.";
+    private const string MsgGratuitoSemDocumento = "Para deixar a conta como Gratuito, preencha antes o CPF/CNPJ na ficha.";
 
     // =====================================================================================================
     // Consultas
@@ -115,6 +122,8 @@ public class AssinanteController(
                     ASS_TESTE_ATE = x.a.ASS_TESTE_ATE,
                     ASS_ORIGEM = x.a.ASS_ORIGEM,
                     ASS_TIPO = x.a.ASS_TIPO,
+                    ASS_PLANO_ID = x.a.ASS_PLANO_ID,
+                    PlanoNome = x.a.Plano != null ? x.a.Plano.PLA_NOME : null,
                     ExigirTrocaSenha = x.u != null && x.u.ExigirTrocaSenha,
                     LastLogin = x.u != null ? x.u.LastLogin : null
                 })
@@ -156,7 +165,7 @@ public class AssinanteController(
                 .Where(x => x.AssinanteId == id).OrderBy(x => x.CreatedAt)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return Ok(ParaModel(assinante, usuario));
+            return Ok(ParaModel(assinante, usuario, await ObterNomePlanoAsync(assinante.ASS_PLANO_ID, cancellationToken)));
         }
         catch (Exception ex)
         {
@@ -180,6 +189,9 @@ public class AssinanteController(
             var error = ValidationHelper.ValidateModel(model, new AssinanteValidator());
             if (error is not null) { await _unitOfWork.RollbackAsync(cancellationToken); return BadRequest(error); }
 
+            // Plano 24: vazio = plano do autocadastro; informado tem de existir e estar ativo
+            var plano = await ObterPlanoParaAtribuirAsync(model.ASS_PLANO_ID, null, cancellationToken);
+
             var senha = SenhaTemporaria.Gerar();
             var (assinante, usuario) = await _cadastro.CriarAsync(new AssinanteCadastroDados
             {
@@ -188,6 +200,7 @@ public class AssinanteController(
                 Telefone = model.ASS_TELEFONE,
                 CpfCnpj = model.ASS_CPF_CNPJ,
                 Tipo = TipoAssinante.Coordenador, // o Admin não cria fotógrafo; ASS_TIPO do body é ignorado
+                PlanoId = plano.Id,
                 Origem = OrigemAssinante.Admin,
                 TesteAte = model.ASS_TESTE_ATE,
                 EmailConfirmado = true,
@@ -203,7 +216,7 @@ public class AssinanteController(
             MarcarSemCache();
             return Ok(new AssinanteSenhaTemporariaResponse
             {
-                Assinante = ParaModel(assinante, usuario),
+                Assinante = ParaModel(assinante, usuario, plano.PLA_NOME),
                 SenhaTemporaria = senha
             });
         }
@@ -292,7 +305,7 @@ public class AssinanteController(
             _logger.LogInformation("Assinante atualizado. AtorId={AtorId} AssinanteId={AssinanteId}",
                 _currentUser.UserIdentity.Id, assinante.Id);
 
-            return Ok(ParaModel(assinante, usuario));
+            return Ok(ParaModel(assinante, usuario, await ObterNomePlanoAsync(assinante.ASS_PLANO_ID, cancellationToken)));
         }
         catch (DbUpdateException ex)
         {
@@ -377,7 +390,7 @@ public class AssinanteController(
             MarcarSemCache();
             return Ok(new AssinanteSenhaTemporariaResponse
             {
-                Assinante = ParaModel(assinante, usuario),
+                Assinante = ParaModel(assinante, usuario, await ObterNomePlanoAsync(assinante.ASS_PLANO_ID, cancellationToken)),
                 SenhaTemporaria = senha
             });
         }
@@ -387,6 +400,132 @@ public class AssinanteController(
             return BadRequest(ErrorHelper.Seguro(ex, _logger));
         }
     }
+
+    // =====================================================================================================
+    // Plano da conta (plano 24)
+    // =====================================================================================================
+
+    /// <summary>
+    /// Troca o plano da conta ou a liga/desliga como Gratuito, numa transação só (ASS_TIPO, ASS_PLANO_ID e role). Gratuito = ASS_TIPO 2,
+    /// role Fotografo, sem plano e sem teste (exige CPF/CNPJ válido já gravado). Com plano = ASS_TIPO 1, role Assinante e o plano (existente e
+    /// ativo, a não ser o atual); ao sair do Gratuito, cria os tipos de evento padrão se a conta não tiver nenhum. Depois do commit, invalida a
+    /// sessão de cada usuário da conta (com troca de role a sessão cai por 401; só troca de plano vale na requisição seguinte).
+    /// </summary>
+    [HttpPut]
+    public async Task<IActionResult> AlterarPlano([FromBody] AssinantePlanoModel model, CancellationToken cancellationToken)
+    {
+        if (model is null) return BadRequest("Dados inválidos.");
+
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            if (model.Id == Guid.Empty)
+                throw new Exception(MsgIdObrigatorio);
+
+            var assinante = await _repAssinante.SelectContext().FirstOrDefaultAsync(x => x.Id == model.Id, cancellationToken);
+            if (assinante is null)
+            {
+                await _unitOfWork.RollbackAsync(cancellationToken);
+                return NotFound(MsgNaoEncontrado);
+            }
+
+            // Usuários rastreados (o UserManager grava a role na mesma transação)
+            var usuarios = await _db.Users.Where(u => u.AssinanteId == assinante.Id)
+                .OrderBy(u => u.CreatedAt).ToListAsync(cancellationToken);
+            if (usuarios.Count == 0) throw new Exception(MsgSemUsuario);
+            foreach (var usuario in usuarios)
+            {
+                if (!await _userManager.IsInRoleAsync(usuario, RoleNames.Assinante)
+                    && !await _userManager.IsInRoleAsync(usuario, RoleNames.Fotografo))
+                    throw new Exception(MsgSemUsuario);
+            }
+
+            string? planoNome = null;
+            if (model.Gratuito)
+            {
+                // O documento é o vínculo do Gratuito com as equipes (planos 20 e 23): tem de estar gravado e válido
+                var erroDocumento = ValidationHelper.ValidateModel(
+                    new AssinanteModel { ASS_CPF_CNPJ = assinante.ASS_CPF_CNPJ }, new AssinanteFotografoValidator());
+                if (erroDocumento is not null) throw new Exception(MsgGratuitoSemDocumento);
+
+                assinante.ASS_TIPO = TipoAssinante.Fotografo;
+                assinante.ASS_PLANO_ID = null;
+                assinante.ASS_TESTE_ATE = null; // Gratuito não tem teste (plano 21)
+
+                foreach (var usuario in usuarios)
+                    await TrocarRoleAsync(usuario, RoleNames.Assinante, RoleNames.Fotografo);
+            }
+            else
+            {
+                if (model.ASS_PLANO_ID is null || model.ASS_PLANO_ID == Guid.Empty)
+                    throw new Exception(MsgEscolhaPlano);
+
+                var plano = await ObterPlanoParaAtribuirAsync(model.ASS_PLANO_ID, assinante.ASS_PLANO_ID, cancellationToken);
+                planoNome = plano.PLA_NOME;
+
+                assinante.ASS_TIPO = TipoAssinante.Coordenador;
+                assinante.ASS_PLANO_ID = plano.Id;
+                // ASS_TESTE_ATE não muda: o Admin dá teste pela ficha
+
+                foreach (var usuario in usuarios)
+                    await TrocarRoleAsync(usuario, RoleNames.Fotografo, RoleNames.Assinante);
+
+                // Conta com plano cria eventos: precisa dos tipos de evento padrão (só se não tiver nenhum, ativo ou não)
+                if (!await _db.TiposEvento.AnyAsync(t => t.TPE_ASSINANTE_ID == assinante.Id, cancellationToken))
+                    await _tipoEventoPadrao.CriarPadroesAsync(assinante.Id, cancellationToken);
+            }
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+            await _unitOfWork.CommitAsync(cancellationToken);
+
+            // Só depois do commit: a revalidação seguinte já enxerga a role e o plano novos
+            foreach (var usuario in usuarios)
+                _sessaoCache.Invalidar(usuario.Id);
+
+            _logger.LogInformation("Plano do assinante alterado. AtorId={AtorId} AssinanteId={AssinanteId} Gratuito={Gratuito} PlanoId={PlanoId}",
+                _currentUser.UserIdentity.Id, assinante.Id, model.Gratuito, assinante.ASS_PLANO_ID);
+
+            return Ok(ParaModel(assinante, usuarios[0], planoNome));
+        }
+        catch (Exception ex)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            return BadRequest(ErrorHelper.Seguro(ex, _logger));
+        }
+    }
+
+    /// <summary>Tira a role antiga (se tiver) e dá a nova (se ainda não tiver). Falha do Identity = exceção (a transação é desfeita).</summary>
+    private async Task TrocarRoleAsync(Usuario usuario, string roleAntiga, string roleNova)
+    {
+        if (await _userManager.IsInRoleAsync(usuario, roleAntiga))
+        {
+            var removeu = await _userManager.RemoveFromRoleAsync(usuario, roleAntiga);
+            if (!removeu.Succeeded) throw new Exception("Não foi possível alterar o perfil do usuário de acesso.");
+        }
+        if (!await _userManager.IsInRoleAsync(usuario, roleNova))
+        {
+            var deu = await _userManager.AddToRoleAsync(usuario, roleNova);
+            if (!deu.Succeeded) throw new Exception("Não foi possível alterar o perfil do usuário de acesso.");
+        }
+    }
+
+    /// <summary>
+    /// Plano a atribuir: vazio = plano do autocadastro; tem de existir ("Plano não encontrado.") e estar ativo ("Plano inativo."), a não ser
+    /// que seja o plano atual da conta.
+    /// </summary>
+    private async Task<Plano> ObterPlanoParaAtribuirAsync(Guid? planoId, Guid? planoAtual, CancellationToken cancellationToken)
+    {
+        var id = planoId is null || planoId == Guid.Empty ? PlanosPadrao.CoordenadorCompletoId : planoId.Value;
+        var plano = await _db.Planos.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, cancellationToken)
+            ?? throw new Exception(MsgPlanoNaoEncontrado);
+        if (!plano.PLA_ATIVO && plano.Id != planoAtual)
+            throw new Exception(MsgPlanoInativo);
+        return plano;
+    }
+
+    private async Task<string?> ObterNomePlanoAsync(Guid? planoId, CancellationToken cancellationToken)
+        => planoId is null ? null
+            : await _db.Planos.AsNoTracking().Where(p => p.Id == planoId).Select(p => p.PLA_NOME).FirstOrDefaultAsync(cancellationToken);
 
     // =====================================================================================================
     // Auxiliares
@@ -422,7 +561,8 @@ public class AssinanteController(
             _logger.LogInformation("{Mensagem}. AtorId={AtorId} AssinanteId={AssinanteId}",
                 logMensagem, _currentUser.UserIdentity.Id, id);
 
-            return Ok(ParaModel(assinante, usuarios.FirstOrDefault()));
+            return Ok(ParaModel(assinante, usuarios.FirstOrDefault(),
+                await ObterNomePlanoAsync(assinante.ASS_PLANO_ID, cancellationToken)));
         }
         catch (Exception ex)
         {
@@ -457,7 +597,7 @@ public class AssinanteController(
         a.ASS_TESTE_ATE = m.ASS_TESTE_ATE; // data passada é permitida (encerra o teste); ASS_ORIGEM do body é sempre ignorado
     }
 
-    private static AssinanteModel ParaModel(Assinante a, Usuario? u) => new()
+    private static AssinanteModel ParaModel(Assinante a, Usuario? u, string? planoNome) => new()
     {
         Id = a.Id,
         ASS_NOME = a.ASS_NOME,
@@ -469,6 +609,8 @@ public class AssinanteController(
         ASS_TESTE_ATE = a.ASS_TIPO == TipoAssinante.Fotografo ? null : a.ASS_TESTE_ATE,
         ASS_ORIGEM = a.ASS_ORIGEM,
         ASS_TIPO = a.ASS_TIPO,
+        ASS_PLANO_ID = a.ASS_PLANO_ID,
+        PlanoNome = a.ASS_PLANO_ID is null ? null : planoNome,
         TesteDiasRestantes = a.ASS_TIPO == TipoAssinante.Fotografo
             ? null
             : TesteGratis.DiasRestantes(a.ASS_TESTE_ATE, DateOnly.FromDateTime(DateTime.Now)),

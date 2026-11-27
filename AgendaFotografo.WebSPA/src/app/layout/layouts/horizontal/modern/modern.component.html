@@ -41,7 +41,7 @@
             <ng-container *ngIf="ehAssinante">
                 <busca-global [modo]="isScreenLarge ? 'campo' : 'barra'"></busca-global>
             </ng-container>
-            <avisos *ngIf="ehAssinante"></avisos>
+            <avisos *ngIf="avisosVisivel"></avisos>
             <user></user>
         </div>
     </div>

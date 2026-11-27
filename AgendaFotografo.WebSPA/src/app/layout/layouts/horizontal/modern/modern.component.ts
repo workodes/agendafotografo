@@ -19,6 +19,8 @@ import { AvisosComponent } from 'app/layout/common/avisos/avisos.component';
 import { BuscaGlobalComponent } from 'app/layout/common/busca-global/busca-global.component';
 import { FecharComEscDirective } from 'app/modules/shared/directives/fechar-com-esc.directive';
 import { ROLE_NAMES } from 'app/core/constants/RoleNames';
+import { PlanoModuloService } from 'app/core/services/plano-modulo.service';
+import { ModuloPlano } from 'app/models/enums/ModuloPlano';
 import { Subject, filter, takeUntil } from 'rxjs';
 
 @Component({
@@ -34,8 +36,8 @@ export class ModernLayoutComponent implements OnInit, OnDestroy
     isScreenSmall: boolean;
     /** A partir de `lg` a busca vira uma caixa no cabeçalho; abaixo disso é só o ícone (barra sobre o cabeçalho). */
     isScreenLarge: boolean;
-    /** Assistente com IA: só para o Assinante, e só quando a API informa que o chat está ligado. */
-    assistenteVisivel = false;
+    /** Assistente com IA: chat ligado na API (status). Só aparece para o Assinante com o módulo Assistente (getter assistenteVisivel). */
+    private _chatLigado = false;
     navigation: Navigation = { horizontal: [] };
     private _unsubscribeAll: Subject<any> = new Subject<any>();
     /** O modal de troca obrigatória é aberto uma única vez por instância do layout (F5 recria o layout e reabre). */
@@ -56,6 +58,7 @@ export class ModernLayoutComponent implements OnInit, OnDestroy
         private _matDialog: MatDialog,
         private _router: Router,
         private _chatService: ChatService,
+        private _planoModulo: PlanoModuloService,
     )
     {
     }
@@ -91,12 +94,13 @@ export class ModernLayoutComponent implements OnInit, OnDestroy
                 }
             });
 
-        // Assistente: consulta o status uma vez ao montar o layout do Assinante (falha = desligado).
-        if (this.ehAssinante)
+        // Assistente: consulta o status uma vez ao montar o layout do Assinante (falha = desligado). Plano 24: só com o módulo
+        // Assistente liberado (os módulos já foram carregados pelo initialDataResolver).
+        if (this.ehAssinante && this._planoModulo.Liberado(ModuloPlano.Assistente))
         {
             this._chatService.status$
                 .pipe(takeUntil(this._unsubscribeAll))
-                .subscribe(status => (this.assistenteVisivel = status?.Ligado === true));
+                .subscribe(status => (this._chatLigado = status?.Ligado === true));
             this._chatService.CarregarStatus();
         }
 
@@ -167,6 +171,16 @@ export class ModernLayoutComponent implements OnInit, OnDestroy
     /** Rota da tela inicial da role logada (link real do logo). */
     get rotaInicio(): string {
         return this.authService.getRotaInicial();
+    }
+
+    /** Plano 24: painel Assistente = Assinante com o módulo liberado e o chat ligado. Some na hora se o plano perder o módulo. */
+    get assistenteVisivel(): boolean {
+        return this._chatLigado && this.ehAssinante && this._planoModulo.Liberado(ModuloPlano.Assistente);
+    }
+
+    /** Plano 24: sino de avisos (com o convite do app instalado) só com o módulo Avisos. */
+    get avisosVisivel(): boolean {
+        return this.ehAssinante && this._planoModulo.Liberado(ModuloPlano.Avisos);
     }
 
     /** Sino de avisos, busca global e Assistente são só do Assinante (o Fotógrafo recebe 403 nos endpoints do coordenador); o Admin mantém o cabeçalho enxuto. */

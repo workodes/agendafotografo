@@ -1,0 +1,62 @@
+<h2 mat-dialog-title class="!pb-0">Alterar plano</h2>
+<div class="px-6 pb-1 text-sm text-secondary truncate">{{ data.ASS_NOME }} · hoje: {{ situacaoAtual }}</div>
+
+<mat-dialog-content class="!pt-3">
+    <div *ngIf="carregando" class="flex items-center justify-center py-10" role="status" aria-label="Carregando">
+        <mat-progress-spinner diameter="32" mode="indeterminate"></mat-progress-spinner>
+    </div>
+
+    <div *ngIf="erroCarga" role="alert" class="p-3 rounded-lg border border-red-200 bg-red-50 text-red-800 text-sm">
+        <div>{{ erroCarga }}</div>
+        <button mat-button type="button" class="mt-1" (click)="carregar()">Tentar de novo</button>
+    </div>
+
+    <ng-container *ngIf="!carregando && !erroCarga">
+        <div *ngIf="erroApi" role="alert" class="mb-3 p-3 rounded-lg border border-red-200 bg-red-50 text-red-800 text-sm">{{ erroApi }}</div>
+
+        <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-1">
+                <mat-slide-toggle [formControl]="gratuito">Gratuito: só vê a agenda</mat-slide-toggle>
+                <span class="text-xs text-secondary">A conta só vê os eventos em que outros coordenadores a escalarem pelo CPF/CNPJ. Ligado, o plano não vale.</span>
+            </div>
+
+            <mat-form-field appearance="fill" floatLabel="always" class="fuse-mat-rounded fuse-mat-dense w-full" subscriptSizing="dynamic">
+                <mat-label>Plano</mat-label>
+                <mat-select [formControl]="plano" placeholder="Escolha o plano">
+                    <mat-option *ngFor="let p of planos" [value]="p.Id">{{ p.Nome }}</mat-option>
+                </mat-select>
+                <mat-hint *ngIf="!gratuito.value">Só aparecem os planos ativos (e o plano atual).</mat-hint>
+            </mat-form-field>
+
+            <!-- Avisos conforme a troca -->
+            <div *ngIf="faltaDocumento" role="alert" class="flex items-start gap-2 p-3 rounded-lg border border-red-200 bg-red-50 text-red-800 text-sm">
+                <mat-icon class="icon-size-5 shrink-0 text-current" svgIcon="heroicons_outline:exclamation-circle"></mat-icon>
+                <span>Para deixar a conta como Gratuito, preencha antes o CPF/CNPJ na ficha.</span>
+            </div>
+
+            <div *ngIf="trocaDeTipo" role="status" class="flex items-start gap-2 p-3 rounded-lg border border-amber-300 bg-amber-50 text-amber-900 text-sm">
+                <mat-icon class="icon-size-5 shrink-0 text-amber-600" svgIcon="heroicons_outline:exclamation-triangle"></mat-icon>
+                <div class="flex min-w-0 flex-col gap-1">
+                    <span class="font-medium">A pessoa vai sair do sistema e precisará entrar de novo.</span>
+                    <span *ngIf="paraGratuito">
+                        Os eventos, a equipe e o financeiro dela ficam guardados, mas ela só verá os eventos em que for escalada.
+                        Os eventos dela também deixam de aparecer para quem ela escalou, até a conta voltar a um plano.
+                    </span>
+                </div>
+            </div>
+
+            <div *ngIf="soTrocaDePlano" role="status" class="flex items-start gap-2 p-3 rounded-lg bg-primary-50 text-sm">
+                <mat-icon class="icon-size-5 shrink-0 text-primary-700" svgIcon="heroicons_outline:information-circle"></mat-icon>
+                <span>Os módulos mudam na hora.</span>
+            </div>
+        </div>
+    </ng-container>
+</mat-dialog-content>
+
+<mat-dialog-actions class="!flex-wrap !justify-end gap-2">
+    <button mat-button type="button" [disabled]="salvando" (click)="cancelar()">Cancelar</button>
+    <button mat-flat-button color="primary" type="button" [disabled]="!podeSalvar" (click)="salvar()">
+        <mat-progress-spinner *ngIf="salvando" diameter="20" mode="indeterminate"></mat-progress-spinner>
+        <span *ngIf="!salvando">Salvar</span>
+    </button>
+</mat-dialog-actions>
